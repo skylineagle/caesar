@@ -12,9 +12,6 @@ from typing import Any
 import cv2
 
 from frigate.camera import CameraMetrics, PTZMetrics
-from frigate.camera_reset_manager import camera_reset_manager
-from frigate.camera_switch_monitor import CameraSwitchDetector
-from frigate.comms.config_updater import ConfigSubscriber
 from frigate.comms.inter_process import InterProcessRequestor
 from frigate.config import CameraConfig, DetectConfig, ModelConfig
 from frigate.config.camera.camera import CameraTypeEnum
@@ -810,35 +807,6 @@ def process_frames(
         if not camera_enabled:
             time.sleep(0.1)
             continue
-
-        # check for updated detect config
-        _, updated_detect_config = detect_config_subscriber.check_for_update()
-
-        if updated_detect_config:
-            detect_config = updated_detect_config
-
-        # check for updated motion config (masks, etc.)
-        _, updated_motion_config = motion_config_subscriber.check_for_update()
-
-        if updated_motion_config:
-            # Update motion detector with new config
-            motion_detector.config = updated_motion_config
-            logger.info(f"Updated motion config for {camera_name}")
-
-        # check for updated object filters
-        _, updated_object_filters = object_filters_subscriber.check_for_update()
-
-        if updated_object_filters:
-            object_filters = updated_object_filters
-            logger.info(f"Updated object filters for {camera_name}")
-
-        # check for updated zones
-        _, updated_zones = zones_subscriber.check_for_update()
-
-        if updated_zones:
-            # Update zones in camera config
-            camera_config.zones = updated_zones
-            logger.info(f"Updated zones for {camera_name}")
 
         if (
             datetime.datetime.now().astimezone(datetime.timezone.utc)
