@@ -8,9 +8,13 @@ from typing import Any, Callable, Optional
 from frigate.camera import PTZMetrics
 from frigate.camera.activity_manager import CameraActivityManager
 from frigate.comms.base_communicator import Communicator
-from frigate.comms.config_updater import ConfigPublisher
 from frigate.comms.webpush import WebPushClient
 from frigate.config import BirdseyeModeEnum, FrigateConfig
+from frigate.config.camera.updater import (
+    CameraConfigUpdateEnum,
+    CameraConfigUpdatePublisher,
+    CameraConfigUpdateTopic,
+)
 from frigate.const import (
     CLEAR_ONGOING_REVIEW_SEGMENTS,
     INSERT_MANY_RECORDINGS,
@@ -38,7 +42,7 @@ class Dispatcher:
     def __init__(
         self,
         config: FrigateConfig,
-        config_updater: ConfigPublisher,
+        config_updater: CameraConfigUpdatePublisher,
         onvif: OnvifController,
         ptz_metrics: dict[str, PTZMetrics],
         communicators: list[Communicator],
@@ -276,8 +280,11 @@ class Dispatcher:
                         f"Turning on motion for {camera_name} due to detection being enabled."
                     )
                     motion_settings.enabled = True
-                    self.config_updater.publish(
-                        f"config/motion/{camera_name}", motion_settings
+                    self.config_updater.publish_update(
+                        CameraConfigUpdateTopic(
+                            CameraConfigUpdateEnum.motion, camera_name
+                        ),
+                        motion_settings,
                     )
                     self.publish(f"{camera_name}/motion/state", payload, retain=True)
         elif payload == "OFF":
@@ -306,7 +313,10 @@ class Dispatcher:
                 logger.info(f"Turning off camera {camera_name}")
                 camera_settings.enabled = False
 
-        self.config_updater.publish(f"config/enabled/{camera_name}", camera_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.enabled, camera_name),
+            camera_settings.enabled,
+        )
         self.publish(f"{camera_name}/enabled/state", payload, retain=True)
 
     def _on_motion_command(self, camera_name: str, payload: str) -> None:
@@ -329,7 +339,10 @@ class Dispatcher:
                 logger.info(f"Turning off motion for {camera_name}")
                 motion_settings.enabled = False
 
-        self.config_updater.publish(f"config/motion/{camera_name}", motion_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.motion, camera_name),
+            motion_settings,
+        )
         self.publish(f"{camera_name}/motion/state", payload, retain=True)
 
     def _on_motion_improve_contrast_command(
@@ -347,7 +360,10 @@ class Dispatcher:
                 logger.info(f"Turning off improve contrast for {camera_name}")
                 motion_settings.improve_contrast = False  # type: ignore[union-attr]
 
-        self.config_updater.publish(f"config/motion/{camera_name}", motion_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.motion, camera_name),
+            motion_settings,
+        )
         self.publish(f"{camera_name}/improve_contrast/state", payload, retain=True)
 
     def _on_ptz_autotracker_command(self, camera_name: str, payload: str) -> None:
@@ -387,7 +403,10 @@ class Dispatcher:
         motion_settings = self.config.cameras[camera_name].motion
         logger.info(f"Setting motion contour area for {camera_name}: {payload}")
         motion_settings.contour_area = payload  # type: ignore[union-attr]
-        self.config_updater.publish(f"config/motion/{camera_name}", motion_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.motion, camera_name),
+            motion_settings,
+        )
         self.publish(f"{camera_name}/motion_contour_area/state", payload, retain=True)
 
     def _on_motion_threshold_command(self, camera_name: str, payload: int) -> None:
@@ -401,7 +420,10 @@ class Dispatcher:
         motion_settings = self.config.cameras[camera_name].motion
         logger.info(f"Setting motion threshold for {camera_name}: {payload}")
         motion_settings.threshold = payload  # type: ignore[union-attr]
-        self.config_updater.publish(f"config/motion/{camera_name}", motion_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.motion, camera_name),
+            motion_settings,
+        )
         self.publish(f"{camera_name}/motion_threshold/state", payload, retain=True)
 
     def _on_global_notification_command(self, payload: str) -> None:
@@ -413,8 +435,8 @@ class Dispatcher:
         notification_settings = self.config.notifications
         logger.info(f"Setting all notifications: {payload}")
         notification_settings.enabled = payload == "ON"  # type: ignore[union-attr]
-        self.config_updater.publish(
-            "config/notifications", {"_global_notifications": notification_settings}
+        self.config_updater.publisher.publish(
+            "config/notifications", notification_settings
         )
         self.publish("notifications/state", payload, retain=True)
 
@@ -437,7 +459,10 @@ class Dispatcher:
                 logger.info(f"Turning off audio detection for {camera_name}")
                 audio_settings.enabled = False
 
-        self.config_updater.publish(f"config/audio/{camera_name}", audio_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.audio, camera_name),
+            audio_settings,
+        )
         self.publish(f"{camera_name}/audio/state", payload, retain=True)
 
     def _on_recordings_command(self, camera_name: str, payload: str) -> None:
@@ -459,7 +484,10 @@ class Dispatcher:
                 logger.info(f"Turning off recordings for {camera_name}")
                 record_settings.enabled = False
 
-        self.config_updater.publish(f"config/record/{camera_name}", record_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.record, camera_name),
+            record_settings,
+        )
         self.publish(f"{camera_name}/recordings/state", payload, retain=True)
 
     def _on_snapshots_command(self, camera_name: str, payload: str) -> None:
@@ -475,6 +503,10 @@ class Dispatcher:
                 logger.info(f"Turning off snapshots for {camera_name}")
                 snapshots_settings.enabled = False
 
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.snapshots, camera_name),
+            snapshots_settings,
+        )
         self.publish(f"{camera_name}/snapshots/state", payload, retain=True)
 
     def _on_ptz_command(self, camera_name: str, payload: str) -> None:
@@ -509,7 +541,10 @@ class Dispatcher:
                 logger.info(f"Turning off birdseye for {camera_name}")
                 birdseye_settings.enabled = False
 
-        self.config_updater.publish(f"config/birdseye/{camera_name}", birdseye_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.birdseye, camera_name),
+            birdseye_settings,
+        )
         self.publish(f"{camera_name}/birdseye/state", payload, retain=True)
 
     def _on_birdseye_mode_command(self, camera_name: str, payload: str) -> None:
@@ -530,7 +565,10 @@ class Dispatcher:
             f"Setting birdseye mode for {camera_name} to {birdseye_settings.mode}"
         )
 
-        self.config_updater.publish(f"config/birdseye/{camera_name}", birdseye_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.birdseye, camera_name),
+            birdseye_settings,
+        )
         self.publish(f"{camera_name}/birdseye_mode/state", payload, retain=True)
 
     def _on_camera_notification_command(self, camera_name: str, payload: str) -> None:
@@ -562,8 +600,9 @@ class Dispatcher:
             ):
                 self.web_push_client.suspended_cameras[camera_name] = 0
 
-        self.config_updater.publish(
-            "config/notifications", {camera_name: notification_settings}
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.notifications, camera_name),
+            notification_settings,
         )
         self.publish(f"{camera_name}/notifications/state", payload, retain=True)
         self.publish(f"{camera_name}/notifications/suspended", "0", retain=True)
@@ -620,7 +659,10 @@ class Dispatcher:
                 logger.info(f"Turning off alerts for {camera_name}")
                 review_settings.alerts.enabled = False
 
-        self.config_updater.publish(f"config/review/{camera_name}", review_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.review, camera_name),
+            review_settings,
+        )
         self.publish(f"{camera_name}/review_alerts/state", payload, retain=True)
 
     def _on_detections_command(self, camera_name: str, payload: str) -> None:
@@ -642,7 +684,10 @@ class Dispatcher:
                 logger.info(f"Turning off detections for {camera_name}")
                 review_settings.detections.enabled = False
 
-        self.config_updater.publish(f"config/review/{camera_name}", review_settings)
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.review, camera_name),
+            review_settings,
+        )
         self.publish(f"{camera_name}/review_detections/state", payload, retain=True)
 
     def _on_motion_mask_command(self, camera_name: str, payload: str) -> None:
