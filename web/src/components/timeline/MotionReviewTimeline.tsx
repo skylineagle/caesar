@@ -232,6 +232,7 @@ export function MotionReviewTimeline({
         timelineStartAligned={timelineStartAligned}
         timelineEnd={timelineEnd}
         showNowIndicator={showNowIndicator}
+        getRecordingAvailability={getRecordingAvailability}
       />
     </ReviewTimeline>
   );
