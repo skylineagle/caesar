@@ -1,6 +1,4 @@
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import MotionMaskEditPane from "@/components/settings/MotionMaskEditPane";
-import ObjectMaskEditPane from "@/components/settings/ObjectMaskEditPane";
 import { PolygonCanvas } from "@/components/settings/PolygonCanvas";
 import PolygonItem from "@/components/settings/PolygonItem";
 import ZoneEditPane from "@/components/settings/ZoneEditPane";
