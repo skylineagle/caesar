@@ -727,7 +727,17 @@ class FrigateApp:
 
             logger.info("Starting uvicorn server...")
             uvicorn.run(
-                app,
+                create_fastapi_app(
+                    self.config,
+                    self.db,
+                    self.embeddings,
+                    self.detected_frames_processor,
+                    self.storage_maintainer,
+                    self.onvif_controller,
+                    self.stats_emitter,
+                    self.event_metadata_updater,
+                    self.inter_config_updater,
+                ),
                 host="127.0.0.1",
                 port=5001,
                 log_level="error",

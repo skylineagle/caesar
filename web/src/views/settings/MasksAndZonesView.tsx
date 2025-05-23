@@ -1,6 +1,5 @@
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import MotionMaskEditPane from "@/components/settings/MotionMaskEditPane";
-import ObjectMaskEditPane from "@/components/settings/ObjectMaskEditPane";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PolygonCanvas } from "@/components/settings/PolygonCanvas";
 import PolygonItem from "@/components/settings/PolygonItem";
 import ZoneEditPane from "@/components/settings/ZoneEditPane";
@@ -24,10 +23,6 @@ import { interpolatePoints, parseCoordinates } from "@/utils/canvasUtil";
 import copy from "copy-to-clipboard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isDesktop } from "react-device-detect";
-import { LuExternalLink, LuPlus } from "react-icons/lu";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import useSWR from "swr";
 
 import { useSearchEffect } from "@/hooks/use-overlay-state";
 import { useTranslation } from "react-i18next";

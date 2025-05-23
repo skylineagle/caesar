@@ -29,6 +29,7 @@ from frigate.comms.event_metadata_updater import (
     EventMetadataPublisher,
 )
 from frigate.config import FrigateConfig
+from frigate.config.camera.updater import CameraConfigUpdatePublisher
 from frigate.embeddings import EmbeddingsContext
 from frigate.ptz.onvif import OnvifController
 from frigate.stats.emitter import StatsEmitter
@@ -58,8 +59,9 @@ def create_fastapi_app(
     detected_frames_processor,
     storage_maintainer: Optional[StorageMaintainer],
     onvif: OnvifController,
-    stats_emitter: Optional[StatsEmitter],
-    event_metadata_updater: Optional[EventMetadataPublisher],
+    stats_emitter: StatsEmitter,
+    event_metadata_updater: EventMetadataPublisher,
+    config_publisher: CameraConfigUpdatePublisher,
 ):
     logger.info("Starting FastAPI app")
     app = FastAPI(
@@ -132,6 +134,7 @@ def create_fastapi_app(
     app.onvif = onvif
     app.stats_emitter = stats_emitter
     app.event_metadata_updater = event_metadata_updater
+    app.config_publisher = config_publisher
     app.jwt_token = get_jwt_secret() if frigate_config.auth.enabled else None
 
     # Handle embeddings context - may be None during early startup
