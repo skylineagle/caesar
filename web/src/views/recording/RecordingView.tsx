@@ -33,7 +33,11 @@ import { ExportMode } from "@/types/filter";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { VideoResolutionType } from "@/types/live";
 import { Preview } from "@/types/preview";
-import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
+import {
+  ASPECT_VERTICAL_LAYOUT,
+  ASPECT_WIDE_LAYOUT,
+  RecordingSegment,
+} from "@/types/record";
 import {
   MotionData,
   RecordingsSummary,
@@ -850,6 +854,16 @@ function Timeline({
     },
   ]);
 
+  const { data: noRecordings } = useSWR<RecordingSegment[]>([
+    "recordings/unavailable",
+    {
+      before: timeRange.before,
+      after: timeRange.after,
+      scale: Math.round(zoomSettings.segmentDuration / 2),
+      cameras: mainCamera,
+    },
+  ]);
+
   const [exportStart, setExportStartTime] = useState<number>(0);
   const [exportEnd, setExportEndTime] = useState<number>(0);
 
@@ -949,6 +963,7 @@ function Timeline({
             setHandlebarTime={setCurrentTime}
             events={mainCameraReviewItems}
             motion_events={motionData ?? []}
+            noRecordingRanges={noRecordings ?? []}
             contentRef={contentRef}
             onHandlebarDraggingChange={(scrubbing) => setScrubbing(scrubbing)}
             isZooming={isZooming}
