@@ -33,6 +33,9 @@ from frigate.data_processing.common.audio_transcription.model import (
 from frigate.data_processing.real_time.audio_transcription import (
     AudioTranscriptionRealTimeProcessor,
 )
+from frigate.data_processing.real_time.audio_transcription import (
+    AudioTranscriptionRealTimeProcessor,
+)
 from frigate.ffmpeg_presets import parse_preset_input
 from frigate.log import LogPipe, redirect_output_to_logger
 from frigate.object_detection.base import load_labels
@@ -187,6 +190,23 @@ class AudioEventMaintainer(threading.Thread):
                 camera_config=self.camera_config,
                 requestor=self.requestor,
                 model_runner=self.audio_transcription_model_runner,
+                metrics=self.camera_metrics[self.camera_config.name],
+                stop_event=self.stop_event,
+            )
+
+            self.transcription_thread = threading.Thread(
+                target=self.transcription_processor.run,
+                name=f"{self.camera_config.name}_transcription_processor",
+                daemon=True,
+            )
+            self.transcription_thread.start()
+
+        if self.camera_config.audio_transcription.enabled_in_config:
+            # init the transcription processor for this camera
+            self.transcription_processor = AudioTranscriptionRealTimeProcessor(
+                config=self.config,
+                camera_config=self.camera_config,
+                requestor=self.requestor,
                 metrics=self.camera_metrics[self.camera_config.name],
                 stop_event=self.stop_event,
             )
