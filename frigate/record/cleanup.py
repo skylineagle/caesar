@@ -100,7 +100,11 @@ class RecordingCleanup(threading.Thread):
             ).execute()
 
     def expire_existing_camera_recordings(
-        self, expire_date: float, config: CameraConfig, reviews: ReviewSegment
+        self,
+        continuous_expire_date: float,
+        motion_expire_date: float,
+        config: CameraConfig,
+        reviews: ReviewSegment,
     ) -> None:
         """Delete recordings for existing camera based on retention config."""
         # Get the timestamp for cutoff of retained days
@@ -117,8 +121,14 @@ class RecordingCleanup(threading.Thread):
                 Recordings.dBFS,
             )
             .where(
-                Recordings.camera == config.name,
-                Recordings.end_time < expire_date,
+                (Recordings.camera == config.name)
+                & (
+                    (
+                        (Recordings.end_time < continuous_expire_date)
+                        & (Recordings.motion == 0)
+                    )
+                    | (Recordings.end_time < motion_expire_date)
+                )
             )
             .order_by(Recordings.start_time)
             .namedtuples()
@@ -206,7 +216,7 @@ class RecordingCleanup(threading.Thread):
                 Recordings.id << deleted_recordings_list[i : i + max_deletes]
             ).execute()
 
-        previews: Previews = (
+        previews: list[Previews] = (
             Previews.select(
                 Previews.id,
                 Previews.start_time,
@@ -214,8 +224,9 @@ class RecordingCleanup(threading.Thread):
                 Previews.path,
             )
             .where(
-                Previews.camera == config.name,
-                Previews.end_time < expire_date,
+                (Previews.camera == config.name)
+                & (Previews.end_time < continuous_expire_date)
+                & (Previews.end_time < motion_expire_date)
             )
             .order_by(Previews.start_time)
             .namedtuples()
@@ -271,7 +282,9 @@ class RecordingCleanup(threading.Thread):
         logger.debug("Start deleted cameras.")
 
         # Handle deleted cameras
-        expire_days = self.config.record.retain.days
+        expire_days = max(
+            self.config.record.continuous.days, self.config.record.motion.days
+        )
         expire_before = (
             datetime.datetime.now() - datetime.timedelta(days=expire_days)
         ).timestamp()
@@ -309,9 +322,12 @@ class RecordingCleanup(threading.Thread):
             now = datetime.datetime.now()
 
             self.expire_review_segments(config, now)
-
-            expire_days = config.record.retain.days
-            expire_date = (now - datetime.timedelta(days=expire_days)).timestamp()
+            continuous_expire_date = (
+                now - datetime.timedelta(days=config.record.continuous.days)
+            ).timestamp()
+            motion_expire_date = (
+                now - datetime.timedelta(days=config.record.motion.days)
+            ).timestamp()
 
             # Get all the reviews to check against
             reviews: ReviewSegment = (
@@ -324,13 +340,15 @@ class RecordingCleanup(threading.Thread):
                     ReviewSegment.camera == camera,
                     # need to ensure segments for all reviews starting
                     # before the expire date are included
-                    ReviewSegment.start_time < expire_date,
+                    ReviewSegment.start_time < motion_expire_date,
                 )
                 .order_by(ReviewSegment.start_time)
                 .namedtuples()
             )
 
-            self.expire_existing_camera_recordings(expire_date, config, reviews)
+            self.expire_existing_camera_recordings(
+                continuous_expire_date, motion_expire_date, config, reviews
+            )
             logger.debug(f"End camera: {camera}.")
 
         logger.debug("End all cameras.")
