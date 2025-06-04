@@ -18,6 +18,8 @@ from frigate.log import redirect_output_to_logger
 from frigate.types import ModelStatusTypesEnum
 from frigate.util.process import FrigateProcess
 
+from frigate.const import CLIPS_DIR, MODEL_CACHE_DIR
+
 BATCH_SIZE = 16
 EPOCHS = 50
 LEARNING_RATE = 0.001
