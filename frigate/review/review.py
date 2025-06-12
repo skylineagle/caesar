@@ -3,6 +3,7 @@
 import logging
 from multiprocessing.synchronize import Event as MpEvent
 
+import frigate.util as util
 from frigate.config import FrigateConfig
 from frigate.const import PROCESS_PRIORITY_MED
 from frigate.review.maintainer import ReviewSegmentMaintainer

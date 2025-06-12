@@ -716,15 +716,5 @@ class FrigateApp:
             shm.close()
             shm.unlink()
 
-        # Cleanup camera switching resources
-        try:
-            from frigate.camera_switch_cleanup import cleanup_camera_switch_files
-
-            logger.info("Cleaning up camera switching resources...")
-            cleanup_camera_switch_files()
-        except Exception as e:
-            logger.warning(f"Error during camera switching cleanup: {e}")
-
-        # exit the mp Manager process
         _stop_logging()
         self.metrics_manager.shutdown()
