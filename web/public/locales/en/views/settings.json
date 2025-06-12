@@ -241,6 +241,7 @@
       "name": "Camera Name",
       "nameRequired": "Camera name is required",
       "nameLength": "Camera name must be less than 24 characters.",
+      "nameInvalid": "Camera name must contain only letters, numbers, underscores, or hyphens",
       "namePlaceholder": "e.g., front_door",
       "enabled": "Enabled",
       "ffmpeg": {
