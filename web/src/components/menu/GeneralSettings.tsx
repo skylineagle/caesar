@@ -343,10 +343,7 @@ export default function GeneralSettings({ className }: GeneralSettingsProps) {
                 <span>Documentation</span>
               </MenuItem>
             </a>
-            <a
-              href="https://github.com/blakeblackshear/frigate"
-              target="_blank"
-            >
+            <a href="https://github.com/skylineagle/caesar" target="_blank">
               <MenuItem
                 className={
                   isDesktop ? "cursor-pointer" : "flex items-center p-2 text-sm"

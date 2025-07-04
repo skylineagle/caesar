@@ -270,15 +270,6 @@ export default function MotionMaskEditPane({
           <div className="mb-3 text-sm text-primary">
             Motion masks do not prevent objects from being detected. You should
             use a required zone instead.
-            <Link
-              to="https://github.com/blakeblackshear/frigate/discussions/13040"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="my-3 block"
-            >
-              Read the documentation{" "}
-              <LuExternalLink className="ml-2 inline-flex size-3" />
-            </Link>
           </div>
         </>
       )}

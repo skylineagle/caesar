@@ -1,5 +1,5 @@
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import useApiFilter from "@/hooks/use-api-filter";
+import { useReviewFilter } from "@/hooks/use-review-filter";
 import { useCameraPreviews } from "@/hooks/use-camera-previews";
 import { useTimezone } from "@/hooks/use-date-utils";
 import { useOverlayState, useSearchEffect } from "@/hooks/use-overlay-state";
@@ -30,14 +30,17 @@ export default function Events() {
   });
   const timezone = useTimezone(config);
 
-  // recordings viewer
+  // recordings viewer and review filter
 
-  const [severity, setSeverity] = useOverlayState<ReviewSeverity>(
-    "severity",
-    "alert",
-  );
-
-  const [showReviewed, setShowReviewed] = usePersistence("showReviewed", false);
+  const {
+    filter: reviewFilter,
+    setFilter: setReviewFilter,
+    severity,
+    setSeverity,
+    showReviewed,
+    setShowReviewed,
+    searchParams: reviewSearchParams,
+  } = useReviewFilter();
 
   const [recording, setRecording] = useOverlayState<RecordingStartingPoint>(
     "recording",
@@ -82,35 +85,7 @@ export default function Events() {
     }
   }, [recording, severity]);
 
-  // review filter
-
-  const [reviewFilter, setReviewFilter, reviewSearchParams] =
-    useApiFilter<ReviewFilter>();
-
-  useSearchEffect("cameras", (cameras: string) => {
-    setReviewFilter({
-      ...reviewFilter,
-      cameras: cameras.includes(",") ? cameras.split(",") : [cameras],
-    });
-    return true;
-  });
-
-  useSearchEffect("labels", (labels: string) => {
-    setReviewFilter({
-      ...reviewFilter,
-      labels: labels.includes(",") ? labels.split(",") : [labels],
-    });
-    return true;
-  });
-
-  useSearchEffect("zones", (zones: string) => {
-    setReviewFilter({
-      ...reviewFilter,
-      zones: zones.includes(",") ? zones.split(",") : [zones],
-    });
-    return true;
-  });
-
+  // handle camera group URL parameter
   useSearchEffect("group", (reviewGroup) => {
     if (config && reviewGroup && reviewGroup != "default") {
       const group = config.camera_groups[reviewGroup];

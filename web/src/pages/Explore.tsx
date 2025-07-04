@@ -5,7 +5,7 @@ import {
 } from "@/api/ws";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
 import AnimatedCircularProgressBar from "@/components/ui/circular-progress-bar";
-import { useApiFilterArgs } from "@/hooks/use-api-filter";
+import { useSearchFilter } from "@/hooks/use-search-filter";
 import { useTimezone } from "@/hooks/use-date-utils";
 import { usePersistence } from "@/hooks/use-persistence";
 import { FrigateConfig } from "@/types/frigateConfig";
@@ -52,17 +52,20 @@ export default function Explore() {
 
   const [search, setSearch] = useState("");
 
-  const [searchFilter, setSearchFilter, searchSearchParams] =
-    useApiFilterArgs<SearchFilter>();
+  const {
+    filter: searchFilter,
+    setFilter: setSearchFilter,
+    searchParams: searchSearchParams,
+  } = useSearchFilter();
 
   const searchTerm = useMemo(
-    () => searchSearchParams?.["query"] || "",
-    [searchSearchParams],
+    () => searchFilter?.query || "",
+    [searchFilter],
   );
 
   const similaritySearch = useMemo(
-    () => searchSearchParams["search_type"] == "similarity",
-    [searchSearchParams],
+    () => searchFilter?.search_type?.includes("similarity") || false,
+    [searchFilter],
   );
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export default function Explore() {
 
   const searchQuery: SearchQuery = useMemo(() => {
     // no search parameters
-    if (searchSearchParams && Object.keys(searchSearchParams).length === 0) {
+    if (!searchFilter || Object.keys(searchFilter).length === 0) {
       if (defaultView == "grid") {
         return ["events", {}];
       } else {
@@ -94,31 +97,31 @@ export default function Explore() {
 
     // parameters, but no search term and not similarity
     if (
-      searchSearchParams &&
-      Object.keys(searchSearchParams).length !== 0 &&
+      searchFilter &&
+      Object.keys(searchFilter).length !== 0 &&
       !searchTerm &&
       !similaritySearch
     ) {
       return [
         "events",
         {
-          cameras: searchSearchParams["cameras"],
-          labels: searchSearchParams["labels"],
-          sub_labels: searchSearchParams["sub_labels"],
-          zones: searchSearchParams["zones"],
-          before: searchSearchParams["before"],
-          after: searchSearchParams["after"],
-          time_range: searchSearchParams["time_range"],
-          search_type: searchSearchParams["search_type"],
-          min_score: searchSearchParams["min_score"],
-          max_score: searchSearchParams["max_score"],
-          has_snapshot: searchSearchParams["has_snapshot"],
-          is_submitted: searchSearchParams["is_submitted"],
-          has_clip: searchSearchParams["has_clip"],
-          event_id: searchSearchParams["event_id"],
-          sort: searchSearchParams["sort"],
+          cameras: searchFilter.cameras,
+          labels: searchFilter.labels,
+          sub_labels: searchFilter.sub_labels,
+          zones: searchFilter.zones,
+          before: searchFilter.before,
+          after: searchFilter.after,
+          time_range: searchFilter.time_range,
+          search_type: searchFilter.search_type,
+          min_score: searchFilter.min_score,
+          max_score: searchFilter.max_score,
+          has_snapshot: searchFilter.has_snapshot,
+          is_submitted: searchFilter.is_submitted,
+          has_clip: searchFilter.has_clip,
+          event_id: searchFilter.event_id,
+          sort: searchFilter.sort,
           limit:
-            Object.keys(searchSearchParams).length == 0 ? API_LIMIT : undefined,
+            Object.keys(searchFilter).length == 0 ? API_LIMIT : undefined,
           timezone,
           in_progress: 0,
           include_thumbnails: 0,
@@ -135,26 +138,26 @@ export default function Explore() {
       "events/search",
       {
         query: similaritySearch ? undefined : searchTerm,
-        cameras: searchSearchParams["cameras"],
-        labels: searchSearchParams["labels"],
-        sub_labels: searchSearchParams["sub_labels"],
-        zones: searchSearchParams["zones"],
-        before: searchSearchParams["before"],
-        after: searchSearchParams["after"],
-        time_range: searchSearchParams["time_range"],
-        search_type: searchSearchParams["search_type"],
-        min_score: searchSearchParams["min_score"],
-        max_score: searchSearchParams["max_score"],
-        has_snapshot: searchSearchParams["has_snapshot"],
-        is_submitted: searchSearchParams["is_submitted"],
-        has_clip: searchSearchParams["has_clip"],
-        event_id: searchSearchParams["event_id"],
-        sort: searchSearchParams["sort"],
+        cameras: searchFilter.cameras,
+        labels: searchFilter.labels,
+        sub_labels: searchFilter.sub_labels,
+        zones: searchFilter.zones,
+        before: searchFilter.before,
+        after: searchFilter.after,
+        time_range: searchFilter.time_range,
+        search_type: searchFilter.search_type,
+        min_score: searchFilter.min_score,
+        max_score: searchFilter.max_score,
+        has_snapshot: searchFilter.has_snapshot,
+        is_submitted: searchFilter.is_submitted,
+        has_clip: searchFilter.has_clip,
+        event_id: searchFilter.event_id,
+        sort: searchFilter.sort,
         timezone,
         include_thumbnails: 0,
       },
     ];
-  }, [searchTerm, searchSearchParams, similaritySearch, timezone, defaultView]);
+  }, [searchTerm, searchFilter, similaritySearch, timezone, defaultView]);
 
   // paging
 
