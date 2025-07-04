@@ -142,7 +142,7 @@ function Exports() {
         onOpenChange={(open) => {
           if (!open) {
             setSelected(undefined);
-            setSelectedId(null);
+            setSelectedId(undefined);
           }
         }}
       >
