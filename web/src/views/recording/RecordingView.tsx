@@ -1,6 +1,10 @@
+import Logo from "@/components/Logo";
 import ReviewCard from "@/components/card/ReviewCard";
 import ReviewFilterGroup from "@/components/filter/ReviewFilterGroup";
 import ExportDialog from "@/components/overlay/ExportDialog";
+import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
+import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
+import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
 import PreviewPlayer, {
   PreviewController,
 } from "@/components/player/PreviewPlayer";
@@ -8,11 +12,18 @@ import { DynamicVideoController } from "@/components/player/dynamic/DynamicVideo
 import DynamicVideoPlayer from "@/components/player/dynamic/DynamicVideoPlayer";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/sonner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useOverlayState } from "@/hooks/use-overlay-state";
+import { useResizeObserver } from "@/hooks/resize-observer";
+import { useFullscreen } from "@/hooks/use-fullscreen";
+import { useUrlStateString } from "@/hooks/use-url-state";
+import { cn } from "@/lib/utils";
 import { ExportMode } from "@/types/filter";
 import { FrigateConfig } from "@/types/frigateConfig";
+import { VideoResolutionType } from "@/types/live";
 import { Preview } from "@/types/preview";
+import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
 import {
   MotionData,
   REVIEW_PADDING,
@@ -20,6 +31,7 @@ import {
   ReviewSegment,
   ReviewSummary,
 } from "@/types/review";
+import { TimeRange, TimelineType } from "@/types/timeline";
 import { getChunkedTimeDay } from "@/utils/timelineUtil";
 import {
   MutableRefObject,
@@ -30,22 +42,9 @@ import {
   useState,
 } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
-import { IoMdArrowRoundBack } from "react-icons/io";
+import { FaHome, FaVideo } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { Toaster } from "@/components/ui/sonner";
 import useSWR from "swr";
-import { TimeRange, TimelineType } from "@/types/timeline";
-import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
-import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
-import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
-import Logo from "@/components/Logo";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FaVideo } from "react-icons/fa";
-import { VideoResolutionType } from "@/types/live";
-import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import { cn } from "@/lib/utils";
-import { useFullscreen } from "@/hooks/use-fullscreen";
 
 const SEGMENT_DURATION = 30;
 
@@ -85,9 +84,12 @@ export function RecordingView({
   const previewRefs = useRef<{ [camera: string]: PreviewController }>({});
 
   const [playbackStart, setPlaybackStart] = useState(
-    startTime >= timeRange.after && startTime <= timeRange.before
+    timeRange.after != null &&
+      timeRange.before != null &&
+      startTime >= timeRange.after &&
+      startTime <= timeRange.before
       ? startTime
-      : timeRange.before - 60,
+      : (timeRange.before ?? Date.now() / 1000) - 60,
   );
 
   const mainCameraReviewItems = useMemo(
@@ -97,26 +99,36 @@ export function RecordingView({
 
   // timeline
 
-  const [timelineType, setTimelineType] = useOverlayState<TimelineType>(
+  const [timelineType, setTimelineType] = useUrlStateString(
     "timelineType",
     "timeline",
-  );
+  ) as [TimelineType, (value: TimelineType) => void];
 
-  const chunkedTimeRange = useMemo(
-    () => getChunkedTimeDay(timeRange),
-    [timeRange],
-  );
+  const chunkedTimeRange = useMemo(() => {
+    if (timeRange.after == null || timeRange.before == null) {
+      return [];
+    }
+    return getChunkedTimeDay(timeRange);
+  }, [timeRange]);
   const [selectedRangeIdx, setSelectedRangeIdx] = useState(
-    chunkedTimeRange.findIndex((chunk) => {
-      return chunk.after <= startTime && chunk.before >= startTime;
-    }),
+    chunkedTimeRange.length > 0
+      ? chunkedTimeRange.findIndex((chunk) => {
+          return chunk.after <= startTime && chunk.before >= startTime;
+        })
+      : 0,
   );
-  const currentTimeRange = useMemo<TimeRange>(
-    () =>
+  const currentTimeRange = useMemo<TimeRange>(() => {
+    if (chunkedTimeRange.length === 0) {
+      return {
+        after: timeRange.after ?? Date.now() / 1000 - 3600,
+        before: timeRange.before ?? Date.now() / 1000,
+      };
+    }
+    return (
       chunkedTimeRange[selectedRangeIdx] ??
-      chunkedTimeRange[chunkedTimeRange.length - 1],
-    [selectedRangeIdx, chunkedTimeRange],
-  );
+      chunkedTimeRange[chunkedTimeRange.length - 1]
+    );
+  }, [selectedRangeIdx, chunkedTimeRange, timeRange]);
   const reviewFilterList = useMemo(() => {
     const uniqueLabels = new Set<string>();
 
@@ -162,6 +174,10 @@ export function RecordingView({
 
   const updateSelectedSegment = useCallback(
     (currentTime: number, updateStartTime: boolean) => {
+      if (chunkedTimeRange.length === 0) {
+        return;
+      }
+
       const index = chunkedTimeRange.findIndex(
         (seg) => seg.after <= currentTime && seg.before >= currentTime,
       );
@@ -180,8 +196,10 @@ export function RecordingView({
   useEffect(() => {
     if (scrubbing || exportRange) {
       if (
-        currentTime > currentTimeRange.before + 60 ||
-        currentTime < currentTimeRange.after - 60
+        currentTimeRange.before != null &&
+        currentTimeRange.after != null &&
+        (currentTime > currentTimeRange.before + 60 ||
+          currentTime < currentTimeRange.after - 60)
       ) {
         updateSelectedSegment(currentTime, false);
         return;
@@ -205,7 +223,11 @@ export function RecordingView({
 
   const manuallySetCurrentTime = useCallback(
     (time: number) => {
-      if (!currentTimeRange) {
+      if (
+        !currentTimeRange ||
+        currentTimeRange.after == null ||
+        currentTimeRange.before == null
+      ) {
         return;
       }
 
@@ -224,6 +246,8 @@ export function RecordingView({
     if (!scrubbing) {
       if (Math.abs(currentTime - playerTime) > 10) {
         if (
+          currentTimeRange.after != null &&
+          currentTimeRange.before != null &&
           currentTimeRange.after <= currentTime &&
           currentTimeRange.before >= currentTime
         ) {
@@ -379,20 +403,19 @@ export function RecordingView({
         )}
         <div className={cn("flex items-center gap-2")}>
           <Button
-            className="flex items-center gap-2.5 rounded-lg"
-            aria-label="Go back"
+            className="flex items-center gap-2.5 rounded-lg bg-transparent"
+            aria-label="Go home"
             size="sm"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
           >
-            <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-            {isDesktop && <div className="text-primary">Back</div>}
+            <FaHome className="size-5 text-secondary-foreground" />
           </Button>
           <Button
             className="flex items-center gap-2.5 rounded-lg"
             aria-label="Go to the main camera live view"
             size="sm"
             onClick={() => {
-              navigate(`/#${mainCamera}`);
+              navigate(`/?camera=${mainCamera}`);
             }}
           >
             <FaVideo className="size-5 text-secondary-foreground" />
@@ -412,7 +435,7 @@ export function RecordingView({
             <ExportDialog
               camera={mainCamera}
               currentTime={currentTime}
-              latestTime={timeRange.before}
+              latestTime={timeRange.before ?? Date.now() / 1000}
               mode={exportMode}
               range={exportRange}
               showPreview={showExportPreview}
@@ -447,7 +470,7 @@ export function RecordingView({
               size="sm"
               value={timelineType}
               onValueChange={(value: TimelineType) =>
-                value ? setTimelineType(value, true) : null
+                value ? setTimelineType(value) : null
               } // don't allow the severity to be unselected
             >
               <ToggleGroupItem
@@ -475,7 +498,7 @@ export function RecordingView({
             camera={mainCamera}
             filter={filter}
             currentTime={currentTime}
-            latestTime={timeRange.before}
+            latestTime={timeRange.before ?? Date.now() / 1000}
             mode={exportMode}
             range={exportRange}
             showExportPreview={showExportPreview}
@@ -657,15 +680,19 @@ function Timeline({
   setScrubbing,
   setExportRange,
 }: TimelineProps) {
-  const { data: motionData } = useSWR<MotionData[]>([
-    "review/activity/motion",
-    {
-      before: timeRange.before,
-      after: timeRange.after,
-      scale: SEGMENT_DURATION / 2,
-      cameras: mainCamera,
-    },
-  ]);
+  const { data: motionData } = useSWR<MotionData[]>(
+    timeRange.before != null && timeRange.after != null
+      ? [
+          "review/activity/motion",
+          {
+            before: timeRange.before,
+            after: timeRange.after,
+            scale: SEGMENT_DURATION / 2,
+            cameras: mainCamera,
+          },
+        ]
+      : null,
+  );
 
   const [exportStart, setExportStartTime] = useState<number>(0);
   const [exportEnd, setExportEndTime] = useState<number>(0);
@@ -699,8 +726,8 @@ function Timeline({
           <MotionReviewTimeline
             segmentDuration={30}
             timestampSpread={15}
-            timelineStart={timeRange.before}
-            timelineEnd={timeRange.after}
+            timelineStart={timeRange.before ?? Date.now() / 1000}
+            timelineEnd={timeRange.after ?? Date.now() / 1000 - 3600}
             showHandlebar={exportRange == undefined}
             showExportHandles={exportRange != undefined}
             exportStartTime={exportRange?.after}

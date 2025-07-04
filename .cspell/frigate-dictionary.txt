@@ -151,6 +151,7 @@ mosquitto
 mountpoint
 movflags
 mpegts
+mpegurl
 mqtt
 mse
 msenc
@@ -172,6 +173,7 @@ Norfair
 nptype
 NTSC
 numpy
+nuqs
 nvenc
 nvhost
 nvml
@@ -238,6 +240,7 @@ skylake
 sleeptime
 SNDMORE
 socs
+sonner
 sqliteq
 sqlitevecq
 ssdlite

@@ -11,7 +11,7 @@ import { FaVideo } from "react-icons/fa";
 import Logo from "@/components/Logo";
 import useOptimisticState from "@/hooks/use-optimistic-state";
 import CameraMetrics from "@/views/system/CameraMetrics";
-import { useHashState } from "@/hooks/use-overlay-state";
+import { useUrlStateString } from "@/hooks/use-url-state";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -21,7 +21,7 @@ type SystemMetric = (typeof metrics)[number];
 function System() {
   // stats page
 
-  const [page, setPage] = useHashState<SystemMetric>();
+  const [page, setPage] = useUrlStateString("page", "general");
   const [pageToggle, setPageToggle] = useOptimisticState(
     page ?? "general",
     setPage,

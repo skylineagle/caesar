@@ -2,7 +2,7 @@ import { CameraGroupConfig, FrigateConfig } from "@/types/frigateConfig";
 import { isDesktop, isMobile } from "react-device-detect";
 import useSWR from "swr";
 import { MdHome } from "react-icons/md";
-import { usePersistedOverlayState } from "@/hooks/use-overlay-state";
+import { useHybridStateString } from "@/hooks/use-hybrid-state";
 import { Button, buttonVariants } from "../ui/button";
 import { useCallback, useMemo, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -94,10 +94,11 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
 
   // groups
 
-  const [group, setGroup, deleteGroup] = usePersistedOverlayState(
-    "cameraGroup",
-    "default" as string,
-  );
+  const [group, setGroup, deleteGroup] = useHybridStateString("group", {
+    mode: "migration",
+    defaultValue: "default",
+    migrateFromKey: "cameraGroup"
+  });
 
   const groups = useMemo(() => {
     if (!config) {

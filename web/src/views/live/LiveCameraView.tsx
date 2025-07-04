@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
+import { useSessionPersistence } from "@/hooks/use-session-persistence";
+import { cn } from "@/lib/utils";
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import {
   LivePlayerError,
@@ -32,7 +34,6 @@ import {
   VideoResolutionType,
 } from "@/types/live";
 import { CameraPtzInfo } from "@/types/ptz";
-import { RecordingStartingPoint } from "@/types/record";
 import React, {
   ReactNode,
   useCallback,
@@ -58,11 +59,11 @@ import {
   FaCog,
   FaCompress,
   FaExpand,
+  FaHome,
   FaMicrophone,
   FaMicrophoneSlash,
 } from "react-icons/fa";
 import { GiSpeaker, GiSpeakerOff } from "react-icons/gi";
-import { TbViewfinder, TbViewfinderOff } from "react-icons/tb";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import {
   LuEar,
@@ -80,11 +81,10 @@ import {
   MdZoomIn,
   MdZoomOut,
 } from "react-icons/md";
+import { TbViewfinder, TbViewfinderOff } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import useSWR from "swr";
-import { cn } from "@/lib/utils";
-import { useSessionPersistence } from "@/hooks/use-session-persistence";
 
 type LiveCameraViewProps = {
   config?: FrigateConfig;
@@ -357,29 +357,25 @@ export default function LiveCameraView({
               className={`flex items-center gap-2 ${isMobile ? "landscape:flex-col" : ""}`}
             >
               <Button
-                className={`flex items-center gap-2.5 rounded-lg`}
-                aria-label="Go back"
+                className="flex items-center gap-2.5 rounded-lg bg-transparent"
+                aria-label="Go home"
                 size="sm"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/")}
               >
-                <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-                {isDesktop && <div className="text-primary">Back</div>}
+                <FaHome className="size-5 text-secondary-foreground" />
               </Button>
               <Button
                 className="flex items-center gap-2.5 rounded-lg"
                 aria-label="Show historical footage"
                 size="sm"
                 onClick={() => {
-                  navigate("review", {
-                    state: {
-                      severity: "alert",
-                      recording: {
-                        camera: camera.name,
-                        startTime: Date.now() / 1000 - 30,
-                        severity: "alert",
-                      } as RecordingStartingPoint,
-                    },
+                  const startTime = Date.now() / 1000 - 30;
+                  const recordingParams = new URLSearchParams({
+                    camera: camera.name,
+                    startTime: startTime.toString(),
+                    severity: "alert",
                   });
+                  navigate(`/recording?${recordingParams.toString()}`);
                 }}
               >
                 <LuHistory className="size-5 text-secondary-foreground" />

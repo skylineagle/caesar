@@ -70,22 +70,17 @@ export function AnimatedEventCard({
 
   const navigate = useNavigate();
   const onOpenReview = useCallback(() => {
-    const url =
-      selectedGroup && selectedGroup != "default"
-        ? `review?group=${selectedGroup}`
-        : "review";
-    navigate(url, {
-      state: {
-        severity: event.severity,
-        recording: {
-          camera: event.camera,
-          startTime: event.start_time - REVIEW_PADDING,
-          severity: event.severity,
-        } as RecordingStartingPoint,
-      },
+    const startTime = event.start_time - REVIEW_PADDING;
+
+    const recordingParams = new URLSearchParams({
+      camera: event.camera,
+      startTime: startTime.toString(),
+      severity: event.severity,
     });
+
+    navigate(`/recording?${recordingParams.toString()}`);
     axios.post(`reviews/viewed`, { ids: [event.id] });
-  }, [navigate, selectedGroup, event]);
+  }, [navigate, event]);
 
   // image behavior
 

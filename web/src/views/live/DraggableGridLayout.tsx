@@ -1,9 +1,25 @@
+import { EditGroupDialog } from "@/components/filter/CameraGroupSelector";
+import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
+import LivePlayer from "@/components/player/LivePlayer";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useResizeObserver } from "@/hooks/resize-observer";
+import useCameraLiveMode from "@/hooks/use-camera-live-mode";
 import { usePersistence } from "@/hooks/use-persistence";
+import { cn } from "@/lib/utils";
 import {
   BirdseyeConfig,
   CameraConfig,
   FrigateConfig,
 } from "@/types/frigateConfig";
+import { LivePlayerError, LivePlayerMode } from "@/types/live";
+import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
+import { isEqual } from "lodash";
 import React, {
   useCallback,
   useEffect,
@@ -12,6 +28,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { isDesktop, isMobile } from "react-device-detect";
 import {
   ItemCallback,
   Layout,
@@ -19,29 +36,11 @@ import {
   WidthProvider,
 } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
-import { LivePlayerError, LivePlayerMode } from "@/types/live";
-import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import { isEqual } from "lodash";
-import useSWR from "swr";
-import { isDesktop, isMobile } from "react-device-detect";
-import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
-import LivePlayer from "@/components/player/LivePlayer";
+import { FaCompress, FaExpand } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { LuLayoutDashboard, LuPencil } from "react-icons/lu";
-import { cn } from "@/lib/utils";
-import { EditGroupDialog } from "@/components/filter/CameraGroupSelector";
-import { usePersistedOverlayState } from "@/hooks/use-overlay-state";
-import { FaCompress, FaExpand } from "react-icons/fa";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/sonner";
-import useCameraLiveMode from "@/hooks/use-camera-live-mode";
+import "react-resizable/css/styles.css";
+import useSWR from "swr";
 
 type DraggableGridLayoutProps = {
   cameras: CameraConfig[];
@@ -84,8 +83,6 @@ export default function DraggableGridLayout({
   const [gridLayout, setGridLayout, isGridLayoutLoaded] = usePersistence<
     Layout[]
   >(`${cameraGroup}-draggable-layout`);
-
-  const [group] = usePersistedOverlayState("cameraGroup", "default" as string);
 
   const groups = useMemo(() => {
     if (!config) {
@@ -371,7 +368,7 @@ export default function DraggableGridLayout({
             open={editGroup}
             setOpen={setEditGroup}
             currentGroups={groups}
-            activeGroup={group}
+            activeGroup={cameraGroup}
           />
           <ResponsiveGridLayout
             className="grid-layout"

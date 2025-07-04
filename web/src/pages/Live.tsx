@@ -1,10 +1,7 @@
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import {
-  useHashState,
-  usePersistedOverlayState,
-  useSearchEffect,
-} from "@/hooks/use-overlay-state";
+import { useUrlStateString } from "@/hooks/use-url-state";
+import { useHybridStateString } from "@/hooks/use-hybrid-state";
 import { FrigateConfig } from "@/types/frigateConfig";
 import LiveBirdseyeView from "@/views/live/LiveBirdseyeView";
 import LiveCameraView from "@/views/live/LiveCameraView";
@@ -17,24 +14,12 @@ function Live() {
 
   // selection
 
-  const [selectedCameraName, setSelectedCameraName] = useHashState();
-  const [cameraGroup, setCameraGroup] = usePersistedOverlayState(
-    "cameraGroup",
-    "default" as string,
-  );
-
-  useSearchEffect("group", (cameraGroup) => {
-    if (config && cameraGroup) {
-      const group = config.camera_groups[cameraGroup];
-
-      if (group) {
-        setCameraGroup(cameraGroup);
-      }
-
-      return true;
-    }
-
-    return false;
+  const [selectedCameraName, setSelectedCameraName] =
+    useUrlStateString("camera");
+  const [cameraGroup] = useHybridStateString("group", {
+    mode: "migration",
+    defaultValue: "default",
+    migrateFromKey: "cameraGroup",
   });
 
   // fullscreen

@@ -1,16 +1,12 @@
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import useApiFilter from "@/hooks/use-api-filter";
+import { useReviewFilter } from "@/hooks/use-review-filter";
 import { useCameraPreviews } from "@/hooks/use-camera-previews";
 import { useTimezone } from "@/hooks/use-date-utils";
-import { useOverlayState, useSearchEffect } from "@/hooks/use-overlay-state";
-import { usePersistence } from "@/hooks/use-persistence";
 import { FrigateConfig } from "@/types/frigateConfig";
-import { RecordingStartingPoint } from "@/types/record";
 import {
   REVIEW_PADDING,
   ReviewFilter,
   ReviewSegment,
-  ReviewSeverity,
   ReviewSummary,
   SegmentedReviewData,
 } from "@/types/review";
@@ -19,7 +15,6 @@ import {
   getEndOfDayTimestamp,
 } from "@/utils/dateUtil";
 import EventView from "@/views/events/EventView";
-import { RecordingView } from "@/views/recording/RecordingView";
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
@@ -30,117 +25,60 @@ export default function Events() {
   });
   const timezone = useTimezone(config);
 
-  // recordings viewer
+  // recordings viewer and review filter
 
-  const [severity, setSeverity] = useOverlayState<ReviewSeverity>(
-    "severity",
-    "alert",
-  );
+  const {
+    filter: reviewFilter,
+    setFilter: setReviewFilter,
+    severity,
+    setSeverity,
+    showReviewed,
+    setShowReviewed,
+    searchParams: reviewSearchParams,
+  } = useReviewFilter();
 
-  const [showReviewed, setShowReviewed] = usePersistence("showReviewed", false);
+  // Handle direct review ID access
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const reviewId = searchParams.get("id");
 
-  const [recording, setRecording] = useOverlayState<RecordingStartingPoint>(
-    "recording",
-    undefined,
-    false,
-  );
+    if (reviewId) {
+      axios
+        .get(`review/${reviewId}`)
+        .then((resp) => {
+          if (resp.status == 200 && resp.data) {
+            const startTime = resp.data.start_time - REVIEW_PADDING;
+            const date = new Date(startTime * 1000);
 
-  useSearchEffect("id", (reviewId: string) => {
-    axios
-      .get(`review/${reviewId}`)
-      .then((resp) => {
-        if (resp.status == 200 && resp.data) {
-          const startTime = resp.data.start_time - REVIEW_PADDING;
-          const date = new Date(startTime * 1000);
+            setReviewFilter({
+              after: getBeginningOfDayTimestamp(date),
+              before: getEndOfDayTimestamp(date),
+            });
 
-          setReviewFilter({
-            after: getBeginningOfDayTimestamp(date),
-            before: getEndOfDayTimestamp(date),
-          });
-          setRecording(
-            {
+            // Navigate to recording page with proper parameters
+            const recordingParams = new URLSearchParams({
               camera: resp.data.camera,
-              startTime,
+              startTime: startTime.toString(),
               severity: resp.data.severity,
-            },
-            true,
-          );
-        }
-      })
-      .catch(() => {});
+            });
+            window.location.href = `/recording?${recordingParams.toString()}`;
+          }
+        })
+        .catch(() => {});
+    }
+  }, [setReviewFilter]);
 
-    return true;
-  });
-
-  const [startTime, setStartTime] = useState<number>();
+  const [startTime] = useState<number>();
 
   useEffect(() => {
-    if (recording) {
-      document.title = "Recordings - Frigate";
-    } else {
-      document.title = `Review - Frigate`;
-    }
-  }, [recording, severity]);
-
-  // review filter
-
-  const [reviewFilter, setReviewFilter, reviewSearchParams] =
-    useApiFilter<ReviewFilter>();
-
-  useSearchEffect("cameras", (cameras: string) => {
-    setReviewFilter({
-      ...reviewFilter,
-      cameras: cameras.includes(",") ? cameras.split(",") : [cameras],
-    });
-    return true;
-  });
-
-  useSearchEffect("labels", (labels: string) => {
-    setReviewFilter({
-      ...reviewFilter,
-      labels: labels.includes(",") ? labels.split(",") : [labels],
-    });
-    return true;
-  });
-
-  useSearchEffect("zones", (zones: string) => {
-    setReviewFilter({
-      ...reviewFilter,
-      zones: zones.includes(",") ? zones.split(",") : [zones],
-    });
-    return true;
-  });
-
-  useSearchEffect("group", (reviewGroup) => {
-    if (config && reviewGroup && reviewGroup != "default") {
-      const group = config.camera_groups[reviewGroup];
-      const isBirdseyeOnly =
-        group.cameras.length == 1 && group.cameras[0] == "birdseye";
-
-      if (group && !isBirdseyeOnly) {
-        setReviewFilter({
-          ...reviewFilter,
-          cameras: group.cameras,
-        });
-      }
-
-      return true;
-    }
-
-    return false;
-  });
+    document.title = `Review - Frigate`;
+  }, [severity]);
 
   const onUpdateFilter = useCallback(
     (newFilter: ReviewFilter) => {
       setReviewFilter(newFilter);
-
-      // update recording start time if filter
-      // was changed on recording page
-      if (recording != undefined && newFilter.after != undefined) {
-        setRecording({ ...recording, startTime: newFilter.after }, true);
-      }
     },
-    [recording, setRecording, setReviewFilter],
+    [setReviewFilter],
   );
 
   // review paging
@@ -155,17 +93,13 @@ export default function Events() {
     }
 
     return {
-      before: Math.ceil(reviewSearchParams["before"]),
-      after: Math.floor(reviewSearchParams["after"]),
+      before: Math.ceil(Number(reviewSearchParams["before"])),
+      after: Math.floor(Number(reviewSearchParams["after"])),
     };
   }, [last24Hours, reviewSearchParams]);
 
   // we want to update the items whenever the severity changes
   useEffect(() => {
-    if (recording) {
-      return;
-    }
-
     const now = Date.now() / 1000;
 
     if (now - beforeTs > 60) {
@@ -420,77 +354,37 @@ export default function Events() {
     [updateSegments, updateSummary],
   );
 
-  // selected items
-
-  const selectedReviewData = useMemo(() => {
-    if (!recording) {
-      return undefined;
-    }
-
-    if (!config) {
-      return undefined;
-    }
-
-    if (!reviews) {
-      return undefined;
-    }
-
-    setStartTime(recording.startTime);
-    const allCameras = reviewFilter?.cameras ?? Object.keys(config.cameras);
-
-    return {
-      camera: recording.camera,
-      start_time: recording.startTime,
-      allCameras: allCameras,
-    };
-
-    // previews will not update after item is selected
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, reviews]);
-
   if (!timezone) {
     return <ActivityIndicator />;
   }
 
-  if (recording) {
-    if (selectedReviewData) {
-      return (
-        <RecordingView
-          key={selectedTimeRange.before}
-          startCamera={selectedReviewData.camera}
-          startTime={selectedReviewData.start_time}
-          allCameras={selectedReviewData.allCameras}
-          reviewItems={reviews}
-          reviewSummary={reviewSummary}
-          allPreviews={allPreviews}
-          timeRange={selectedTimeRange}
-          filter={reviewFilter}
-          updateFilter={onUpdateFilter}
-        />
-      );
-    }
-  } else {
-    return (
-      <EventView
-        reviewItems={reviewItems}
-        currentReviewItems={currentItems}
-        reviewSummary={reviewSummary}
-        relevantPreviews={allPreviews}
-        timeRange={selectedTimeRange}
-        filter={reviewFilter}
-        severity={severity ?? "alert"}
-        startTime={startTime}
-        showReviewed={showReviewed ?? false}
-        setShowReviewed={setShowReviewed}
-        setSeverity={setSeverity}
-        markItemAsReviewed={markItemAsReviewed}
-        markAllItemsAsReviewed={markAllItemsAsReviewed}
-        onOpenRecording={setRecording}
-        pullLatestData={reloadData}
-        updateFilter={onUpdateFilter}
-      />
-    );
-  }
+  return (
+    <EventView
+      reviewItems={reviewItems}
+      currentReviewItems={currentItems}
+      reviewSummary={reviewSummary}
+      relevantPreviews={allPreviews}
+      timeRange={selectedTimeRange}
+      filter={reviewFilter}
+      severity={severity ?? "alert"}
+      startTime={startTime}
+      showReviewed={showReviewed ?? false}
+      setShowReviewed={setShowReviewed}
+      setSeverity={setSeverity}
+      markItemAsReviewed={markItemAsReviewed}
+      markAllItemsAsReviewed={markAllItemsAsReviewed}
+      onOpenRecording={(recording) => {
+        const recordingParams = new URLSearchParams({
+          camera: recording.camera,
+          startTime: recording.startTime.toString(),
+          severity: recording.severity,
+        });
+        window.location.href = `/recording?${recordingParams.toString()}`;
+      }}
+      pullLatestData={reloadData}
+      updateFilter={onUpdateFilter}
+    />
+  );
 }
 
 function getHoursAgo(hours: number): number {

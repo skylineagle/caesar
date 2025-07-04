@@ -1,18 +1,19 @@
-import Providers from "@/context/providers";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Wrapper from "@/components/Wrapper";
 import Sidebar from "@/components/navigation/Sidebar";
+import Providers from "@/context/providers";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { Suspense, lazy } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
 import Statusbar from "./components/Statusbar";
 import Bottombar from "./components/navigation/Bottombar";
-import { Suspense, lazy } from "react";
 import { Redirect } from "./components/navigation/Redirect";
 import { cn } from "./lib/utils";
 import { isPWA } from "./utils/isPWA";
 
 const Live = lazy(() => import("@/pages/Live"));
 const Events = lazy(() => import("@/pages/Events"));
+const Recording = lazy(() => import("@/pages/Recording"));
 const Explore = lazy(() => import("@/pages/Explore"));
 const Exports = lazy(() => import("@/pages/Exports"));
 const ConfigEditor = lazy(() => import("@/pages/ConfigEditor"));
@@ -44,6 +45,8 @@ function App() {
                   <Route index element={<Live />} />
                   <Route path="/events" element={<Redirect to="/review" />} />
                   <Route path="/review" element={<Events />} />
+                  <Route path="/review/:reviewId" element={<Events />} />
+                  <Route path="/recording" element={<Recording />} />
                   <Route path="/explore" element={<Explore />} />
                   <Route path="/export" element={<Exports />} />
                   <Route path="/system" element={<System />} />

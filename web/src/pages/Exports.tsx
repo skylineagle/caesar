@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
-import { useSearchEffect } from "@/hooks/use-overlay-state";
+import { useUrlStateString } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import { DeleteClipType, Export } from "@/types/export";
 import axios from "axios";
@@ -51,15 +51,17 @@ function Exports() {
 
   const [selected, setSelected] = useState<Export>();
   const [selectedAspect, setSelectedAspect] = useState(0.0);
+  const [selectedId, setSelectedId] = useUrlStateString("id");
 
-  useSearchEffect("id", (id) => {
-    if (!exports) {
-      return false;
+  useEffect(() => {
+    if (!selectedId || !exports) {
+      setSelected(undefined);
+      return;
     }
 
-    setSelected(exports.find((exp) => exp.id == id));
-    return true;
-  });
+    const foundExport = exports.find((exp) => exp.id == selectedId);
+    setSelected(foundExport);
+  }, [selectedId, exports]);
 
   // Deleting
 
@@ -140,6 +142,7 @@ function Exports() {
         onOpenChange={(open) => {
           if (!open) {
             setSelected(undefined);
+            setSelectedId(null);
           }
         }}
       >
@@ -194,7 +197,10 @@ function Exports() {
                   search == "" || filteredExports.includes(item) ? "" : "hidden"
                 }
                 exportedRecording={item}
-                onSelect={setSelected}
+                onSelect={(exp) => {
+                  setSelected(exp);
+                  setSelectedId(exp.id);
+                }}
                 onRename={onHandleRename}
                 onDelete={({ file, exportName }) =>
                   setDeleteClip({ file, exportName })

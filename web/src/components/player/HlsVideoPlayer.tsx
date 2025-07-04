@@ -1,3 +1,11 @@
+import { usePersistence } from "@/hooks/use-persistence";
+import { useUrlStateBoolean, useUrlStateNumber } from "@/hooks/use-url-state";
+import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { VideoResolutionType } from "@/types/live";
+import { ASPECT_VERTICAL_LAYOUT, RecordingPlayerError } from "@/types/record";
+import { AxiosResponse } from "axios";
+import Hls from "hls.js";
 import {
   MutableRefObject,
   useCallback,
@@ -5,19 +13,11 @@ import {
   useRef,
   useState,
 } from "react";
-import Hls from "hls.js";
 import { isAndroid, isDesktop, isMobile } from "react-device-detect";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
-import VideoControls from "./VideoControls";
-import { VideoResolutionType } from "@/types/live";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { AxiosResponse } from "axios";
 import { toast } from "sonner";
-import { useOverlayState } from "@/hooks/use-overlay-state";
-import { usePersistence } from "@/hooks/use-persistence";
-import { cn } from "@/lib/utils";
-import { ASPECT_VERTICAL_LAYOUT, RecordingPlayerError } from "@/types/record";
+import useSWR from "swr";
+import VideoControls from "./VideoControls";
 
 // Android native hls does not seek correctly
 const USE_NATIVE_HLS = !isAndroid;
@@ -144,10 +144,10 @@ export default function HlsVideoPlayer({
 
   const [tallCamera, setTallCamera] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [muted, setMuted] = useOverlayState("playerMuted", true);
-  const [volume, setVolume] = useOverlayState("playerVolume", 1.0);
+  const [muted, setMuted] = useUrlStateBoolean("muted", true);
+  const [volume, setVolume] = useUrlStateNumber("volume", 1.0);
   const [defaultPlaybackRate] = usePersistence("playbackRate", 1);
-  const [playbackRate, setPlaybackRate] = useOverlayState(
+  const [playbackRate, setPlaybackRate] = useUrlStateNumber(
     "playbackRate",
     defaultPlaybackRate ?? 1,
   );
