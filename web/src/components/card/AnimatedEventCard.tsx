@@ -1,23 +1,22 @@
-import TimeAgo from "../dynamic/TimeAgo";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
+import { useApiHost } from "@/api";
+import { baseUrl } from "@/api/baseUrl";
+import { useCameraPreviews } from "@/hooks/use-camera-previews";
+import { usePersistence } from "@/hooks/use-persistence";
+import { cn } from "@/lib/utils";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { REVIEW_PADDING, ReviewSegment } from "@/types/review";
-import { useNavigate } from "react-router-dom";
-import { RecordingStartingPoint } from "@/types/record";
-import axios from "axios";
 import { isCurrentHour } from "@/utils/dateUtil";
-import { useCameraPreviews } from "@/hooks/use-camera-previews";
-import { baseUrl } from "@/api/baseUrl";
-import { VideoPreview } from "../preview/ScrubbablePreview";
-import { useApiHost } from "@/api";
+import axios from "axios";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { isDesktop, isSafari } from "react-device-detect";
-import { usePersistence } from "@/hooks/use-persistence";
-import { Skeleton } from "../ui/skeleton";
-import { Button } from "../ui/button";
 import { FaCircleCheck } from "react-icons/fa6";
-import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import useSWR from "swr";
+import TimeAgo from "../dynamic/TimeAgo";
+import { VideoPreview } from "../preview/ScrubbablePreview";
+import { Button } from "../ui/button";
+import { Skeleton } from "../ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type AnimatedEventCardProps = {
   event: ReviewSegment;
@@ -26,7 +25,6 @@ type AnimatedEventCardProps = {
 };
 export function AnimatedEventCard({
   event,
-  selectedGroup,
   updateEvents,
 }: AnimatedEventCardProps) {
   const { data: config } = useSWR<FrigateConfig>("config");
