@@ -50,7 +50,6 @@
         "dbaeumer.vscode-eslint",
         "mikestead.dotenv",
         "csstools.postcss",
-        "blanu.vscode-styled-jsx",
         "bradlc.vscode-tailwindcss",
         "charliermarsh.ruff",
         "eamodio.gitlens"

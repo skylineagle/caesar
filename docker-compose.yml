@@ -6,8 +6,8 @@ services:
     group_add:
       - "109" # render
       - "110" # render
-      - "44"  # video
-      - "46"  # plugdev
+      - "44" # video
+      - "46" # plugdev
     shm_size: "256mb"
     build:
       context: .
@@ -24,16 +24,16 @@ services:
     #                     capabilities: [gpu]
     environment:
       YOLO_MODELS: ""
-    devices:
-      - /dev/bus/usb:/dev/bus/usb
-      # - /dev/dri:/dev/dri # for intel hwaccel, needs to be updated for your hardware
+    # devices:
+    # - /dev/bus/usb:/dev/bus/usb
+    # - /dev/dri:/dev/dri # for intel hwaccel, needs to be updated for your hardware
     volumes:
       - .:/workspace/frigate:cached
       - ./web/dist:/opt/frigate/web:cached
       - /etc/localtime:/etc/localtime:ro
       - ./config:/config
       - ./debug:/media/frigate
-      - /dev/bus/usb:/dev/bus/usb
+      # - /dev/bus/usb:/dev/bus/usb
   mqtt:
     container_name: mqtt
     image: eclipse-mosquitto:1.6
