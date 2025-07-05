@@ -29,12 +29,38 @@ This solution enables Frigate deployment in air-gapped environments by pre-fetch
 - Commented configuration options
 - Best practices for resource optimization
 
-### 5. Documentation (`AIR_GAPPED_DEPLOYMENT.md`)
+### 5. CI/CD Pipeline (`.github/workflows/airgapped.yml`)
+- Automated multi-platform builds (AMD64/ARM64)
+- Publishes to `skylineag/caesar` registry on Docker Hub
+- Comprehensive testing and validation
+- Weekly scheduled builds to keep models fresh
+
+### 6. CI Setup Guide (`CI_SETUP.md`)
+- Instructions for configuring repository secrets
+- Docker Hub authentication setup
+- Workflow monitoring and troubleshooting
+
+### 7. Documentation (`AIR_GAPPED_DEPLOYMENT.md`)
 - Complete deployment guide
 - Troubleshooting instructions
 - Resource requirements and recommendations
 
 ## 🚀 Quick Start
+
+### Option 1: Use Pre-built Images (Recommended)
+
+```bash
+# Pull the latest air-gapped image (requires internet)
+docker pull skylineag/caesar:airgapped
+
+# Save for transfer to air-gapped environment
+docker save skylineag/caesar:airgapped | gzip > frigate-airgapped.tar.gz
+
+# Transfer and load on air-gapped system
+docker load < frigate-airgapped.tar.gz
+```
+
+### Option 2: Build Yourself
 
 ```bash
 # 1. Clone repository
@@ -50,7 +76,11 @@ docker save frigate:airgapped | gzip > frigate-airgapped.tar.gz
 
 # 4. Transfer to air-gapped environment and load
 docker load < frigate-airgapped.tar.gz
+```
 
+### Deploy with proper configuration
+
+```bash
 # 5. Deploy with proper configuration
 docker run -d \
   --name frigate \
@@ -65,7 +95,7 @@ docker run -d \
   -p 5000:5000 \
   -p 8554:8554 \
   -p 8555:8555 \
-  frigate:airgapped
+  skylineag/caesar:airgapped
 ```
 
 ## 📋 Pre-fetched Models
@@ -106,10 +136,10 @@ Test your air-gapped deployment:
 
 ```bash
 # Verify models are embedded
-docker run --rm frigate:airgapped find /config/model_cache -name "*.onnx" -o -name "*.tflite"
+docker run --rm skylineag/caesar:airgapped find /config/model_cache -name "*.onnx" -o -name "*.tflite"
 
 # Test no network access (should fail gracefully)
-docker run --rm --network none frigate:airgapped python3 -c "
+docker run --rm --network none skylineag/caesar:airgapped python3 -c "
 import urllib.request
 try:
     urllib.request.urlopen('https://google.com', timeout=5)
