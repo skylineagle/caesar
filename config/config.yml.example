@@ -1,11 +1,53 @@
 mqtt:
   host: mqtt
 
+detect:
+  enabled: true
+
+objects:
+  track:
+    - person
+    - car
+    - motorcycle
+    - bicycle
+    - truck
+    - bus
+    - bird
+    - cat
+    - dog
+    - hat
+    - backpack
+    - handbag
+
+record:
+  enabled: true
+  retain:
+    days: 3
+    mode: all
+
+snapshots:
+  enabled: true
+  retain:
+    default: 3
+    mode: all
+
+semantic_search:
+  enabled: true
+  reindex: false
+  model_size: "small"
+
+face_recognition:
+  enabled: true
+  model_size: "small"
+
+lpr:
+  enabled: true
+
 cameras:
   test:
     ffmpeg:
       inputs:
-        - path: /media/frigate/car-stopping.mp4
+        - path: /media/frigate/street.mp4
           input_args: -re -stream_loop -1 -fflags +genpts
           roles:
             - detect
@@ -14,3 +56,7 @@ cameras:
       height: 1080
       width: 1920
       fps: 5
+version: 0.16-0
+
+ui:
+  time_format: "24hour"
