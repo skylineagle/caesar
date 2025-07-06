@@ -100,9 +100,6 @@ jobs:
             ${{ env.MERGE_SUCCESS == 'false' && '### ⚠️ Action Required\n\nThis PR contains merge conflicts that need to be resolved manually. Please review the conflicts and resolve them before merging.' || '### ✅ Ready to Merge\n\nThis PR contains a clean merge of the upstream changes and should be safe to merge.' }}
 
             **Recent upstream changes:**
-            ```
-            $(git log --oneline origin/main..upstream/dev --max-count=10)
-            ```
 
             ---
             *This PR was automatically created by the sync-upstream workflow.*
