@@ -69,7 +69,7 @@ jobs:
           else
             echo "MERGE_SUCCESS=false" >> $GITHUB_ENV
             # If merge fails, we'll still create the PR but with conflict markers
-            git add .
+            git add -u
             git commit -m "Sync with upstream/dev - merge conflicts need resolution"
           fi
 
