@@ -1,27 +1,4 @@
 import {
-  AllGroupsStreamingSettings,
-  CameraGroupConfig,
-  FrigateConfig,
-  GroupStreamingSettings,
-} from "@/types/frigateConfig";
-import { isDesktop, isMobile } from "react-device-detect";
-import useSWR from "swr";
-import { MdHome } from "react-icons/md";
-import { usePersistedOverlayState } from "@/hooks/use-overlay-state";
-import { Button, buttonVariants } from "../ui/button";
-import { useCallback, useMemo, useState } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { LuPencil, LuPlus } from "react-icons/lu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
-import { Separator } from "../ui/separator";
-import {
   Form,
   FormControl,
   FormDescription,
@@ -30,13 +7,38 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Toaster } from "@/components/ui/sonner";
+import { usePersistence } from "@/hooks/use-persistence";
+import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+  AllGroupsStreamingSettings,
+  CameraGroupConfig,
+  FrigateConfig,
+  GroupStreamingSettings,
+} from "@/types/frigateConfig";
+import { isValidIconName } from "@/utils/iconUtil";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
+import axios from "axios";
+import { useCallback, useMemo, useState } from "react";
+import { isDesktop, isMobile } from "react-device-detect";
+import { useForm } from "react-hook-form";
+import { HiOutlineDotsVertical, HiTrash } from "react-icons/hi";
+import * as LuIcons from "react-icons/lu";
+import { LuPencil, LuPlus } from "react-icons/lu";
+import { MdHome } from "react-icons/md";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
+import IconPicker, { IconName, IconRenderer } from "../icons/IconPicker";
+import ActivityIndicator from "../indicators/activity-indicator";
+import {
+  MobilePage,
+  MobilePageContent,
+  MobilePageDescription,
+  MobilePageHeader,
+  MobilePageTitle,
+} from "../mobile/MobilePage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,36 +49,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import axios from "axios";
-import { HiOutlineDotsVertical, HiTrash } from "react-icons/hi";
-import IconWrapper from "../ui/icon-wrapper";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { ScrollArea, ScrollBar } from "../ui/scroll-area";
-import { usePersistence } from "@/hooks/use-persistence";
-import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { cn } from "@/lib/utils";
-import * as LuIcons from "react-icons/lu";
-import IconPicker, { IconName, IconRenderer } from "../icons/IconPicker";
-import { isValidIconName } from "@/utils/iconUtil";
+import { Button, buttonVariants } from "../ui/button";
 import {
-  MobilePage,
-  MobilePageContent,
-  MobilePageDescription,
-  MobilePageHeader,
-  MobilePageTitle,
-} from "../mobile/MobilePage";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import IconWrapper from "../ui/icon-wrapper";
+import { Input } from "../ui/input";
+import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { Separator } from "../ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
+import { useStreamingSettings } from "@/context/streaming-settings-provider";
+import { useGroup } from "@/hooks/use-url-state";
+import { DialogTrigger } from "@radix-ui/react-dialog";
+import { Trans, useTranslation } from "react-i18next";
+import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
-import { DialogTrigger } from "@radix-ui/react-dialog";
-import { useStreamingSettings } from "@/context/streaming-settings-provider";
-import { Trans, useTranslation } from "react-i18next";
 
 type CameraGroupSelectorProps = {
   className?: string;
@@ -85,7 +85,7 @@ type CameraGroupSelectorProps = {
 export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
   const { t } = useTranslation(["components/camera"]);
   const { data: config } = useSWR<FrigateConfig>("config");
-
+  const { group, setGroup, deleteGroup } = useGroup();
   // tooltip
 
   const [tooltip, setTooltip] = useState<string>();
@@ -107,10 +107,10 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
 
   // groups
 
-  const [group, setGroup, deleteGroup] = usePersistedOverlayState(
-    "cameraGroup",
-    "default" as string,
-  );
+  // const [group, setGroup, deleteGroup] = usePersistedOverlayState(
+  //   "cameraGroup",
+  //   "default" as string,
+  // );
 
   const groups = useMemo(() => {
     if (!config) {
@@ -135,7 +135,7 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
         setOpen={setAddGroup}
         currentGroups={groups}
         activeGroup={group}
-        setGroup={setGroup}
+        setGroup={(value) => setGroup(value)}
         deleteGroup={deleteGroup}
       />
       <Scroller className={`${isMobile ? "whitespace-nowrap" : ""}`}>
@@ -156,7 +156,7 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
                 }
                 aria-label={t("menu.live.allCameras", { ns: "common" })}
                 size="xs"
-                onClick={() => (group ? setGroup("default", true) : null)}
+                onClick={() => (group ? setGroup("default") : null)}
                 onMouseEnter={() => (isDesktop ? showTooltip("default") : null)}
                 onMouseLeave={() => (isDesktop ? showTooltip(undefined) : null)}
               >
@@ -181,7 +181,7 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
                     }
                     aria-label={t("group.label")}
                     size="xs"
-                    onClick={() => setGroup(name, group != "default")}
+                    onClick={() => setGroup(name)}
                     onMouseEnter={() => (isDesktop ? showTooltip(name) : null)}
                     onMouseLeave={() =>
                       isDesktop ? showTooltip(undefined) : null
@@ -224,7 +224,7 @@ type NewGroupDialogProps = {
   setOpen: (open: boolean) => void;
   currentGroups: [string, CameraGroupConfig][];
   activeGroup?: string;
-  setGroup: (value: string | undefined, replace?: boolean | undefined) => void;
+  setGroup: (value: string) => void;
   deleteGroup: () => void;
 };
 function NewGroupDialog({

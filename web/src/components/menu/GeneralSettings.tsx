@@ -1,3 +1,20 @@
+import { useRestart } from "@/api/ws";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  colorSchemes,
+  friendlyColorSchemeName,
+  useTheme,
+} from "@/context/theme-provider";
+import { cn } from "@/lib/utils";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
+import { useMemo, useState } from "react";
+import { isDesktop, isMobile } from "react-device-detect";
+import { CgDarkMode } from "react-icons/cg";
+import { IoColorPalette } from "react-icons/io5";
 import {
   LuActivity,
   LuGithub,
@@ -6,13 +23,24 @@ import {
   LuList,
   LuLogOut,
   LuMoon,
-  LuSquarePen,
-  LuScanFace,
   LuRotateCw,
+  LuScanFace,
   LuSettings,
+  LuSquarePen,
   LuSun,
   LuSunMoon,
 } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import useSWR from "swr";
+import RestartDialog from "../overlay/dialog/RestartDialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogPortal,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Drawer, DrawerContent, DrawerTrigger } from "../ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,43 +54,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Link } from "react-router-dom";
-import { CgDarkMode } from "react-icons/cg";
-import {
-  colorSchemes,
-  friendlyColorSchemeName,
-  useTheme,
-} from "@/context/theme-provider";
-import { IoColorPalette } from "react-icons/io5";
-import { useMemo, useState } from "react";
-import { useRestart } from "@/api/ws";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { isDesktop, isMobile } from "react-device-detect";
-import { Drawer, DrawerContent, DrawerTrigger } from "../ui/drawer";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogPortal,
-  DialogTrigger,
-} from "../ui/dialog";
-import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { cn } from "@/lib/utils";
-import useSWR from "swr";
-import RestartDialog from "../overlay/dialog/RestartDialog";
 
 import { useLanguage } from "@/context/language-provider";
 import { useIsAdmin } from "@/hooks/use-is-admin";
-import SetPasswordDialog from "../overlay/SetPasswordDialog";
-import { toast } from "sonner";
-import axios from "axios";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { useTranslation } from "react-i18next";
 import { supportedLanguageKeys } from "@/lib/const";
+import { FrigateConfig } from "@/types/frigateConfig";
+import axios from "axios";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import SetPasswordDialog from "../overlay/SetPasswordDialog";
 
 import { useDocDomain } from "@/hooks/use-doc-domain";
 
@@ -235,7 +235,7 @@ export default function GeneralSettings({ className }: GeneralSettingsProps) {
                 <DropdownMenuLabel>{t("menu.system")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup className={isDesktop ? "" : "flex flex-col"}>
-                  <Link to="/system#general">
+                  <Link to="/system">
                     <MenuItem
                       className={
                         isDesktop

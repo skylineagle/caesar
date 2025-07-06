@@ -77,34 +77,6 @@ export function usePersistedOverlayState<S extends string>(
   ];
 }
 
-export function useHashState<S extends string>(): [
-  S | undefined,
-  (value: S) => void,
-] {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const setHash = useCallback(
-    (value: S | undefined) => {
-      if (!value) {
-        navigate(location.pathname);
-      } else {
-        navigate(`${location.pathname}#${value}`, { state: location.state });
-      }
-    },
-    // we know that these deps are correct
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [location, navigate],
-  );
-
-  const hash = useMemo(
-    () => location.hash.substring(1) as unknown as S,
-    [location.hash],
-  );
-
-  return [hash, setHash];
-}
-
 export function useSearchEffect(
   key: string,
   callback: (value: string) => boolean,
@@ -122,15 +94,15 @@ export function useSearchEffect(
     return [key, decodeURIComponent(param)];
   }, [searchParams, key]);
 
-  useEffect(() => {
-    if (!param) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!param) {
+  //     return;
+  //   }
 
-    const remove = callback(param[1]);
+  //   const remove = callback(param[1]);
 
-    if (remove) {
-      setSearchParams(undefined, { state: location.state, replace: true });
-    }
-  }, [param, location.state, callback, setSearchParams]);
+  //   if (remove) {
+  //     setSearchParams(undefined, { state: location.state, replace: true });
+  //   }
+  // }, [param, location.state, callback, setSearchParams]);
 }
