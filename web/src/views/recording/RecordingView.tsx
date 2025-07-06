@@ -51,10 +51,12 @@ import {
 } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
 import { useTranslation } from "react-i18next";
-import { FaVideo } from "react-icons/fa";
+import { FaShareAlt, FaVideo } from "react-icons/fa";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
+import { copyToClipboard } from "@/utils/browserUtil";
+import { baseUrl } from "@/api/baseUrl";
 
 type RecordingViewProps = {
   startCamera: string;
@@ -272,6 +274,21 @@ export function RecordingView({
     [currentTime],
   );
 
+  const handleShare = useCallback(() => {
+    const shareData = {
+      camera: mainCamera,
+      startTime: startTime,
+      currentTime: currentTime,
+      severity: "alert",
+    };
+
+    const params = new URLSearchParams();
+    params.set("recording", JSON.stringify(shareData));
+    const shareUrl = `${baseUrl}review?${params.toString()}`;
+
+    copyToClipboard(shareUrl);
+  }, [mainCamera, startTime, currentTime]);
+
   // fullscreen
 
   const { fullscreen, toggleFullscreen, supportsFullScreen } =
@@ -471,6 +488,24 @@ export function RecordingView({
               </div>
             )}
           </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="flex items-center gap-2.5 rounded-lg"
+                aria-label={t("button.copy", { ns: "common" })}
+                size="sm"
+                onClick={handleShare}
+              >
+                <FaShareAlt className="size-5 text-secondary-foreground" />
+                {isDesktop && (
+                  <div className="text-primary">
+                    {t("button.copy", { ns: "common" })}
+                  </div>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("button.copy", { ns: "common" })}</TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex items-center justify-end gap-2">
           <MobileCameraDrawer
@@ -645,6 +680,10 @@ export function RecordingView({
                 onClipEnded={onClipEnded}
                 onControllerReady={(controller) => {
                   mainControllerRef.current = controller;
+                  // Ensure the video player seeks to the correct position when ready
+                  if (playbackStart !== startTime) {
+                    controller.seekToTimestamp(playbackStart, true);
+                  }
                 }}
                 isScrubbing={scrubbing || exportMode == "timeline"}
                 supportsFullscreen={supportsFullScreen}

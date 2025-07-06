@@ -369,7 +369,7 @@ export default function Events() {
 
     return {
       camera: recording.camera,
-      start_time: recording.startTime,
+      start_time: recording.currentTime ?? recording.startTime,
       allCameras: allCameras,
     };
 

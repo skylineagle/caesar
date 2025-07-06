@@ -129,6 +129,7 @@ export function useShowReviewed() {
 const recordingSchema = z.object({
   camera: z.string(),
   startTime: z.number(),
+  currentTime: z.number().optional(),
   severity: z.enum(["alert", "detection", "significant_motion"]),
 });
 
