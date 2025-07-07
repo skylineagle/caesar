@@ -90,7 +90,7 @@ export function useMuted() {
 
   const handleDeleteMuted = () => {
     deletePersistedValue();
-    setMuted(false);
+    setMuted(true);
   };
 
   return {
