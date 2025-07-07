@@ -1,6 +1,10 @@
+import Logo from "@/components/Logo";
 import ReviewCard from "@/components/card/ReviewCard";
 import ReviewFilterGroup from "@/components/filter/ReviewFilterGroup";
 import ExportDialog from "@/components/overlay/ExportDialog";
+import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
+import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
+import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
 import PreviewPlayer, {
   PreviewController,
 } from "@/components/player/PreviewPlayer";
@@ -8,11 +12,25 @@ import { DynamicVideoController } from "@/components/player/dynamic/DynamicVideo
 import DynamicVideoPlayer from "@/components/player/dynamic/DynamicVideoPlayer";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/sonner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useOverlayState } from "@/hooks/use-overlay-state";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useResizeObserver } from "@/hooks/resize-observer";
+import { useTimezone } from "@/hooks/use-date-utils";
+import { useFullscreen } from "@/hooks/use-fullscreen";
+import { useTimelineZoom } from "@/hooks/use-timeline-zoom";
+import { useTimelineType } from "@/hooks/use-url-state";
+import { cn } from "@/lib/utils";
 import { ExportMode } from "@/types/filter";
 import { FrigateConfig } from "@/types/frigateConfig";
+import { VideoResolutionType } from "@/types/live";
 import { Preview } from "@/types/preview";
+import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
 import {
   MotionData,
   RecordingsSummary,
@@ -21,6 +39,7 @@ import {
   ReviewSegment,
   ReviewSummary,
 } from "@/types/review";
+import { TimelineType, TimeRange } from "@/types/timeline";
 import { getChunkedTimeDay } from "@/utils/timelineUtil";
 import {
   MutableRefObject,
@@ -31,30 +50,13 @@ import {
   useState,
 } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
+import { useTranslation } from "react-i18next";
+import { FaShareAlt, FaVideo } from "react-icons/fa";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
-import { Toaster } from "@/components/ui/sonner";
 import useSWR from "swr";
-import { TimeRange, TimelineType } from "@/types/timeline";
-import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
-import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
-import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
-import Logo from "@/components/Logo";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FaVideo } from "react-icons/fa";
-import { VideoResolutionType } from "@/types/live";
-import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import { cn } from "@/lib/utils";
-import { useFullscreen } from "@/hooks/use-fullscreen";
-import { useTimezone } from "@/hooks/use-date-utils";
-import { useTimelineZoom } from "@/hooks/use-timeline-zoom";
-import { useTranslation } from "react-i18next";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { copyToClipboard } from "@/utils/browserUtil";
+import { baseUrl } from "@/api/baseUrl";
 
 type RecordingViewProps = {
   startCamera: string;
@@ -116,11 +118,7 @@ export function RecordingView({
   );
 
   // timeline
-
-  const [timelineType, setTimelineType] = useOverlayState<TimelineType>(
-    "timelineType",
-    "timeline",
-  );
+  const { timelineType, setTimelineType } = useTimelineType();
 
   const chunkedTimeRange = useMemo(
     () => getChunkedTimeDay(timeRange),
@@ -275,6 +273,21 @@ export function RecordingView({
     },
     [currentTime],
   );
+
+  const handleShare = useCallback(() => {
+    const shareData = {
+      camera: mainCamera,
+      startTime: startTime,
+      currentTime: currentTime,
+      severity: "alert",
+    };
+
+    const params = new URLSearchParams();
+    params.set("recording", JSON.stringify(shareData));
+    const shareUrl = `${baseUrl}review?${params.toString()}`;
+
+    copyToClipboard(shareUrl);
+  }, [mainCamera, startTime, currentTime]);
 
   // fullscreen
 
@@ -475,6 +488,24 @@ export function RecordingView({
               </div>
             )}
           </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="flex items-center gap-2.5 rounded-lg"
+                aria-label={t("button.copy", { ns: "common" })}
+                size="sm"
+                onClick={handleShare}
+              >
+                <FaShareAlt className="size-5 text-secondary-foreground" />
+                {isDesktop && (
+                  <div className="text-primary">
+                    {t("button.copy", { ns: "common" })}
+                  </div>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("button.copy", { ns: "common" })}</TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex items-center justify-end gap-2">
           <MobileCameraDrawer
@@ -540,7 +571,7 @@ export function RecordingView({
               size="sm"
               value={timelineType}
               onValueChange={(value: TimelineType) =>
-                value ? setTimelineType(value, true) : null
+                value ? setTimelineType(value) : null
               } // don't allow the severity to be unselected
             >
               <ToggleGroupItem
@@ -649,6 +680,10 @@ export function RecordingView({
                 onClipEnded={onClipEnded}
                 onControllerReady={(controller) => {
                   mainControllerRef.current = controller;
+                  // Ensure the video player seeks to the correct position when ready
+                  if (playbackStart !== startTime) {
+                    controller.seekToTimestamp(playbackStart, true);
+                  }
                 }}
                 isScrubbing={scrubbing || exportMode == "timeline"}
                 supportsFullscreen={supportsFullScreen}
