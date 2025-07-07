@@ -36,42 +36,70 @@ jobs:
           git fetch upstream
           git fetch origin
 
+          # Ensure dev branch exists locally
+          if ! git show-ref --verify --quiet refs/heads/dev; then
+            echo "Creating local dev branch from origin/dev"
+            git checkout -b dev origin/dev
+          else
+            echo "Local dev branch already exists"
+          fi
+
       - name: Check if upstream/dev has new commits
         id: check_changes
         run: |
+          # Check if origin/dev exists, if not create it from upstream/dev
+          if ! git show-ref --verify --quiet refs/remotes/origin/dev; then
+            echo "origin/dev branch doesn't exist, creating it from upstream/dev"
+            git checkout -b dev upstream/dev
+            git push origin dev
+          fi
+
           # Get the latest commit hash from upstream/dev
           UPSTREAM_HASH=$(git rev-parse upstream/dev)
+          echo "Upstream hash: $UPSTREAM_HASH"
 
-          # Get the latest commit hash from origin/main
-          ORIGIN_HASH=$(git rev-parse origin/main)
+          # Get the latest commit hash from origin/dev
+          ORIGIN_HASH=$(git rev-parse origin/dev)
+          echo "Origin hash: $ORIGIN_HASH"
 
           # Check if they're different
           if [ "$UPSTREAM_HASH" != "$ORIGIN_HASH" ]; then
             echo "changes_detected=true" >> $GITHUB_OUTPUT
             echo "upstream_hash=$UPSTREAM_HASH" >> $GITHUB_OUTPUT
             echo "origin_hash=$ORIGIN_HASH" >> $GITHUB_OUTPUT
+            echo "✅ Changes detected - hashes are different"
           else
             echo "changes_detected=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No changes detected - hashes are identical"
           fi
 
-          # Check if there are commits in upstream/dev that aren't in origin/main
-          BEHIND_COUNT=$(git rev-list --count origin/main..upstream/dev)
+          # Check if there are commits in upstream/dev that aren't in origin/dev
+          BEHIND_COUNT=$(git rev-list --count origin/dev..upstream/dev)
           echo "behind_count=$BEHIND_COUNT" >> $GITHUB_OUTPUT
+          echo "Commits behind: $BEHIND_COUNT"
+
+          # Debug output
+          echo "changes_detected: ${{ steps.check_changes.outputs.changes_detected }}"
+          echo "behind_count: ${{ steps.check_changes.outputs.behind_count }}"
 
       - name: Create sync branch
         if: steps.check_changes.outputs.changes_detected == 'true' && steps.check_changes.outputs.behind_count != '0'
         run: |
+          echo "Creating sync branch..."
           BRANCH_NAME="sync-upstream-dev-$(date +%Y%m%d-%H%M%S)"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "Branch name: $BRANCH_NAME"
 
-          # Create and switch to new branch from main
-          git checkout -b "$BRANCH_NAME" origin/main
+          # Create and switch to new branch from origin/dev
+          git checkout -b "$BRANCH_NAME" origin/dev
 
           # Try to merge upstream/dev
           if git merge upstream/dev --no-edit; then
             echo "MERGE_SUCCESS=true" >> $GITHUB_ENV
+            echo "✅ Merge successful"
           else
             echo "MERGE_SUCCESS=false" >> $GITHUB_ENV
+            echo "⚠️ Merge conflicts detected"
             # If merge fails, we'll still create the PR but with conflict markers
             git add -u
             git commit -m "Sync with upstream/dev - merge conflicts need resolution"
@@ -80,7 +108,8 @@ jobs:
       - name: Push sync branch
         if: steps.check_changes.outputs.changes_detected == 'true' && steps.check_changes.outputs.behind_count != '0'
         run: |
-          git push origin "$BRANCH_NAME"
+          echo "Pushing branch: ${{ env.BRANCH_NAME }}"
+          git push origin "${{ env.BRANCH_NAME }}"
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes_detected == 'true' && steps.check_changes.outputs.behind_count != '0'
@@ -88,7 +117,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.BRANCH_NAME }}
-          base: main
+          base: dev
           title: "🔄 Sync with upstream dev branch"
           body: |
             ## Automated Sync with Upstream
@@ -113,6 +142,22 @@ jobs:
             upstream
           draft: ${{ env.MERGE_SUCCESS == 'false' }}
           delete-branch: false
+
+      - name: Debug - Show conditions
+        run: |
+          echo "=== DEBUG INFO ==="
+          echo "changes_detected: '${{ steps.check_changes.outputs.changes_detected }}'"
+          echo "behind_count: '${{ steps.check_changes.outputs.behind_count }}'"
+          echo "BRANCH_NAME: '${{ env.BRANCH_NAME }}'"
+          echo "MERGE_SUCCESS: '${{ env.MERGE_SUCCESS }}'"
+
+          if [ "${{ steps.check_changes.outputs.changes_detected }}" == "true" ] && [ "${{ steps.check_changes.outputs.behind_count }}" != "0" ]; then
+            echo "✅ Conditions met for PR creation"
+          else
+            echo "❌ Conditions NOT met for PR creation"
+            echo "  - changes_detected == 'true': $([ "${{ steps.check_changes.outputs.changes_detected }}" == "true" ] && echo "YES" || echo "NO")"
+            echo "  - behind_count != '0': $([ "${{ steps.check_changes.outputs.behind_count }}" != "0" ] && echo "YES" || echo "NO")"
+          fi
 
       - name: Comment on existing PR if no changes
         if: steps.check_changes.outputs.changes_detected == 'false'
