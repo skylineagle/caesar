@@ -17,11 +17,8 @@ on:
     branches:
       - main
       - docker-action-fix
-    paths:
-      - "docker/main/Dockerfile.airgapped"
-      - "docker/main/prefetch_models.py"
-      - "build_airgapped.sh"
-      - ".github/workflows/airgapped.yml"
+    paths-ignore:
+      - "docs/**"
 
 # only run the latest commit to avoid conflicts
 concurrency:
@@ -101,9 +98,8 @@ jobs:
           sudo rm -rf /var/cache/apt/archives/*
           sudo rm -rf /var/lib/apt/lists/*
 
-          # Clear system caches
+          # Clear system caches (skip drop_caches as it requires special permissions)
           sudo sync
-          sudo echo 3 > /proc/sys/vm/drop_caches
 
           # Show available space
           df -h
@@ -266,9 +262,8 @@ jobs:
           sudo rm -rf /var/cache/apt/archives/*
           sudo rm -rf /var/lib/apt/lists/*
 
-          # Clear system caches
+          # Clear system caches (skip drop_caches as it requires special permissions)
           sudo sync
-          sudo echo 3 > /proc/sys/vm/drop_caches
 
           # Show available space
           df -h
