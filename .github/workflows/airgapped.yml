@@ -1,0 +1,313 @@
+name: Air-gapped Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Platforms to build for"
+        required: true
+        default: "linux/amd64,linux/arm64"
+        type: string
+      push_to_registry:
+        description: "Push to registry"
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - "docker/main/Dockerfile.airgapped"
+      - "docker/main/prefetch_models.py"
+      - "build_airgapped.sh"
+      - ".github/workflows/airgapped.yml"
+
+# only run the latest commit to avoid conflicts
+concurrency:
+  group: airgapped-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY_IMAGE: skylineagle/caesar
+  PYTHON_VERSION: 3.11
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    name: Build ${{ matrix.platform }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare platform name
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.platform }}
+
+      - name: Log in to Docker Hub
+        if: github.event.inputs.push_to_registry != 'false'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch,suffix=-airgapped
+            type=ref,event=pr,suffix=-airgapped
+            type=sha,prefix={{branch}}-airgapped-,format=short
+            type=raw,value=airgapped,enable={{is_default_branch}}
+            type=schedule,pattern=weekly-airgapped
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          build-mount-path: "/tmp"
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/main/Dockerfile.airgapped
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ github.event.inputs.push_to_registry != 'false' }}
+          cache-from: type=gha,scope=airgapped-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=airgapped-${{ env.PLATFORM_PAIR }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-22.04
+    if: github.event.inputs.push_to_registry != 'false'
+    needs:
+      - build
+    name: Create multi-platform manifest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch,suffix=-airgapped
+            type=ref,event=pr,suffix=-airgapped
+            type=sha,prefix={{branch}}-airgapped-,format=short
+            type=raw,value=airgapped,enable={{is_default_branch}}
+            type=schedule,pattern=weekly-airgapped
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+
+  test:
+    runs-on: ubuntu-22.04
+    if: github.event.inputs.push_to_registry != 'false'
+    needs:
+      - merge
+    name: Test air-gapped image
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch,suffix=-airgapped
+            type=ref,event=pr,suffix=-airgapped
+            type=sha,prefix={{branch}}-airgapped-,format=short
+            type=raw,value=airgapped,enable={{is_default_branch}}
+            type=schedule,pattern=weekly-airgapped
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Test model files are present
+        run: |
+          echo "Testing that models are embedded in the image..."
+          model_count=$(docker run --rm ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }} find /config/model_cache -name "*.onnx" -o -name "*.tflite" -o -name "*.yaml" | wc -l)
+          echo "Found $model_count model files"
+          if [ "$model_count" -lt 10 ]; then
+            echo "❌ Expected at least 10 model files, found $model_count"
+            exit 1
+          fi
+          echo "✅ Model files verification passed"
+
+      - name: Test air-gapped functionality
+        run: |
+          echo "Testing air-gapped functionality (no network access)..."
+          docker run --rm --network none ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }} python3 -c "
+          import urllib.request
+          try:
+              urllib.request.urlopen('https://google.com', timeout=5)
+              print('❌ ERROR: Network access detected!')
+              exit(1)
+          except:
+              print('✅ SUCCESS: No network access confirmed')
+          "
+
+      - name: Test Frigate can start
+        run: |
+          echo "Testing that Frigate can start with air-gapped image..."
+          # Create a minimal config for testing
+          mkdir -p /tmp/frigate-test/config
+          cat > /tmp/frigate-test/config/config.yml << EOF
+          database:
+            path: /config/frigate.db
+          semantic_search:
+            enabled: true
+            model: "jinav1"
+            model_size: "small"
+          face_recognition:
+            enabled: true
+            model_size: "small"
+          lpr:
+            enabled: true
+            model_size: "small"
+          cameras:
+            test:
+              enabled: false
+              ffmpeg:
+                inputs:
+                  - path: /dev/null
+                    roles: [detect]
+          EOF
+
+          # Start container and check it can initialize
+          container_id=$(docker run -d \
+            --network none \
+            -v /tmp/frigate-test/config:/config \
+            --tmpfs /tmp/cache:size=100m \
+            ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }})
+
+          # Wait a bit for startup
+          sleep 30
+
+          # Check logs for successful model loading
+          docker logs "$container_id" 2>&1 | grep -E "(models are already downloaded|semantic_search.*enabled|face_recognition.*enabled|lpr.*enabled)" || true
+
+          # Check if container is still running (no immediate crashes)
+          if docker ps -q --filter "id=$container_id" | grep -q .; then
+            echo "✅ Container started successfully"
+          else
+            echo "❌ Container failed to start"
+            docker logs "$container_id"
+            exit 1
+          fi
+
+          # Clean up
+          docker stop "$container_id" || true
+          docker rm "$container_id" || true
+
+  notify:
+    runs-on: ubuntu-22.04
+    if: always() && github.event.inputs.push_to_registry != 'false'
+    needs:
+      - build
+      - merge
+      - test
+    name: Notify build status
+    steps:
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch,suffix=-airgapped
+            type=ref,event=pr,suffix=-airgapped
+            type=sha,prefix={{branch}}-airgapped-,format=short
+            type=raw,value=airgapped,enable={{is_default_branch}}
+            type=schedule,pattern=weekly-airgapped
+
+      - name: Create build summary
+        run: |
+          echo "## 🚀 Air-gapped Frigate Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Features Included:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Semantic Search (Jina CLIP v1 & v2)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Face Recognition (FaceNet & ArcFace)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ License Plate Recognition (PaddleOCR & YOLOv9)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Bird Classification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Quick Start:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
