@@ -88,9 +88,19 @@ jobs:
           remove-android: "true"
           remove-haskell: "true"
           remove-codeql: "true"
+          remove-swift: "true"
+          remove-rust: "true"
+          remove-go: "true"
+          remove-java: "true"
+          remove-node: "true"
           build-mount-path: "/tmp"
 
-      - name: Build and push by digest
+      - name: Clean Docker system
+        run: |
+          docker system prune -f
+          docker builder prune -f
+
+      - name: Build and push
         id: build
         uses: docker/build-push-action@v5
         with:
@@ -98,25 +108,35 @@ jobs:
           file: docker/main/Dockerfile.airgapped
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ github.event.inputs.push_to_registry != 'false' }}
+          push: ${{ github.event.inputs.push_to_registry != 'false' }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=airgapped-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,mode=max,scope=airgapped-${{ env.PLATFORM_PAIR }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+          provenance: false
+          sbom: false
 
-      - name: Export digest
+      - name: Export image info
         run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          mkdir -p /tmp/image-info
+          echo "${{ steps.meta.outputs.version }}" > "/tmp/image-info/version"
+          echo "${{ steps.meta.outputs.tags }}" > "/tmp/image-info/tags"
 
-      - name: Upload digest
+      - name: Upload image info
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
+          name: image-info-${{ env.PLATFORM_PAIR }}
+          path: /tmp/image-info/*
           if-no-files-found: error
           retention-days: 1
+
+      - name: Clean up after build
+        if: always()
+        run: |
+          docker system prune -f
+          docker builder prune -f
+          rm -rf /tmp/image-info
 
   merge:
     runs-on: ubuntu-22.04
@@ -125,11 +145,11 @@ jobs:
       - build
     name: Create multi-platform manifest
     steps:
-      - name: Download digests
+      - name: Download image info
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/digests
-          pattern: digests-*
+          path: /tmp/image-info
+          pattern: image-info-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -154,11 +174,11 @@ jobs:
             type=raw,value=airgapped,enable={{is_default_branch}}
             type=schedule,pattern=weekly-airgapped
 
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
+      - name: Create and push manifest
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+          docker buildx imagetools create -t ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }} \
+            ${{ env.REGISTRY_IMAGE }}:linux-amd64-airgapped \
+            ${{ env.REGISTRY_IMAGE }}:linux-arm64-airgapped
 
       - name: Inspect image
         run: |
@@ -188,11 +208,12 @@ jobs:
             type=raw,value=airgapped,enable={{is_default_branch}}
             type=schedule,pattern=weekly-airgapped
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test model files are present
         run: |
