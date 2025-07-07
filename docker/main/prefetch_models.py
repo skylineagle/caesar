@@ -53,7 +53,7 @@ def download_huggingface_model(model_name: str, files: List[str], base_dir: Path
                 try:
                     url = f"{hf_endpoint}/{model_name}/resolve/main/{tf}"
                     download_file(url, tokenizer_dir / tf, f"{model_name} {tf}")
-                except:
+                except Exception:
                     # Some tokenizer files might not exist, that's okay
                     pass
         else:
