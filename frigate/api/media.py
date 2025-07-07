@@ -211,6 +211,7 @@ def latest_frame(
         "zones": params.zones,
         "mask": params.mask,
         "motion_boxes": params.motion,
+        "paths": params.paths,
         "regions": params.regions,
     }
     quality = params.quality
