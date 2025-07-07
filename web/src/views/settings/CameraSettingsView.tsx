@@ -19,24 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { Checkbox } from "@/components/ui/checkbox";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { StatusBarMessagesContext } from "@/context/statusbar-provider";
-import axios from "axios";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
-import { capitalizeFirstLetter } from "@/utils/stringUtil";
-import { MdCircle } from "react-icons/md";
-import { cn } from "@/lib/utils";
-import { Trans, useTranslation } from "react-i18next";
-import { Switch } from "@/components/ui/switch";
+import Heading from "@/components/ui/heading";
 import { Label } from "@/components/ui/label";
 import {
   Select,

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { SearchFilter, SearchResult, SearchSource } from "@/types/search";
 import { formatDateToLocaleString } from "@/utils/dateUtil";
+import ExploreView from "@/views/explore/ExploreView";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
 import { isEqual } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,7 +32,6 @@ import { LuImage, LuSearchX, LuText } from "react-icons/lu";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import scrollIntoView from "scroll-into-view-if-needed";
 import useSWR from "swr";
-import ExploreView from "../explore/ExploreView";
 
 type SearchViewProps = {
   search: string;

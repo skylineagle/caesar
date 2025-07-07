@@ -497,6 +497,41 @@ class EmbeddingMaintainer(threading.Thread):
                         PostProcessDataEnum.tracked_object,
                     )
 
+            # call any defined post processors
+            for processor in self.post_processors:
+                if isinstance(processor, LicensePlatePostProcessor):
+                    recordings_available = self.recordings_available_through.get(camera)
+                    if (
+                        recordings_available is not None
+                        and event_id in self.detected_license_plates
+                        and self.config.cameras[camera].type != "lpr"
+                    ):
+                        processor.process_data(
+                            {
+                                "event_id": event_id,
+                                "camera": camera,
+                                "recordings_available": self.recordings_available_through[
+                                    camera
+                                ],
+                                "obj_data": self.detected_license_plates[event_id][
+                                    "obj_data"
+                                ],
+                            },
+                            PostProcessDataEnum.recording,
+                        )
+                elif isinstance(processor, AudioTranscriptionPostProcessor):
+                    continue
+                elif isinstance(processor, SemanticTriggerProcessor):
+                    processor.process_data(
+                        {"event_id": event_id, "camera": camera, "type": "image"},
+                        PostProcessDataEnum.tracked_object,
+                    )
+                else:
+                    processor.process_data(
+                        {"event_id": event_id, "camera": camera},
+                        PostProcessDataEnum.tracked_object,
+                    )
+
             # Delete tracked events based on the event_id
             if event_id in self.tracked_events:
                 del self.tracked_events[event_id]
