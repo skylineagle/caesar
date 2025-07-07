@@ -82,12 +82,10 @@ logger = logging.getLogger(__name__)
 
 
 class FrigateApp:
-    def __init__(
-        self, config: FrigateConfig, manager: SyncManager, stop_event: MpEvent
-    ) -> None:
+    def __init__(self, config: FrigateConfig, manager: SyncManager) -> None:
         self.metrics_manager = manager
         self.audio_process: Optional[mp.Process] = None
-        self.stop_event = stop_event
+        self.stop_event: MpEvent = mp.Event()
         self.detection_queue: Queue = mp.Queue()
         self.detectors: dict[str, ObjectDetectProcess] = {}
         self.detection_shms: list[mp.shared_memory.SharedMemory] = []
@@ -228,14 +226,14 @@ class FrigateApp:
                 self.processes["go2rtc"] = proc.info["pid"]
 
     def init_recording_manager(self) -> None:
-        recording_process = RecordProcess(self.config, self.stop_event)
+        recording_process = RecordProcess(self.config)
         self.recording_process = recording_process
         recording_process.start()
         self.processes["recording"] = recording_process.pid or 0
         logger.info(f"Recording process started: {recording_process.pid}")
 
     def init_review_segment_manager(self) -> None:
-        review_segment_process = ReviewProcess(self.config, self.stop_event)
+        review_segment_process = ReviewProcess(self.config)
         self.review_segment_process = review_segment_process
         review_segment_process.start()
         self.processes["review_segment"] = review_segment_process.pid or 0
@@ -255,7 +253,8 @@ class FrigateApp:
             return
 
         embedding_process = EmbeddingProcess(
-            self.config, self.embeddings_metrics, self.stop_event
+            self.config,
+            self.embeddings_metrics,
         )
         self.embedding_process = embedding_process
         embedding_process.start()
@@ -390,9 +389,7 @@ class FrigateApp:
                 name,
                 self.detection_queue,
                 list(self.config.cameras.keys()),
-                self.config,
                 detector_config,
-                self.stop_event,
             )
 
     def start_ptz_autotracker(self) -> None:
@@ -416,7 +413,7 @@ class FrigateApp:
         self.detected_frames_processor.start()
 
     def start_video_output_processor(self) -> None:
-        output_processor = OutputProcess(self.config, self.stop_event)
+        output_processor = OutputProcess(self.config)
         self.output_processor = output_processor
         output_processor.start()
         logger.info(f"Output process started: {output_processor.pid}")
@@ -429,7 +426,6 @@ class FrigateApp:
             self.camera_metrics,
             self.ptz_metrics,
             self.stop_event,
-            self.metrics_manager,
         )
         self.camera_maintainer.start()
 
@@ -442,7 +438,7 @@ class FrigateApp:
 
         if audio_cameras:
             self.audio_process = AudioProcessor(
-                self.config, audio_cameras, self.camera_metrics, self.stop_event
+                self.config, audio_cameras, self.camera_metrics
             )
             self.audio_process.start()
             self.processes["audio_detector"] = self.audio_process.pid or 0
@@ -735,5 +731,16 @@ class FrigateApp:
             shm.close()
             shm.unlink()
 
+        # Cleanup camera switching resources
+        try:
+            from frigate.camera_switch_cleanup import cleanup_camera_switch_files
+
+            logger.info("Cleaning up camera switching resources...")
+            cleanup_camera_switch_files()
+        except Exception as e:
+            logger.warning(f"Error during camera switching cleanup: {e}")
+
+        # exit the mp Manager process
         _stop_logging()
         self.metrics_manager.shutdown()
+        os._exit(os.EX_OK)

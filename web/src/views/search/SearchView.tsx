@@ -22,16 +22,16 @@ import { cn } from "@/lib/utils";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { SearchFilter, SearchResult, SearchSource } from "@/types/search";
 import { formatDateToLocaleString } from "@/utils/dateUtil";
+import ExploreView from "@/views/explore/ExploreView";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
 import { isEqual } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isMobileOnly } from "react-device-detect";
 import { Trans, useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
 import { LuImage, LuSearchX, LuText } from "react-icons/lu";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import scrollIntoView from "scroll-into-view-if-needed";
 import useSWR from "swr";
-import ExploreView from "../explore/ExploreView";
 
 type SearchViewProps = {
   search: string;
@@ -76,6 +76,7 @@ export default function SearchView({
   const { data: config } = useSWR<FrigateConfig>("config", {
     revalidateOnFocus: false,
   });
+  const navigate = useNavigate();
 
   // grid
 
@@ -747,6 +748,16 @@ export default function SearchView({
                         showSnapshot={() =>
                           onSelectSearch(value, false, "snapshot")
                         }
+                        addTrigger={() => {
+                          if (
+                            config?.semantic_search.enabled &&
+                            value.data.type == "object"
+                          ) {
+                            navigate(
+                              `/settings?page=triggers&camera=${value.camera}&event_id=${value.id}`,
+                            );
+                          }
+                        }}
                       />
                     </div>
                   </div>

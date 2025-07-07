@@ -2,8 +2,10 @@ import datetime
 
 from peewee import (
     AutoField,
+    BlobField,
     BooleanField,
     CharField,
+    CompositeKey,
     DateTimeField,
     FloatField,
     ForeignKeyField,
@@ -146,3 +148,18 @@ class CameraPermission(Model):  # type: ignore[misc]
     class Meta:
         table_name = "camera_permission"
         indexes = ((("username", "camera_name"), True),)
+
+
+class Trigger(Model):  # type: ignore[misc]
+    camera = CharField(max_length=20)
+    name = CharField()
+    type = CharField(max_length=10)
+    data = TextField()
+    threshold = FloatField()
+    model = CharField(max_length=30)
+    embedding = BlobField()
+    triggering_event_id = CharField(max_length=30)
+    last_triggered = DateTimeField()
+
+    class Meta:
+        primary_key = CompositeKey("camera", "name")
