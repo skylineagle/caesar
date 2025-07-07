@@ -158,7 +158,7 @@ Inference speeds vary greatly depending on the CPU or GPU used, some known examp
 
 Frigate is able to utilize an Nvidia GPU which supports the 12.x series of CUDA libraries.
 
-#### Minimum Hardware Support
+### Minimum Hardware Support
 
  12.x series of CUDA libraries are used which have minor version compatibility. The minimum driver version on the host system must be `>=545`. Also the GPU must support a Compute Capability of `5.0` or greater. This generally correlates to a Maxwell-era GPU or newer, check the NVIDIA GPU Compute Capability table linked below.
 
