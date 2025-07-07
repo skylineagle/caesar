@@ -98,9 +98,6 @@ jobs:
           sudo rm -rf /var/cache/apt/archives/*
           sudo rm -rf /var/lib/apt/lists/*
 
-          # Clear system caches (skip drop_caches as it requires special permissions)
-          sudo sync
-
           # Show available space
           df -h
 
@@ -183,10 +180,6 @@ jobs:
           docker image prune -af
           docker volume prune -af
 
-          # Clear system caches
-          sudo sync
-          sudo echo 3 > /proc/sys/vm/drop_caches
-
           # Remove temporary files
           rm -rf /tmp/image-info
           rm -rf /tmp/*
@@ -262,7 +255,6 @@ jobs:
           sudo rm -rf /var/cache/apt/archives/*
           sudo rm -rf /var/lib/apt/lists/*
 
-          # Clear system caches (skip drop_caches as it requires special permissions)
           sudo sync
 
           # Show available space
@@ -347,9 +339,6 @@ jobs:
           docker image prune -af
           docker volume prune -af
 
-          # Clear system caches
-          sudo sync
-          sudo echo 3 > /proc/sys/vm/drop_caches
 
           # Remove temporary files
           rm -rf /tmp/image-info
