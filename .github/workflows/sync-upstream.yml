@@ -6,6 +6,10 @@ on:
     - cron: "0 23 * * *"
   workflow_dispatch: # Allow manual triggering
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   sync-upstream:
     runs-on: ubuntu-latest
@@ -108,6 +112,7 @@ jobs:
             sync
             upstream
           draft: ${{ env.MERGE_SUCCESS == 'false' }}
+          delete-branch: false
 
       - name: Comment on existing PR if no changes
         if: steps.check_changes.outputs.changes_detected == 'false'
