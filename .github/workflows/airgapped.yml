@@ -33,25 +33,26 @@ env:
   PYTHON_VERSION: 3.11
 
 jobs:
-  build:
+  build-amd64:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
-    name: Build ${{ matrix.platform }}
+    name: Build linux/amd64
+    # Build platforms sequentially to avoid space conflicts
+    concurrency:
+      group: build-amd64
+      cancel-in-progress: false
+
+  build-arm64:
+    runs-on: ubuntu-22.04
+    name: Build linux/arm64
+    # Build platforms sequentially to avoid space conflicts
+    concurrency:
+      group: build-arm64
+      cancel-in-progress: false
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Prepare platform name
-        run: |
-          platform=${{ matrix.platform }}
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -59,7 +60,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64
 
       - name: Log in to GitHub Container Registry
         if: github.event.inputs.push_to_registry != 'false'
@@ -93,13 +94,54 @@ jobs:
           remove-go: "true"
           remove-java: "true"
           remove-node: "true"
+          remove-python: "true"
+          remove-php: "true"
+          remove-ruby: "true"
+          remove-perl: "true"
           build-mount-path: "/tmp"
+
+      - name: Free up additional space
+        run: |
+          # Remove unnecessary files
+          sudo rm -rf /usr/share/doc/*
+          sudo rm -rf /usr/share/man/*
+          sudo rm -rf /usr/share/locale/*
+          sudo rm -rf /var/cache/apt/archives/*
+          sudo rm -rf /var/lib/apt/lists/*
+
+          # Clear system caches
+          sudo sync
+          sudo echo 3 > /proc/sys/vm/drop_caches
+
+          # Show available space
+          df -h
 
       - name: Clean Docker system
         run: |
+          # Stop all containers
+          docker stop $(docker ps -aq) 2>/dev/null || true
+          docker rm $(docker ps -aq) 2>/dev/null || true
+
+          # Remove all images
+          docker rmi $(docker images -aq) 2>/dev/null || true
+
+          # Clean everything
           docker system prune -af
           docker builder prune -af
           docker image prune -af
+          docker volume prune -af
+
+          # Show Docker disk usage
+          docker system df
+
+      - name: Monitor disk usage
+        run: |
+          echo "=== Disk usage before build ==="
+          df -h
+          echo "=== Docker disk usage before build ==="
+          docker system df
+          echo "=== Available memory ==="
+          free -h
 
       - name: Build and push
         id: build
@@ -107,14 +149,15 @@ jobs:
         with:
           context: .
           file: docker/main/Dockerfile.airgapped
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ github.event.inputs.push_to_registry != 'false' }}
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha,scope=airgapped-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=airgapped-${{ env.PLATFORM_PAIR }}
+          # Disable caching to save space
+          # cache-from: type=gha,scope=airgapped-linux-amd64
+          # cache-to: type=gha,mode=max,scope=airgapped-linux-amd64
           build-args: |
-            BUILDKIT_INLINE_CACHE=1
+            BUILDKIT_INLINE_CACHE=0
             DEBIAN_FRONTEND=noninteractive
           provenance: false
           sbom: false
@@ -128,7 +171,7 @@ jobs:
       - name: Upload image info
         uses: actions/upload-artifact@v4
         with:
-          name: image-info-${{ env.PLATFORM_PAIR }}
+          name: image-info-linux-amd64
           path: /tmp/image-info/*
           if-no-files-found: error
           retention-days: 1
@@ -136,16 +179,204 @@ jobs:
       - name: Clean up after build
         if: always()
         run: |
+          echo "=== Disk usage after build ==="
+          df -h
+
+          # Stop all containers
+          docker stop $(docker ps -aq) 2>/dev/null || true
+          docker rm $(docker ps -aq) 2>/dev/null || true
+
+          # Remove all images
+          docker rmi $(docker images -aq) 2>/dev/null || true
+
+          # Clean everything
           docker system prune -af
           docker builder prune -af
           docker image prune -af
+          docker volume prune -af
+
+          # Clear system caches
+          sudo sync
+          sudo echo 3 > /proc/sys/vm/drop_caches
+
+          # Remove temporary files
           rm -rf /tmp/image-info
+          rm -rf /tmp/*
+
+          echo "=== Final disk usage ==="
+          df -h
+
+  build-arm64:
+    runs-on: ubuntu-22.04
+    name: Build linux/arm64
+    # Build platforms sequentially to avoid space conflicts
+    concurrency:
+      group: build-arm64
+      cancel-in-progress: false
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Log in to GitHub Container Registry
+        if: github.event.inputs.push_to_registry != 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch,suffix=-airgapped
+            type=ref,event=pr,suffix=-airgapped
+            type=sha,prefix={{branch}}-airgapped-,format=short
+            type=raw,value=airgapped,enable={{is_default_branch}}
+            type=schedule,pattern=weekly-airgapped
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-swift: "true"
+          remove-rust: "true"
+          remove-go: "true"
+          remove-java: "true"
+          remove-node: "true"
+          remove-python: "true"
+          remove-php: "true"
+          remove-ruby: "true"
+          remove-perl: "true"
+          build-mount-path: "/tmp"
+
+      - name: Free up additional space
+        run: |
+          # Remove unnecessary files
+          sudo rm -rf /usr/share/doc/*
+          sudo rm -rf /usr/share/man/*
+          sudo rm -rf /usr/share/locale/*
+          sudo rm -rf /var/cache/apt/archives/*
+          sudo rm -rf /var/lib/apt/lists/*
+
+          # Clear system caches
+          sudo sync
+          sudo echo 3 > /proc/sys/vm/drop_caches
+
+          # Show available space
+          df -h
+
+      - name: Clean Docker system
+        run: |
+          # Stop all containers
+          docker stop $(docker ps -aq) 2>/dev/null || true
+          docker rm $(docker ps -aq) 2>/dev/null || true
+
+          # Remove all images
+          docker rmi $(docker images -aq) 2>/dev/null || true
+
+          # Clean everything
+          docker system prune -af
+          docker builder prune -af
+          docker image prune -af
+          docker volume prune -af
+
+          # Show Docker disk usage
+          docker system df
+
+      - name: Monitor disk usage
+        run: |
+          echo "=== Disk usage before build ==="
+          df -h
+          echo "=== Docker disk usage before build ==="
+          docker system df
+          echo "=== Available memory ==="
+          free -h
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/main/Dockerfile.airgapped
+          platforms: linux/arm64
+          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ github.event.inputs.push_to_registry != 'false' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          # Disable caching to save space
+          # cache-from: type=gha,scope=airgapped-linux-arm64
+          # cache-to: type=gha,mode=max,scope=airgapped-linux-arm64
+          build-args: |
+            BUILDKIT_INLINE_CACHE=0
+            DEBIAN_FRONTEND=noninteractive
+          provenance: false
+          sbom: false
+
+      - name: Export image info
+        run: |
+          mkdir -p /tmp/image-info
+          echo "${{ steps.meta.outputs.version }}" > "/tmp/image-info/version"
+          echo "${{ steps.meta.outputs.tags }}" > "/tmp/image-info/tags"
+
+      - name: Upload image info
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-info-linux-arm64
+          path: /tmp/image-info/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Clean up after build
+        if: always()
+        run: |
+          echo "=== Disk usage after build ==="
+          df -h
+
+          # Stop all containers
+          docker stop $(docker ps -aq) 2>/dev/null || true
+          docker rm $(docker ps -aq) 2>/dev/null || true
+
+          # Remove all images
+          docker rmi $(docker images -aq) 2>/dev/null || true
+
+          # Clean everything
+          docker system prune -af
+          docker builder prune -af
+          docker image prune -af
+          docker volume prune -af
+
+          # Clear system caches
+          sudo sync
+          sudo echo 3 > /proc/sys/vm/drop_caches
+
+          # Remove temporary files
+          rm -rf /tmp/image-info
+          rm -rf /tmp/*
+
+          echo "=== Final disk usage ==="
+          df -h
 
   merge:
     runs-on: ubuntu-22.04
     if: github.event.inputs.push_to_registry != 'false'
     needs:
-      - build
+      - build-amd64
+      - build-arm64
     name: Create multi-platform manifest
     steps:
       - name: Download image info
@@ -299,7 +530,8 @@ jobs:
     runs-on: ubuntu-22.04
     if: always() && github.event.inputs.push_to_registry != 'false'
     needs:
-      - build
+      - build-amd64
+      - build-arm64
       - merge
       - test
     name: Notify build status
