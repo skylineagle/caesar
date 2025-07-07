@@ -1,3 +1,10 @@
+import { useMuted, usePlaybackRate, useVolume } from "@/hooks/use-url-state";
+import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { VideoResolutionType } from "@/types/live";
+import { ASPECT_VERTICAL_LAYOUT, RecordingPlayerError } from "@/types/record";
+import { AxiosResponse } from "axios";
+import Hls from "hls.js";
 import {
   MutableRefObject,
   useCallback,
@@ -5,20 +12,12 @@ import {
   useRef,
   useState,
 } from "react";
-import Hls from "hls.js";
 import { isAndroid, isDesktop, isMobile } from "react-device-detect";
-import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
-import VideoControls from "./VideoControls";
-import { VideoResolutionType } from "@/types/live";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { AxiosResponse } from "axios";
-import { toast } from "sonner";
-import { useOverlayState } from "@/hooks/use-overlay-state";
-import { usePersistence } from "@/hooks/use-persistence";
-import { cn } from "@/lib/utils";
-import { ASPECT_VERTICAL_LAYOUT, RecordingPlayerError } from "@/types/record";
 import { useTranslation } from "react-i18next";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { toast } from "sonner";
+import useSWR from "swr";
+import VideoControls from "./VideoControls";
 
 // Android native hls does not seek correctly
 const USE_NATIVE_HLS = !isAndroid;
@@ -161,13 +160,10 @@ export default function HlsVideoPlayer({
 
   const [tallCamera, setTallCamera] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [muted, setMuted] = usePersistence("hlsPlayerMuted", true);
-  const [volume, setVolume] = useOverlayState("playerVolume", 1.0);
-  const [defaultPlaybackRate] = usePersistence("playbackRate", 1);
-  const [playbackRate, setPlaybackRate] = useOverlayState(
-    "playbackRate",
-    defaultPlaybackRate ?? 1,
-  );
+  const { muted, setMuted } = useMuted();
+  const { volume, setVolume } = useVolume();
+  const { playbackRate, setPlaybackRate } = usePlaybackRate();
+
   const [mobileCtrlTimeout, setMobileCtrlTimeout] = useState<NodeJS.Timeout>();
   const [controls, setControls] = useState(isMobile);
   const [controlsOpen, setControlsOpen] = useState(false);
@@ -252,7 +248,7 @@ export default function HlsVideoPlayer({
             videoRef.current.currentTime = Math.max(0, currentTime + diff);
           }}
           onSetPlaybackRate={(rate) => {
-            setPlaybackRate(rate, true);
+            setPlaybackRate(rate);
 
             if (videoRef.current) {
               videoRef.current.playbackRate = rate;
@@ -310,9 +306,9 @@ export default function HlsVideoPlayer({
               : undefined
           }
           onVolumeChange={() => {
-            setVolume(videoRef.current?.volume ?? 1.0, true);
+            setVolume(videoRef.current?.volume ?? 1.0);
             if (!frigateControls) {
-              setMuted(videoRef.current?.muted);
+              setMuted(videoRef.current?.muted ?? false);
             }
           }}
           onPlay={() => {

@@ -36,5 +36,12 @@
   "camera": "Camera",
   "detected": "detected",
   "suspiciousActivity": "Suspicious Activity",
-  "threateningActivity": "Threatening Activity"
+  "threateningActivity": "Threatening Activity",
+  "details": {
+    "item": {
+      "button": {
+        "share": "Share this recording"
+      }
+    }
+  }
 }
