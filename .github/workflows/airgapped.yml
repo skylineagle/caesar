@@ -97,8 +97,9 @@ jobs:
 
       - name: Clean Docker system
         run: |
-          docker system prune -f
-          docker builder prune -f
+          docker system prune -af
+          docker builder prune -af
+          docker image prune -af
 
       - name: Build and push
         id: build
@@ -114,6 +115,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=airgapped-${{ env.PLATFORM_PAIR }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+            DEBIAN_FRONTEND=noninteractive
           provenance: false
           sbom: false
 
@@ -134,8 +136,9 @@ jobs:
       - name: Clean up after build
         if: always()
         run: |
-          docker system prune -f
-          docker builder prune -f
+          docker system prune -af
+          docker builder prune -af
+          docker image prune -af
           rm -rf /tmp/image-info
 
   merge:
