@@ -15,3 +15,10 @@ export function shareOrCopy(url: string, title?: string) {
     });
   }
 }
+
+export function copyToClipboard(url: string) {
+  copy(url);
+  toast.success(t("toast.copyUrlToClipboard", { ns: "common" }), {
+    position: "top-center",
+  });
+}

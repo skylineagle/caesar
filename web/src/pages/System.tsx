@@ -11,11 +11,11 @@ import { FaVideo } from "react-icons/fa";
 import Logo from "@/components/Logo";
 import useOptimisticState from "@/hooks/use-optimistic-state";
 import CameraMetrics from "@/views/system/CameraMetrics";
-import { useHashState } from "@/hooks/use-overlay-state";
 import { Toaster } from "@/components/ui/sonner";
 import { FrigateConfig } from "@/types/frigateConfig";
 import EnrichmentMetrics from "@/views/system/EnrichmentMetrics";
 import { useTranslation } from "react-i18next";
+import { parseAsStringEnum, useQueryState } from "nuqs";
 
 const allMetrics = ["general", "enrichments", "storage", "cameras"] as const;
 type SystemMetric = (typeof allMetrics)[number];
@@ -42,8 +42,10 @@ function System() {
   }, [config]);
 
   // stats page
-
-  const [page, setPage] = useHashState<SystemMetric>();
+  const [page, setPage] = useQueryState(
+    "page",
+    parseAsStringEnum([...allMetrics]).withDefault("general"),
+  );
   const [pageToggle, setPageToggle] = useOptimisticState(
     page ?? "general",
     setPage,
