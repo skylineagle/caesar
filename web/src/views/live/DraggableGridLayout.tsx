@@ -9,20 +9,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useStreamingSettings } from "@/context/streaming-settings-provider";
 import { useResizeObserver } from "@/hooks/resize-observer";
-import useCameraLiveMode from "@/hooks/use-camera-live-mode";
 import { usePersistence } from "@/hooks/use-persistence";
 import { useGroup } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import {
-  AllGroupsStreamingSettings,
   BirdseyeConfig,
   CameraConfig,
   FrigateConfig,
 } from "@/types/frigateConfig";
 import {
   AudioState,
+  LivePlayerError,
   LivePlayerMode,
   StatsState,
   VolumeState,
@@ -50,7 +48,6 @@ import { FaCompress, FaExpand } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { LuLayoutDashboard, LuPencil } from "react-icons/lu";
 import "react-resizable/css/styles.css";
-import useSWR from "swr";
 
 type DraggableGridLayoutProps = {
   cameras: CameraConfig[];
@@ -65,6 +62,22 @@ type DraggableGridLayoutProps = {
   setIsEditMode: React.Dispatch<React.SetStateAction<boolean>>;
   fullscreen: boolean;
   toggleFullscreen: () => void;
+  preferredLiveModes: Record<string, LivePlayerMode>;
+  resetPreferredLiveMode: (camera: string) => void;
+  isRestreamedStates: Record<string, boolean>;
+  supportsAudioOutputStates: Record<string, { supportsAudio: boolean }>;
+  audioStates: AudioState;
+  volumeStates: VolumeState;
+  setVolumeStates: React.Dispatch<React.SetStateAction<VolumeState>>;
+  statsStates: StatsState;
+  toggleAudio: (cameraName: string) => void;
+  toggleStats: (cameraName: string) => void;
+  muteAll: () => void;
+  unmuteAll: () => void;
+  handleError: (cameraName: string, error: LivePlayerError) => void;
+  globalAutoLive: boolean | undefined;
+  currentGroupStreamingSettings: Record<string, any> | undefined;
+  config: FrigateConfig | undefined;
 };
 export default function DraggableGridLayout({
   cameras,
@@ -79,31 +92,25 @@ export default function DraggableGridLayout({
   setIsEditMode,
   fullscreen,
   toggleFullscreen,
+  preferredLiveModes,
+  resetPreferredLiveMode,
+  isRestreamedStates,
+  supportsAudioOutputStates,
+  audioStates,
+  volumeStates,
+  setVolumeStates,
+  statsStates,
+  toggleAudio,
+  toggleStats,
+  muteAll,
+  unmuteAll,
+  handleError,
+  globalAutoLive,
+  currentGroupStreamingSettings,
+  config,
 }: DraggableGridLayoutProps) {
   const { t } = useTranslation(["views/live"]);
-  const { data: config } = useSWR<FrigateConfig>("config");
   const birdseyeConfig = useMemo(() => config?.birdseye, [config]);
-
-  // preferred live modes per camera
-
-  const {
-    preferredLiveModes,
-    setPreferredLiveModes,
-    resetPreferredLiveMode,
-    isRestreamedStates,
-    supportsAudioOutputStates,
-  } = useCameraLiveMode(cameras, windowVisible);
-
-  const [globalAutoLive] = usePersistence("autoLiveView", true);
-
-  const { allGroupsStreamingSettings, setAllGroupsStreamingSettings } =
-    useStreamingSettings();
-
-  const currentGroupStreamingSettings = useMemo(() => {
-    if (cameraGroup && cameraGroup != "default" && allGroupsStreamingSettings) {
-      return allGroupsStreamingSettings[cameraGroup];
-    }
-  }, [allGroupsStreamingSettings, cameraGroup]);
 
   // grid layout
 
@@ -370,107 +377,6 @@ export default function DraggableGridLayout({
     placeholder.h = layoutItem.h;
   };
 
-  // audio and stats states
-
-  const [audioStates, setAudioStates] = useState<AudioState>({});
-  const [volumeStates, setVolumeStates] = useState<VolumeState>({});
-  const [statsStates, setStatsStates] = useState<StatsState>(() => {
-    const initialStates: StatsState = {};
-    cameras.forEach((camera) => {
-      initialStates[camera.name] = false;
-    });
-    return initialStates;
-  });
-
-  const toggleStats = (cameraName: string): void => {
-    setStatsStates((prev) => ({
-      ...prev,
-      [cameraName]: !prev[cameraName],
-    }));
-  };
-
-  useEffect(() => {
-    if (!allGroupsStreamingSettings) {
-      return;
-    }
-
-    const initialAudioStates: AudioState = {};
-    const initialVolumeStates: VolumeState = {};
-
-    Object.entries(allGroupsStreamingSettings).forEach(([_, groupSettings]) => {
-      if (groupSettings) {
-        Object.entries(groupSettings).forEach(([camera, cameraSettings]) => {
-          initialAudioStates[camera] = cameraSettings.playAudio ?? false;
-          initialVolumeStates[camera] = cameraSettings.volume ?? 1;
-        });
-      }
-    });
-
-    setAudioStates(initialAudioStates);
-    setVolumeStates(initialVolumeStates);
-  }, [allGroupsStreamingSettings]);
-
-  const toggleAudio = (cameraName: string) => {
-    setAudioStates((prev) => ({
-      ...prev,
-      [cameraName]: !prev[cameraName],
-    }));
-  };
-
-  const onSaveMuting = useCallback(
-    (playAudio: boolean) => {
-      if (!cameraGroup || !allGroupsStreamingSettings) {
-        return;
-      }
-
-      const existingGroupSettings =
-        allGroupsStreamingSettings[cameraGroup] || {};
-
-      const updatedSettings: AllGroupsStreamingSettings = {
-        ...Object.fromEntries(
-          Object.entries(allGroupsStreamingSettings || {}).filter(
-            ([key]) => key !== cameraGroup,
-          ),
-        ),
-        [cameraGroup]: {
-          ...existingGroupSettings,
-          ...Object.fromEntries(
-            Object.entries(existingGroupSettings).map(
-              ([cameraName, settings]) => [
-                cameraName,
-                {
-                  ...settings,
-                  playAudio: playAudio,
-                },
-              ],
-            ),
-          ),
-        },
-      };
-
-      setAllGroupsStreamingSettings?.(updatedSettings);
-    },
-    [cameraGroup, allGroupsStreamingSettings, setAllGroupsStreamingSettings],
-  );
-
-  const muteAll = () => {
-    const updatedStates: AudioState = {};
-    cameras.forEach((camera) => {
-      updatedStates[camera.name] = false;
-    });
-    setAudioStates(updatedStates);
-    onSaveMuting(false);
-  };
-
-  const unmuteAll = () => {
-    const updatedStates: AudioState = {};
-    cameras.forEach((camera) => {
-      updatedStates[camera.name] = true;
-    });
-    setAudioStates(updatedStates);
-    onSaveMuting(true);
-  };
-
   return (
     <>
       <Toaster position="top-center" closeButton={true} />
@@ -629,17 +535,7 @@ export default function DraggableGridLayout({
                     onClick={() => {
                       !isEditMode && onSelectCamera(camera.name);
                     }}
-                    onError={(e) => {
-                      setPreferredLiveModes((prevModes) => {
-                        const newModes = { ...prevModes };
-                        if (e === "mse-decode") {
-                          newModes[camera.name] = "webrtc";
-                        } else {
-                          newModes[camera.name] = "jsmpeg";
-                        }
-                        return newModes;
-                      });
-                    }}
+                    onError={(e) => handleError(camera.name, e)}
                     onResetLiveMode={() => resetPreferredLiveMode(camera.name)}
                     playAudio={audioStates[camera.name]}
                     volume={volumeStates[camera.name]}
