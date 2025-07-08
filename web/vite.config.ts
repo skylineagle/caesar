@@ -30,6 +30,12 @@ export default defineConfig({
         target: `ws://${proxyHost}`,
         ws: true,
       },
+      "/live/jsmpeg": {
+        target: `ws://localhost:8082`,
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/live\/jsmpeg/, ""),
+      },
       "/live": {
         target: `ws://${proxyHost}`,
         changeOrigin: true,
