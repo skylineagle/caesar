@@ -231,7 +231,7 @@ The MX3 is a pipelined architecture, where the maximum frames per second support
 | YOLOv9s              | 640        | ~ 41 ms            | ~ 110         |
 | YOLOX-Small          | 640        | ~ 16 ms            | ~ 263         |
 | SSDlite MobileNet v2 | 320        | ~ 5 ms             | ~ 1056        |
-    
+
 Inference speeds may vary depending on the host platform. The above data was measured on an **Intel 13700 CPU**. Platforms like Raspberry Pi, Orange Pi, and other ARM-based SBCs have different levels of processing capability, which may limit total FPS.
 
 ### Nvidia Jetson
