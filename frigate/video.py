@@ -250,36 +250,6 @@ class CameraWatchdog(threading.Thread):
 
         return self.config.enabled
 
-    def _handle_camera_switch(self, camera_name: str, reason: str):
-        """Handle camera switch detection by resetting streams."""
-        self.logger.warning(f"Camera switch detected for {camera_name}: {reason}")
-        self.logger.info(f"Resetting camera processes for {camera_name} due to switch")
-
-        # Reset capture thread to clear any corrupted buffers
-        self.reset_capture_thread()
-
-        # Reset other ffmpeg processes as well
-        for p in self.ffmpeg_other_processes:
-            try:
-                self.logger.info(f"Terminating {p['roles']} process for camera switch")
-                p["process"].terminate()
-                p["process"].wait(timeout=10)
-            except Exception as e:
-                self.logger.warning(f"Error terminating process: {e}")
-                try:
-                    p["process"].kill()
-                except Exception:
-                    pass
-
-        # Clear the process list and restart
-        self.ffmpeg_other_processes.clear()
-
-        # Wait a moment for streams to stabilize
-        time.sleep(2)
-
-        # Restart all ffmpeg processes
-        self.start_all_ffmpeg()
-
     def reset_capture_thread(
         self, terminate: bool = True, drain_output: bool = True
     ) -> None:
