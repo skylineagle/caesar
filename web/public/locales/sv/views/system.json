@@ -67,5 +67,10 @@
     "label": {
       "detect": "detektera"
     }
+  },
+  "title": "System",
+  "metrics": "System detaljer",
+  "general": {
+    "title": "Generellt"
   }
 }
