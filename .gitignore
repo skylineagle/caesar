@@ -19,3 +19,4 @@ core
 !/web/**/*.ts
 .idea/*
 .ipynb_checkpoints
+model_cache

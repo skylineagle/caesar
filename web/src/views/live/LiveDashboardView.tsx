@@ -599,6 +599,22 @@ export default function LiveDashboardView({
           setIsEditMode={setIsEditMode}
           fullscreen={fullscreen}
           toggleFullscreen={toggleFullscreen}
+          preferredLiveModes={preferredLiveModes}
+          resetPreferredLiveMode={resetPreferredLiveMode}
+          isRestreamedStates={isRestreamedStates}
+          supportsAudioOutputStates={supportsAudioOutputStates}
+          audioStates={audioStates}
+          volumeStates={volumeStates}
+          setVolumeStates={setVolumeStates}
+          statsStates={statsStates}
+          toggleAudio={toggleAudio}
+          toggleStats={toggleStats}
+          muteAll={muteAll}
+          unmuteAll={unmuteAll}
+          handleError={handleError}
+          globalAutoLive={globalAutoLive}
+          currentGroupStreamingSettings={currentGroupStreamingSettings}
+          config={config}
         />
       )}
     </div>
