@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import resource
-import shutil
 import signal
 import subprocess as sp
 import traceback
