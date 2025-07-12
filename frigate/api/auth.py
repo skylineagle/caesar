@@ -29,6 +29,7 @@ from frigate.api.defs.tags import Tags
 from frigate.config import AuthConfig, ProxyConfig
 from frigate.const import CONFIG_DIR, JWT_SECRET_ENV_VAR, PASSWORD_HASH_ALGORITHM
 from frigate.models import User
+from frigate.services.pocketbase_service import get_pocketbase_service
 
 logger = logging.getLogger(__name__)
 
@@ -396,28 +397,116 @@ def login(request: Request, body: AppPostLoginBody):
     user = body.user
     password = body.password
 
+    pb_service = get_pocketbase_service()
+
+    # Try PocketBase authentication first
+    if pb_service.is_connected():
+        try:
+            # Check if user exists in PocketBase
+            pb_user = pb_service.get_user_by_username(user)
+
+            if pb_user:
+                # Try PocketBase authentication
+                authenticated_user = pb_service.authenticate_user(user, password)
+
+                if authenticated_user:
+                    role = authenticated_user.role
+                    if role not in VALID_ROLES:
+                        role = "viewer"
+
+                    expiration = int(time.time()) + JWT_SESSION_LENGTH
+                    encoded_jwt = create_encoded_jwt(
+                        user, role, expiration, request.app.jwt_token
+                    )
+                    response = Response("", 200)
+                    set_jwt_cookie(
+                        response,
+                        JWT_COOKIE_NAME,
+                        encoded_jwt,
+                        expiration,
+                        JWT_COOKIE_SECURE,
+                    )
+                    return response
+
+                # Try legacy password verification for migrated users
+                elif pb_user.legacy_password_hash and pb_service.verify_legacy_password(
+                    user, password
+                ):
+                    # Update user to use PocketBase authentication
+                    pb_service.update_user_from_legacy_auth(user, password)
+
+                    role = pb_user.role
+                    if role not in VALID_ROLES:
+                        role = "viewer"
+
+                    expiration = int(time.time()) + JWT_SESSION_LENGTH
+                    encoded_jwt = create_encoded_jwt(
+                        user, role, expiration, request.app.jwt_token
+                    )
+                    response = Response("", 200)
+                    set_jwt_cookie(
+                        response,
+                        JWT_COOKIE_NAME,
+                        encoded_jwt,
+                        expiration,
+                        JWT_COOKIE_SECURE,
+                    )
+                    return response
+        except Exception as e:
+            logger.error(f"PocketBase authentication error: {e}")
+
+    # Fallback to SQLite authentication for backward compatibility
     try:
         db_user: User = User.get_by_id(user)
-    except DoesNotExist:
-        return JSONResponse(content={"message": "Login failed"}, status_code=401)
+        password_hash = db_user.password_hash
 
-    password_hash = db_user.password_hash
-    if verify_password(password, password_hash):
-        role = getattr(db_user, "role", "viewer")
-        if role not in VALID_ROLES:
-            role = "viewer"  # Enforce valid roles
-        expiration = int(time.time()) + JWT_SESSION_LENGTH
-        encoded_jwt = create_encoded_jwt(user, role, expiration, request.app.jwt_token)
-        response = Response("", 200)
-        set_jwt_cookie(
-            response, JWT_COOKIE_NAME, encoded_jwt, expiration, JWT_COOKIE_SECURE
-        )
-        return response
+        if verify_password(password, password_hash):
+            role = getattr(db_user, "role", "viewer")
+            if role not in VALID_ROLES:
+                role = "viewer"
+
+            # Sync user to PocketBase if connected
+            if pb_service.is_connected():
+                try:
+                    from frigate.migrations.migrate_to_pocketbase import (
+                        sync_user_from_sqlite_to_pocketbase,
+                    )
+
+                    sync_user_from_sqlite_to_pocketbase(user)
+                except Exception as e:
+                    logger.warning(f"Failed to sync user to PocketBase: {e}")
+
+            expiration = int(time.time()) + JWT_SESSION_LENGTH
+            encoded_jwt = create_encoded_jwt(
+                user, role, expiration, request.app.jwt_token
+            )
+            response = Response("", 200)
+            set_jwt_cookie(
+                response, JWT_COOKIE_NAME, encoded_jwt, expiration, JWT_COOKIE_SECURE
+            )
+            return response
+    except DoesNotExist:
+        pass
+
     return JSONResponse(content={"message": "Login failed"}, status_code=401)
 
 
 @router.get("/users", dependencies=[Depends(require_role(["admin"]))])
 def get_users():
+    pb_service = get_pocketbase_service()
+
+    # Try to get users from PocketBase first
+    if pb_service.is_connected():
+        try:
+            pb_users = pb_service.list_users()
+            users_data = []
+            for user in pb_users:
+                users_data.append({"username": user.username, "role": user.role})
+            return JSONResponse(users_data)
+        except Exception as e:
+            logger.error(f"Failed to get users from PocketBase: {e}")
+
+    # Fallback to SQLite
     exports = (
         User.select(User.username, User.role).order_by(User.username).dicts().iterator()
     )
@@ -429,12 +518,47 @@ def create_user(
     request: Request,
     body: AppPostUsersBody,
 ):
-    HASH_ITERATIONS = request.app.frigate_config.auth.hash_iterations
-
     if not re.match("^[A-Za-z0-9._]+$", body.username):
         return JSONResponse(content={"message": "Invalid username"}, status_code=400)
 
     role = body.role if body.role in VALID_ROLES else "viewer"
+    pb_service = get_pocketbase_service()
+
+    # Try to create user in PocketBase first
+    if pb_service.is_connected():
+        try:
+            pb_user = pb_service.create_user(
+                username=body.username, password=body.password, role=role
+            )
+
+            if pb_user:
+                # Also create in SQLite for backward compatibility
+                try:
+                    HASH_ITERATIONS = request.app.frigate_config.auth.hash_iterations
+                    password_hash = hash_password(
+                        body.password, iterations=HASH_ITERATIONS
+                    )
+                    User.insert(
+                        {
+                            User.username: body.username,
+                            User.password_hash: password_hash,
+                            User.role: role,
+                            User.notification_tokens: [],
+                        }
+                    ).execute()
+                except Exception as e:
+                    logger.warning(f"Failed to create user in SQLite: {e}")
+
+                return JSONResponse(content={"username": body.username})
+            else:
+                return JSONResponse(
+                    content={"message": "Failed to create user"}, status_code=500
+                )
+        except Exception as e:
+            logger.error(f"Failed to create user in PocketBase: {e}")
+
+    # Fallback to SQLite creation
+    HASH_ITERATIONS = request.app.frigate_config.auth.hash_iterations
     password_hash = hash_password(body.password, iterations=HASH_ITERATIONS)
     User.insert(
         {
@@ -449,6 +573,29 @@ def create_user(
 
 @router.delete("/users/{username}")
 def delete_user(username: str):
+    pb_service = get_pocketbase_service()
+
+    # Try to delete from PocketBase first
+    if pb_service.is_connected():
+        try:
+            pb_user = pb_service.get_user_by_username(username)
+            if pb_user:
+                success = pb_service.delete_user(pb_user.id)
+                if success:
+                    # Also delete from SQLite
+                    try:
+                        User.delete_by_id(username)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete user from SQLite: {e}")
+                    return JSONResponse(content={"success": True})
+                else:
+                    return JSONResponse(
+                        content={"message": "Failed to delete user"}, status_code=500
+                    )
+        except Exception as e:
+            logger.error(f"Failed to delete user from PocketBase: {e}")
+
+    # Fallback to SQLite deletion
     User.delete_by_id(username)
     return JSONResponse(content={"success": True})
 
@@ -473,8 +620,37 @@ async def update_password(
             status_code=403, detail="Viewers can only update their own password"
         )
 
-    HASH_ITERATIONS = request.app.frigate_config.auth.hash_iterations
+    pb_service = get_pocketbase_service()
 
+    # Try to update password in PocketBase first
+    if pb_service.is_connected():
+        try:
+            pb_user = pb_service.get_user_by_username(username)
+            if pb_user:
+                success = pb_service.update_user_password(pb_user.id, body.password)
+                if success:
+                    # Also update in SQLite
+                    try:
+                        HASH_ITERATIONS = (
+                            request.app.frigate_config.auth.hash_iterations
+                        )
+                        password_hash = hash_password(
+                            body.password, iterations=HASH_ITERATIONS
+                        )
+                        User.set_by_id(username, {User.password_hash: password_hash})
+                    except Exception as e:
+                        logger.warning(f"Failed to update password in SQLite: {e}")
+                    return JSONResponse(content={"success": True})
+                else:
+                    return JSONResponse(
+                        content={"message": "Failed to update password"},
+                        status_code=500,
+                    )
+        except Exception as e:
+            logger.error(f"Failed to update password in PocketBase: {e}")
+
+    # Fallback to SQLite update
+    HASH_ITERATIONS = request.app.frigate_config.auth.hash_iterations
     password_hash = hash_password(body.password, iterations=HASH_ITERATIONS)
     User.set_by_id(username, {User.password_hash: password_hash})
 
@@ -510,5 +686,27 @@ async def update_role(
             content={"message": "Role must be 'admin' or 'viewer'"}, status_code=400
         )
 
+    pb_service = get_pocketbase_service()
+
+    # Try to update role in PocketBase first
+    if pb_service.is_connected():
+        try:
+            pb_user = pb_service.get_user_by_username(username)
+            if pb_user:
+                data = {"role": body.role}
+                updated_user = pb_service.update_user(pb_user.id, data)
+                if updated_user:
+                    # Also update in SQLite
+                    try:
+                        User.set_by_id(username, {User.role: body.role})
+                    except Exception as e:
+                        logger.warning(f"Failed to update role in SQLite: {e}")
+                    return JSONResponse(content={"success": True})
+                else:
+                    return JSONResponse(content={"message": "Failed to update role"}, status_code=500)
+        except Exception as e:
+            logger.error(f"Failed to update role in PocketBase: {e}")
+
+    # Fallback to SQLite update
     User.set_by_id(username, {User.role: body.role})
     return JSONResponse(content={"success": True})

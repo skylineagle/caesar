@@ -196,6 +196,7 @@ OWASP
 paddleocr
 paho
 passwordless
+pocketbase
 popleft
 posthog
 postprocess

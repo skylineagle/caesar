@@ -27,6 +27,7 @@ ruamel.yaml == 0.18.*
 tzlocal == 5.2
 requests == 2.32.*
 types-requests == 2.32.*
+pocketbase == 0.15.*
 norfair == 2.2.*
 setproctitle == 1.3.*
 ws4py == 0.5.*
