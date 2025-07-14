@@ -83,6 +83,7 @@ class Dispatcher:
             "motion_mask": self._on_motion_mask_command,
             "object_filters": self._on_object_filters_command,
             "zones": self._on_zones_command,
+            "genai": self._on_genai_command,
         }
         self._global_settings_handlers: dict[str, Callable] = {
             "notifications": self._on_global_notification_command,
@@ -887,3 +888,28 @@ class Dispatcher:
             self.publish(f"{camera_name}/zones/state", "updated", retain=True)
         except Exception as e:
             logger.error(f"Error updating zones for {camera_name}: {e}")
+
+    def _on_genai_command(self, camera_name: str, payload: str) -> None:
+        """Callback for GenAI topic."""
+        genai_settings = self.config.cameras[camera_name].genai
+
+        if payload == "ON":
+            if not self.config.cameras[camera_name].genai.enabled_in_config:
+                logger.error(
+                    "GenAI must be enabled in the config to be turned on via MQTT."
+                )
+                return
+
+            if not genai_settings.enabled:
+                logger.info(f"Turning on GenAI for {camera_name}")
+                genai_settings.enabled = True
+        elif payload == "OFF":
+            if genai_settings.enabled:
+                logger.info(f"Turning off GenAI for {camera_name}")
+                genai_settings.enabled = False
+
+        self.config_updater.publish_update(
+            CameraConfigUpdateTopic(CameraConfigUpdateEnum.genai, camera_name),
+            genai_settings,
+        )
+        self.publish(f"{camera_name}/genai/state", payload, retain=True)

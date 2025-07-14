@@ -158,6 +158,8 @@ export default function CameraSettingsView({
     useObjectDescriptionState(selectedCamera);
   const { payload: revDescState, send: sendRevDesc } =
     useReviewDescriptionState(selectedCamera);
+  const { payload: genAIState, send: sendGenAI } =
+    useGenAIState(selectedCamera);
 
   const handleCheckedChange = useCallback(
     (isChecked: boolean) => {

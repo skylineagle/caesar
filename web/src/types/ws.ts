@@ -72,6 +72,7 @@ export interface FrigateCameraState {
     detections: boolean;
     object_descriptions: boolean;
     review_descriptions: boolean;
+    genai: boolean;
   };
   motion: boolean;
   objects: ObjectType[];
