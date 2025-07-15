@@ -9,8 +9,7 @@ import resource
 import signal
 import subprocess as sp
 import traceback
-from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import cv2
 import psutil
