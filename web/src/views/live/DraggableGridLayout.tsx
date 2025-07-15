@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import {
   BirdseyeConfig,
   CameraConfig,
+  CameraStreamingSettings,
   FrigateConfig,
 } from "@/types/frigateConfig";
 import {
@@ -76,7 +77,9 @@ type DraggableGridLayoutProps = {
   unmuteAll: () => void;
   handleError: (cameraName: string, error: LivePlayerError) => void;
   globalAutoLive: boolean | undefined;
-  currentGroupStreamingSettings: Record<string, any> | undefined;
+  currentGroupStreamingSettings:
+    | Record<string, CameraStreamingSettings>
+    | undefined;
   config: FrigateConfig | undefined;
 };
 export default function DraggableGridLayout({
