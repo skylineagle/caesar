@@ -160,6 +160,9 @@ export default function VideoControls({
         case "ArrowUp":
           onSeek(1);
           break;
+        case "e":
+          onSeek(1 / 30);
+          break;
         case "f":
           if (toggleFullscreen && !modifiers.repeat) {
             toggleFullscreen();
@@ -181,7 +184,7 @@ export default function VideoControls({
   );
   useKeyboardListener(
     hotKeys
-      ? ["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "f", "m", " "]
+      ? ["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "e", "f", "m", " "]
       : [],
     onKeyboardShortcut,
   );
