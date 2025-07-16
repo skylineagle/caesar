@@ -9,8 +9,7 @@ import resource
 import signal
 import subprocess as sp
 import traceback
-from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import cv2
 import psutil
@@ -257,7 +256,7 @@ def get_amd_gpu_stats() -> Optional[dict[str, str]]:
         return results
 
 
-def get_intel_gpu_stats(sriov: bool) -> Optional[dict[str, str]]:
+def get_intel_gpu_stats(intel_gpu_device: Optional[str]) -> Optional[dict[str, str]]:
     """Get stats using intel_gpu_top."""
 
     def get_stats_manually(output: str) -> dict[str, str]:
@@ -304,8 +303,8 @@ def get_intel_gpu_stats(sriov: bool) -> Optional[dict[str, str]]:
         "1",
     ]
 
-    if sriov:
-        intel_gpu_top_command += ["-d", "sriov"]
+    if intel_gpu_device:
+        intel_gpu_top_command += ["-d", intel_gpu_device]
 
     try:
         p = sp.run(
@@ -686,74 +685,6 @@ async def get_video_properties(
     return result
 
 
-def process_logs(
-    contents: str,
-    service: Optional[str] = None,
-    start: Optional[int] = None,
-    end: Optional[int] = None,
-) -> Tuple[int, List[str]]:
-    log_lines = []
-    last_message = None
-    last_timestamp = None
-    repeat_count = 0
-
-    for raw_line in contents.splitlines():
-        clean_line = raw_line.strip()
-
-        if len(clean_line) < 10:
-            continue
-
-        # Handle cases where S6 does not include date in log line
-        if "  " not in clean_line:
-            clean_line = f"{datetime.now()}  {clean_line}"
-
-        try:
-            # Find the position of the first double space to extract timestamp and message
-            date_end = clean_line.index("  ")
-            timestamp = clean_line[:date_end]
-            full_message = clean_line[date_end:].strip()
-
-            # For frigate, remove the date part from message comparison
-            if service == "frigate":
-                # Skip the date at the start of the message if it exists
-                date_parts = full_message.split("]", 1)
-                if len(date_parts) > 1:
-                    message_part = date_parts[1].strip()
-                else:
-                    message_part = full_message
-            else:
-                message_part = full_message
-
-            if message_part == last_message:
-                repeat_count += 1
-                continue
-            else:
-                if repeat_count > 0:
-                    # Insert a deduplication message formatted the same way as logs
-                    dedup_message = f"{last_timestamp}  [LOGGING] Last message repeated {repeat_count} times"
-                    log_lines.append(dedup_message)
-                    repeat_count = 0
-
-                log_lines.append(clean_line)
-                last_timestamp = timestamp
-
-                last_message = message_part
-
-        except ValueError:
-            # If we can't parse the line properly, just add it as is
-            log_lines.append(clean_line)
-            continue
-
-    # If there were repeated messages at the end, log the count
-    if repeat_count > 0:
-        dedup_message = (
-            f"{last_timestamp}  [LOGGING] Last message repeated {repeat_count} times"
-        )
-        log_lines.append(dedup_message)
-
-    return len(log_lines), log_lines[start:end]
-
-
 def set_file_limit() -> None:
     # Newer versions of containerd 2.X+ impose a very low soft file limit of 1024
     # This applies to OSs like HA OS (see https://github.com/home-assistant/operating-system/issues/4110)
@@ -761,10 +692,10 @@ def set_file_limit() -> None:
     soft_limit = int(os.getenv("SOFT_FILE_LIMIT", "65536") or "65536")
 
     current_soft, current_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    logger.debug(f"Current file limits - Soft: {current_soft}, Hard: {current_hard}")
+    logger.info(f"Current file limits - Soft: {current_soft}, Hard: {current_hard}")
 
     new_soft = min(soft_limit, current_hard)
     resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, current_hard))
-    logger.debug(
+    logger.info(
         f"File limit set. New soft limit: {new_soft}, Hard limit remains: {current_hard}"
     )
