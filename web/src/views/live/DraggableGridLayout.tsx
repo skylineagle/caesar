@@ -19,6 +19,7 @@ import {
   CameraStreamingSettings,
   FrigateConfig,
 } from "@/types/frigateConfig";
+
 import {
   AudioState,
   LivePlayerError,
@@ -402,7 +403,7 @@ export default function DraggableGridLayout({
         </div>
       ) : (
         <div
-          className="no-scrollbar my-2 select-none overflow-x-hidden px-2 pb-8"
+          className="no-scrollbar relative my-2 select-none overflow-x-hidden px-2 pb-8"
           ref={gridContainerRef}
         >
           <EditGroupDialog
@@ -444,6 +445,7 @@ export default function DraggableGridLayout({
                 birdseyeConfig={birdseyeConfig}
                 liveMode={birdseyeConfig.restream ? "mse" : "jsmpeg"}
                 onClick={() => onSelectCamera("birdseye")}
+                videoEffects={true}
               >
                 {isEditMode && showCircles && <CornerCircles />}
               </BirdseyeLivePlayerGridItem>
@@ -542,6 +544,7 @@ export default function DraggableGridLayout({
                     onResetLiveMode={() => resetPreferredLiveMode(camera.name)}
                     playAudio={audioStates[camera.name]}
                     volume={volumeStates[camera.name]}
+                    videoEffects={true}
                   />
                   {isEditMode && showCircles && <CornerCircles />}
                 </GridLiveContextMenu>
@@ -650,6 +653,7 @@ type BirdseyeLivePlayerGridItemProps = {
   birdseyeConfig: BirdseyeConfig;
   liveMode: LivePlayerMode;
   onClick: () => void;
+  videoEffects?: boolean;
 };
 
 const BirdseyeLivePlayerGridItem = React.forwardRef<
@@ -667,6 +671,7 @@ const BirdseyeLivePlayerGridItem = React.forwardRef<
       birdseyeConfig,
       liveMode,
       onClick,
+      videoEffects,
       ...props
     },
     ref,
@@ -686,6 +691,7 @@ const BirdseyeLivePlayerGridItem = React.forwardRef<
           liveMode={liveMode}
           onClick={onClick}
           containerRef={ref as React.RefObject<HTMLDivElement>}
+          videoEffects={videoEffects}
         />
         {children}
       </div>

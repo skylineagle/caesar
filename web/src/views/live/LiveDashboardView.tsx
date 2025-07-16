@@ -350,7 +350,7 @@ export default function LiveDashboardView({
 
   return (
     <div
-      className="scrollbar-container size-full select-none overflow-y-auto px-1 pt-2 md:p-2"
+      className="scrollbar-container relative size-full select-none overflow-y-auto px-1 pt-2 md:p-2"
       ref={containerRef}
     >
       {isMobile && (
@@ -459,6 +459,7 @@ export default function LiveDashboardView({
                   liveMode={birdseyeConfig.restream ? "mse" : "jsmpeg"}
                   onClick={() => onSelectCamera("birdseye")}
                   containerRef={birdseyeContainerRef}
+                  videoEffects={true}
                 />
               </div>
             )}
@@ -548,6 +549,7 @@ export default function LiveDashboardView({
                     onResetLiveMode={() => resetPreferredLiveMode(camera.name)}
                     playAudio={audioStates[camera.name] ?? false}
                     volume={volumeStates[camera.name]}
+                    videoEffects={true}
                   />
                 </LiveContextMenu>
               );

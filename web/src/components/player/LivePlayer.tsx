@@ -24,6 +24,8 @@ import { baseUrl } from "@/api/baseUrl";
 import { PlayerStats } from "./PlayerStats";
 import { LuVideoOff } from "react-icons/lu";
 import { Trans, useTranslation } from "react-i18next";
+import { VideoEffects, VideoEffectsControl } from "./VideoEffectsControl";
+import { useContainerVideoEffects } from "@/hooks/use-video-effects";
 
 type LivePlayerProps = {
   cameraRef?: (ref: HTMLDivElement | null) => void;
@@ -47,6 +49,7 @@ type LivePlayerProps = {
   setFullResolution?: React.Dispatch<React.SetStateAction<VideoResolutionType>>;
   onError?: (error: LivePlayerError) => void;
   onResetLiveMode?: () => void;
+  videoEffects?: boolean;
 };
 
 export default function LivePlayer({
@@ -71,13 +74,16 @@ export default function LivePlayer({
   setFullResolution,
   onError,
   onResetLiveMode,
+  videoEffects,
 }: LivePlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation(["common", "components/player"]);
 
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
 
   // stats
 
+  // player state
+  const [liveReady, setLiveReady] = useState(false);
   const [stats, setStats] = useState<PlayerStatsType>({
     streamType: "-",
     bandwidth: 0, // in kbps
@@ -87,6 +93,18 @@ export default function LivePlayer({
     decodedFrames: 0,
     droppedFrameRate: 0, // percentage
   });
+
+  // video effects state
+  const [currentVideoEffects, setCurrentVideoEffects] = useState<VideoEffects>({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    hue: 0,
+    blur: 0,
+  });
+
+  // Apply video effects to any video/canvas elements in the container
+  useContainerVideoEffects(internalContainerRef, currentVideoEffects);
 
   // camera activity
 
@@ -106,8 +124,6 @@ export default function LivePlayer({
   );
 
   // camera live state
-
-  const [liveReady, setLiveReady] = useState(false);
 
   const liveReadyRef = useRef(liveReady);
   const cameraActiveRef = useRef(cameraActive);
@@ -453,6 +469,12 @@ export default function LivePlayer({
       </div>
       {showStats && (
         <PlayerStats stats={stats} minimal={cameraRef !== undefined} />
+      )}
+      {videoEffects && cameraEnabled && (
+        <VideoEffectsControl
+          onEffectsChange={setCurrentVideoEffects}
+          disabled={!liveReady}
+        />
       )}
     </div>
   );

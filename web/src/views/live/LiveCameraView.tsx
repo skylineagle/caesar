@@ -120,6 +120,7 @@ import axios from "axios";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+
 type LiveCameraViewProps = {
   config?: FrigateConfig;
   camera: CameraConfig;
@@ -609,6 +610,7 @@ export default function LiveCameraView({
                 containerRef={containerRef}
                 setFullResolution={setFullResolution}
                 onError={handleError}
+                videoEffects={true}
               />
             </div>
           </TransformComponent>
