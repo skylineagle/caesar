@@ -69,7 +69,7 @@ import {
   FaMicrophoneSlash,
 } from "react-icons/fa";
 import { GiSpeaker, GiSpeakerOff } from "react-icons/gi";
-import { IoIosWarning, IoMdArrowRoundBack } from "react-icons/io";
+import { IoIosWarning } from "react-icons/io";
 import {
   LuCheck,
   LuEar,
@@ -429,19 +429,6 @@ export default function LiveCameraView({
               className={`flex items-center gap-2 ${isMobile ? "landscape:flex-col" : ""}`}
             >
               <Button
-                className={`flex items-center gap-2.5 rounded-lg`}
-                aria-label={t("label.back", { ns: "common" })}
-                size="sm"
-                onClick={() => navigate(-1)}
-              >
-                <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-                {isDesktop && (
-                  <div className="text-primary">
-                    {t("button.back", { ns: "common" })}
-                  </div>
-                )}
-              </Button>
-              <Button
                 className="flex items-center gap-2.5 rounded-lg"
                 aria-label={t("history.label")}
                 size="sm"
@@ -473,21 +460,6 @@ export default function LiveCameraView({
             <div
               className={`flex flex-row items-center gap-2 *:rounded-lg ${isMobile ? "landscape:flex-col" : ""}`}
             >
-              {fullscreen && (
-                <Button
-                  className="bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-primary"
-                  aria-label={t("label.back", { ns: "common" })}
-                  size="sm"
-                  onClick={() => navigate(-1)}
-                >
-                  <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-                  {isDesktop && (
-                    <div className="text-secondary-foreground">
-                      {t("button.back", { ns: "common" })}
-                    </div>
-                  )}
-                </Button>
-              )}
               {supportsFullscreen && (
                 <CameraFeatureToggle
                   className="p-2 md:p-0"

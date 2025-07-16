@@ -1,3 +1,4 @@
+import { baseUrl } from "@/api/baseUrl";
 import Logo from "@/components/Logo";
 import ReviewCard from "@/components/card/ReviewCard";
 import ReviewFilterGroup from "@/components/filter/ReviewFilterGroup";
@@ -40,6 +41,7 @@ import {
   ReviewSummary,
 } from "@/types/review";
 import { TimelineType, TimeRange } from "@/types/timeline";
+import { copyToClipboard } from "@/utils/browserUtil";
 import { getChunkedTimeDay } from "@/utils/timelineUtil";
 import {
   MutableRefObject,
@@ -52,11 +54,8 @@ import {
 import { isDesktop, isMobile } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import { FaShareAlt, FaVideo } from "react-icons/fa";
-import { IoMdArrowRoundBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
-import { copyToClipboard } from "@/utils/browserUtil";
-import { baseUrl } from "@/api/baseUrl";
 
 type RecordingViewProps = {
   startCamera: string;
@@ -462,19 +461,6 @@ export function RecordingView({
         <div className={cn("flex items-center gap-2")}>
           <Button
             className="flex items-center gap-2.5 rounded-lg"
-            aria-label={t("label.back", { ns: "common" })}
-            size="sm"
-            onClick={() => navigate(-1)}
-          >
-            <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-            {isDesktop && (
-              <div className="text-primary">
-                {t("button.back", { ns: "common" })}
-              </div>
-            )}
-          </Button>
-          <Button
-            className="flex items-center gap-2.5 rounded-lg"
             aria-label="Go to the main camera live view"
             size="sm"
             onClick={() => {
@@ -504,7 +490,9 @@ export function RecordingView({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{t("button.copy", { ns: "common" })}</TooltipContent>
+            <TooltipContent>
+              {t("button.copy", { ns: "common" })}
+            </TooltipContent>
           </Tooltip>
         </div>
         <div className="flex items-center justify-end gap-2">
