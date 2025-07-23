@@ -1,46 +1,25 @@
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import {
-  useHashState,
-  usePersistedOverlayState,
-  useSearchEffect,
-} from "@/hooks/use-overlay-state";
+import { useGroup } from "@/hooks/use-url-state";
 import { FrigateConfig } from "@/types/frigateConfig";
 import LiveBirdseyeView from "@/views/live/LiveBirdseyeView";
 import LiveCameraView from "@/views/live/LiveCameraView";
 import LiveDashboardView from "@/views/live/LiveDashboardView";
-import { useTranslation } from "react-i18next";
-
+import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 
 function Live() {
   const { t } = useTranslation(["views/live"]);
   const { data: config } = useSWR<FrigateConfig>("config");
+  const { group: cameraGroup } = useGroup();
 
   // selection
-
-  const [selectedCameraName, setSelectedCameraName] = useHashState();
-  const [cameraGroup, setCameraGroup] = usePersistedOverlayState(
-    "cameraGroup",
-    "default" as string,
+  const [selectedCameraName, setSelectedCameraName] = useQueryState(
+    "camera",
+    parseAsString.withDefault("default"),
   );
-
-  useSearchEffect("group", (cameraGroup) => {
-    if (config && cameraGroup) {
-      const group = config.camera_groups[cameraGroup];
-
-      if (group) {
-        setCameraGroup(cameraGroup);
-      }
-
-      return true;
-    }
-
-    return false;
-  });
-
-  // fullscreen
 
   const mainRef = useRef<HTMLDivElement | null>(null);
 

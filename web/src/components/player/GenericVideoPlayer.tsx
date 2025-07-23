@@ -51,7 +51,7 @@ export function GenericVideoPlayer({
   );
 
   useKeyboardListener(
-    ["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", " ", "f", "m"],
+    ["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp", "e", " ", "f", "m"],
     (key, modifiers) => {
       if (!modifiers.down || modifiers.repeat) {
         return;
@@ -69,6 +69,9 @@ export function GenericVideoPlayer({
           break;
         case "ArrowUp":
           onSeek(1);
+          break;
+        case "e":
+          onSeek(1 / 30);
           break;
         case " ":
           if (videoRef.current?.paused) {

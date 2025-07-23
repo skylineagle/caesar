@@ -179,6 +179,7 @@ Norfair
 nptype
 NTSC
 numpy
+Nuqs
 nvenc
 nvhost
 nvml
@@ -246,6 +247,7 @@ skylake
 sleeptime
 SNDMORE
 socs
+sonner
 sqliteq
 sqlitevecq
 ssdlite
