@@ -762,6 +762,7 @@ def set_file_limit() -> None:
     soft_limit = int(os.getenv("SOFT_FILE_LIMIT", "65536") or "65536")
 
     current_soft, current_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+
     logger.info(f"Current file limits - Soft: {current_soft}, Hard: {current_hard}")
 
     new_soft = min(soft_limit, current_hard)
