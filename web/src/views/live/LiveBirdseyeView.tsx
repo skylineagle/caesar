@@ -2,14 +2,12 @@ import { useBirdseyeLayout } from "@/api/ws";
 import CameraFeatureToggle from "@/components/dynamic/CameraFeatureToggle";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
-import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import { cn } from "@/lib/utils";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  isDesktop,
   isFirefox,
   isIOS,
   isMobile,
@@ -18,10 +16,8 @@ import {
 } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import { FaCompress, FaExpand } from "react-icons/fa";
-import { IoMdArrowBack } from "react-icons/io";
 import { LuPictureInPicture } from "react-icons/lu";
-import { useNavigate } from "react-router-dom";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import useSWR from "swr";
 
 type LiveBirdseyeViewProps = {
@@ -37,7 +33,6 @@ export default function LiveBirdseyeView({
 }: LiveBirdseyeViewProps) {
   const { t } = useTranslation(["views/live"]);
   const { data: config } = useSWR<FrigateConfig>("config");
-  const navigate = useNavigate();
   const { isPortrait } = useMobileOrientation();
   const mainRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -211,23 +206,8 @@ export default function LiveBirdseyeView({
               : `flex h-12 w-full flex-row items-center justify-between ${isMobile ? "landscape:h-full landscape:w-min landscape:flex-col" : ""}`
           }
         >
-          {!fullscreen ? (
-            <Button
-              className={`flex items-center gap-2 rounded-lg ${isMobile ? "ml-2" : "ml-0"}`}
-              aria-label={t("label.back", { ns: "common" })}
-              size={isMobile ? "icon" : "sm"}
-              onClick={() => navigate(-1)}
-            >
-              <IoMdArrowBack className="size-5" />
-              {isDesktop && (
-                <div className="text-primary">
-                  {t("button.back", { ns: "common" })}
-                </div>
-              )}
-            </Button>
-          ) : (
-            <div />
-          )}
+          <div />
+
           <TooltipProvider>
             <div
               className={`mr-1 flex flex-row items-center gap-2 *:rounded-lg ${isMobile ? "landscape:flex-col" : ""}`}

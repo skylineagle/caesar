@@ -26,7 +26,11 @@ import { useResizeObserver } from "@/hooks/resize-observer";
 import { useTimezone } from "@/hooks/use-date-utils";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useTimelineZoom } from "@/hooks/use-timeline-zoom";
-import { useTimelineType } from "@/hooks/use-url-state";
+import {
+  useSeverity,
+  useShowReviewed,
+  useTimelineType,
+} from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import { ExportMode } from "@/types/filter";
 import { FrigateConfig } from "@/types/frigateConfig";
@@ -64,7 +68,6 @@ import {
 } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import { FaShareAlt, FaVideo } from "react-icons/fa";
-import { IoMdArrowRoundBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
 
@@ -129,6 +132,8 @@ export function RecordingView({
 
   // timeline
   const { timelineType, setTimelineType } = useTimelineType();
+  const { severity } = useSeverity();
+  const { showReviewed } = useShowReviewed();
 
   const chunkedTimeRange = useMemo(
     () => getChunkedTimeDay(timeRange),
@@ -289,15 +294,51 @@ export function RecordingView({
       camera: mainCamera,
       startTime: startTime,
       currentTime: currentTime,
-      severity: "alert",
+      severity: severity ?? "alert",
     };
 
     const params = new URLSearchParams();
     params.set("recording", JSON.stringify(shareData));
+
+    // Include all current filter state in the share URL
+    if (filter) {
+      if (filter.cameras && filter.cameras.length > 0) {
+        params.set("cameras", filter.cameras.join(","));
+      }
+      if (filter.labels && filter.labels.length > 0) {
+        params.set("labels", filter.labels.join(","));
+      }
+      if (filter.zones && filter.zones.length > 0) {
+        params.set("zones", filter.zones.join(","));
+      }
+      if (filter.before) {
+        params.set("before", filter.before.toString());
+      }
+      if (filter.after) {
+        params.set("after", filter.after.toString());
+      }
+      if (filter.showAll) {
+        params.set("showAll", filter.showAll.toString());
+      }
+    }
+
+    // Include other URL state parameters
+    params.set("severity", severity ?? "alert");
+    params.set("showReviewed", (showReviewed ?? false).toString());
+    params.set("timelineType", timelineType ?? "timeline");
+
     const shareUrl = `${baseUrl}review?${params.toString()}`;
 
     copyToClipboard(shareUrl);
-  }, [mainCamera, startTime, currentTime]);
+  }, [
+    mainCamera,
+    startTime,
+    currentTime,
+    filter,
+    severity,
+    showReviewed,
+    timelineType,
+  ]);
 
   // fullscreen
 
@@ -470,19 +511,6 @@ export function RecordingView({
           <Logo className="absolute inset-x-1/2 h-8 -translate-x-1/2" />
         )}
         <div className={cn("flex items-center gap-2")}>
-          <Button
-            className="flex items-center gap-2.5 rounded-lg"
-            aria-label={t("label.back", { ns: "common" })}
-            size="sm"
-            onClick={() => navigate(-1)}
-          >
-            <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-            {isDesktop && (
-              <div className="text-primary">
-                {t("button.back", { ns: "common" })}
-              </div>
-            )}
-          </Button>
           <Button
             className="flex items-center gap-2.5 rounded-lg"
             aria-label="Go to the main camera live view"
