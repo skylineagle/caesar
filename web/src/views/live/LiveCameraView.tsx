@@ -429,19 +429,6 @@ export default function LiveCameraView({
               className={`flex items-center gap-2 ${isMobile ? "landscape:flex-col" : ""}`}
             >
               <Button
-                className={`flex items-center gap-2.5 rounded-lg`}
-                aria-label={t("label.back", { ns: "common" })}
-                size="sm"
-                onClick={() => navigate(-1)}
-              >
-                <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
-                {isDesktop && (
-                  <div className="text-primary">
-                    {t("button.back", { ns: "common" })}
-                  </div>
-                )}
-              </Button>
-              <Button
                 className="flex items-center gap-2.5 rounded-lg"
                 aria-label={t("history.label")}
                 size="sm"

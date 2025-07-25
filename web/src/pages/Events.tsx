@@ -1,5 +1,5 @@
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import useApiFilter from "@/hooks/use-api-filter";
+import { useApiFilterArgs } from "@/hooks/use-api-filter";
 import { useCameraPreviews } from "@/hooks/use-camera-previews";
 import { useTimezone } from "@/hooks/use-date-utils";
 import {
@@ -48,7 +48,7 @@ export default function Events() {
   // review filter
 
   const [reviewFilter, setReviewFilter, reviewSearchParams] =
-    useApiFilter<ReviewFilter>();
+    useApiFilterArgs<ReviewFilter>();
 
   const onUpdateFilter = (newFilter: ReviewFilter) => {
     setReviewFilter(newFilter);
@@ -70,14 +70,19 @@ export default function Events() {
     return { before: beforeTs, after: getHoursAgo(24) };
   }, [beforeTs]);
   const selectedTimeRange = useMemo(() => {
-    if (reviewSearchParams["after"] == undefined) {
-      return last24Hours;
+    // If we have filter parameters in the URL, use them
+    if (
+      reviewSearchParams["after"] != undefined &&
+      reviewSearchParams["before"] != undefined
+    ) {
+      return {
+        before: Math.ceil(reviewSearchParams["before"]),
+        after: Math.floor(reviewSearchParams["after"]),
+      };
     }
 
-    return {
-      before: Math.ceil(reviewSearchParams["before"]),
-      after: Math.floor(reviewSearchParams["after"]),
-    };
+    // Otherwise use the default last 24 hours
+    return last24Hours;
   }, [last24Hours, reviewSearchParams]);
 
   // we want to update the items whenever the severity changes
