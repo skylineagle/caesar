@@ -56,7 +56,7 @@ export default function LivePlayer({
   cameraConfig,
   streamName,
   preferredLiveMode,
-  showStillWithoutActivity = true,
+  showStillWithoutActivity = false,
   useWebGL = false,
   windowVisible = true,
   playAudio = false,
@@ -98,12 +98,14 @@ export default function LivePlayer({
     offline,
   } = useCameraActivity(cameraConfig);
 
-  const cameraActive = useMemo(
-    () =>
-      !showStillWithoutActivity ||
-      (windowVisible && (activeMotion || activeTracking)),
-    [activeMotion, activeTracking, showStillWithoutActivity, windowVisible],
-  );
+  const cameraActive = useMemo(() => {
+    // If showStillWithoutActivity is false, always consider camera active for live streaming
+    if (!showStillWithoutActivity) {
+      return true;
+    }
+    // Otherwise, check for motion/tracking activity
+    return windowVisible && (activeMotion || activeTracking);
+  }, [activeMotion, activeTracking, showStillWithoutActivity, windowVisible]);
 
   // camera live state
 
@@ -117,8 +119,9 @@ export default function LivePlayer({
     cameraActiveRef.current = cameraActive;
   }, [liveReady, cameraActive]);
 
+  // Only apply the timeout delay if showStillWithoutActivity is true
   useEffect(() => {
-    if (!autoLive || !liveReady) {
+    if (!autoLive || !liveReady || !showStillWithoutActivity) {
       return;
     }
 
@@ -136,12 +139,15 @@ export default function LivePlayer({
     }
     // live mode won't change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoLive, cameraActive, liveReady]);
+  }, [autoLive, cameraActive, liveReady, showStillWithoutActivity]);
 
-  // camera still state
-
+  // camera still state - only compute if showStillWithoutActivity is true
   const stillReloadInterval = useMemo(() => {
-    if (!windowVisible || offline || !showStillWithoutActivity) {
+    if (!showStillWithoutActivity) {
+      return -1; // No still image updates needed
+    }
+
+    if (!windowVisible || offline) {
       return -1; // no reason to update the image when the window is not visible
     }
 
@@ -190,6 +196,7 @@ export default function LivePlayer({
     }
   }, [streamName]);
 
+  // Only reset live mode when showStillWithoutActivity changes if autoLive is false
   useEffect(() => {
     if (showStillWithoutActivity && !autoLive) {
       setLiveReady(false);
@@ -239,9 +246,9 @@ export default function LivePlayer({
     player = (
       <WebRtcPlayer
         key={"webrtc_" + key}
-        className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
+        className="size-full rounded-lg md:rounded-2xl"
         camera={streamName}
-        playbackEnabled={cameraActive || liveReady}
+        playbackEnabled={!showStillWithoutActivity || cameraActive || liveReady}
         getStats={showStats}
         setStats={setStats}
         audioEnabled={playAudio}
@@ -258,9 +265,11 @@ export default function LivePlayer({
       player = (
         <MSEPlayer
           key={"mse_" + key}
-          className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
+          className="size-full rounded-lg md:rounded-2xl"
           camera={streamName}
-          playbackEnabled={cameraActive || liveReady}
+          playbackEnabled={
+            !showStillWithoutActivity || cameraActive || liveReady
+          }
           audioEnabled={playAudio}
           volume={volume}
           playInBackground={playInBackground}
@@ -280,26 +289,20 @@ export default function LivePlayer({
       );
     }
   } else if (preferredLiveMode == "jsmpeg") {
-    if (cameraActive || !showStillWithoutActivity || liveReady) {
-      player = (
-        <JSMpegPlayer
-          key={"jsmpeg_" + key}
-          className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
-          camera={cameraConfig.name}
-          width={cameraConfig.detect.width}
-          height={cameraConfig.detect.height}
-          playbackEnabled={
-            cameraActive || !showStillWithoutActivity || liveReady
-          }
-          useWebGL={useWebGL}
-          setStats={setStats}
-          containerRef={containerRef ?? internalContainerRef}
-          onPlaying={playerIsPlaying}
-        />
-      );
-    } else {
-      player = null;
-    }
+    player = (
+      <JSMpegPlayer
+        key={"jsmpeg_" + key}
+        className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
+        camera={cameraConfig.name}
+        width={cameraConfig.detect.width}
+        height={cameraConfig.detect.height}
+        playbackEnabled={true}
+        useWebGL={useWebGL}
+        setStats={setStats}
+        containerRef={containerRef ?? internalContainerRef}
+        onPlaying={playerIsPlaying}
+      />
+    );
   } else {
     player = <ActivityIndicator />;
   }
@@ -313,7 +316,10 @@ export default function LivePlayer({
         activeTracking &&
           ((showStillWithoutActivity && !liveReady) || liveReady)
           ? "outline-3 rounded-lg shadow-severity_alert outline-severity_alert md:rounded-2xl"
-          : "outline-0 outline-background",
+          : activeMotion &&
+              ((showStillWithoutActivity && !liveReady) || liveReady)
+            ? "outline-3 rounded-lg shadow-severity_significant_motion outline-severity_significant_motion md:rounded-2xl"
+            : "outline-0 outline-background",
         "transition-all duration-500",
         className,
       )}
@@ -324,71 +330,62 @@ export default function LivePlayer({
         }
       }}
     >
-      {cameraEnabled &&
-        ((showStillWithoutActivity && !liveReady) || liveReady) && (
-          <>
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
-          </>
-        )}
+      {cameraEnabled && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
+        </>
+      )}
       {player}
-      {cameraEnabled &&
-        !offline &&
-        (!showStillWithoutActivity || isReEnabling) &&
-        !liveReady && <ActivityIndicator />}
 
-      {((showStillWithoutActivity && !liveReady) || liveReady) &&
-        objects.length > 0 && (
-          <div className="absolute left-0 top-2 z-40">
-            <Tooltip>
-              <div className="flex">
-                <TooltipTrigger asChild>
-                  <div className="mx-3 pb-1 text-sm text-white">
-                    <Chip
-                      className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500`}
-                    >
-                      {[
-                        ...new Set([
-                          ...(objects || []).map(({ label }) => label),
-                        ]),
-                      ]
-                        .map((label) => {
-                          return getIconForLabel(label, "size-3 text-white");
-                        })
-                        .sort()}
-                    </Chip>
-                  </div>
-                </TooltipTrigger>
-              </div>
-              <TooltipPortal>
-                <TooltipContent className="smart-capitalize">
-                  {[
-                    ...new Set([
-                      ...(objects || []).map(({ label, sub_label }) =>
-                        label.endsWith("verified")
-                          ? sub_label
-                          : label.replaceAll("_", " "),
-                      ),
-                    ]),
-                  ]
-                    .filter((label) => label?.includes("-verified") == false)
-                    .map((label) => capitalizeFirstLetter(label))
-                    .sort()
-                    .join(", ")
-                    .replaceAll("-verified", "")}
-                </TooltipContent>
-              </TooltipPortal>
-            </Tooltip>
-          </div>
-        )}
+      {objects.length > 0 && (
+        <div className="absolute left-0 top-2 z-40">
+          <Tooltip>
+            <div className="flex">
+              <TooltipTrigger asChild>
+                <div className="mx-3 pb-1 text-sm text-white">
+                  <Chip
+                    className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500`}
+                  >
+                    {[
+                      ...new Set([
+                        ...(objects || []).map(({ label }) => label),
+                      ]),
+                    ]
+                      .map((label) => {
+                        return getIconForLabel(label, "size-3 text-white");
+                      })
+                      .sort()}
+                  </Chip>
+                </div>
+              </TooltipTrigger>
+            </div>
+            <TooltipPortal>
+              <TooltipContent className="smart-capitalize">
+                {[
+                  ...new Set([
+                    ...(objects || []).map(({ label, sub_label }) =>
+                      label.endsWith("verified")
+                        ? sub_label
+                        : label.replaceAll("_", " "),
+                    ),
+                  ]),
+                ]
+                  .filter((label) => label?.includes("-verified") == false)
+                  .map((label) => capitalizeFirstLetter(label))
+                  .sort()
+                  .join(", ")
+                  .replaceAll("-verified", "")}
+              </TooltipContent>
+            </TooltipPortal>
+          </Tooltip>
+        </div>
+      )}
 
       <div
         className={cn(
           "absolute inset-0 w-full",
-          showStillWithoutActivity &&
-            !liveReady &&
-            !isReEnabling &&
-            cameraEnabled
+          !liveReady && !isReEnabling && cameraEnabled
             ? "visible"
             : "invisible",
         )}
@@ -398,7 +395,9 @@ export default function LivePlayer({
           cameraClasses="relative size-full flex justify-center"
           camera={cameraConfig.name}
           showFps={false}
-          reloadInterval={stillReloadInterval}
+          reloadInterval={
+            !showStillWithoutActivity ? 1000 : stillReloadInterval
+          }
           periodicCache
         />
       </div>
