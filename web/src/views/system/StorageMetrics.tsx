@@ -1,23 +1,23 @@
 import { CombinedStorageGraph } from "@/components/graph/CombinedStorageGraph";
 import { StorageGraph } from "@/components/graph/StorageGraph";
-import { FrigateStats } from "@/types/stats";
-import { useMemo } from "react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import useSWR from "swr";
-import { CiCircleAlert } from "react-icons/ci";
-import { FrigateConfig } from "@/types/frigateConfig";
 import { useFormattedTimestamp, useTimezone } from "@/hooks/use-date-utils";
-import { RecordingsSummary } from "@/types/review";
-import { useTranslation } from "react-i18next";
-import { TZDate } from "react-day-picker";
-import { Link } from "react-router-dom";
 import { useDocDomain } from "@/hooks/use-doc-domain";
-import { LuExternalLink } from "react-icons/lu";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { RecordingsSummary } from "@/types/review";
+import { FrigateStats } from "@/types/stats";
+import { useMemo } from "react";
+import { TZDate } from "react-day-picker";
+import { useTranslation } from "react-i18next";
+import { CiCircleAlert } from "react-icons/ci";
 import { FaExclamationTriangle } from "react-icons/fa";
+import { LuExternalLink } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import useSWR from "swr";
 
 type CameraStorage = {
   [key: string]: {
