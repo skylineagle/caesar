@@ -205,5 +205,12 @@
         "error": "Falha ao detectar objeto rastreado {{errorMessage}}"
       }
     }
+  },
+  "details": {
+    "timestamp": "Carimbo de data e hora"
+  },
+  "trackedObjectDetails": "Detalhes do Objeto Rastreado",
+  "type": {
+    "details": "detalhes"
   }
 }

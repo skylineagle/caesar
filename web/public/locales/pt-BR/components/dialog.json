@@ -92,6 +92,26 @@
           "label": "Salvar esta pesquisa"
         }
       }
+    },
+    "video": {
+      "viewInHistory": "Ver no Histórico"
+    }
+  },
+  "export": {
+    "time": {
+      "fromTimeline": "Selecione da Linha do tempo",
+      "lastHour_one": "Última hora",
+      "lastHour_many": "Últimas {{count}} horas",
+      "lastHour_other": "Últimas {{count}} horas",
+      "custom": "Personalizado",
+      "start": {
+        "title": "Hora de Início",
+        "label": "Selecione a Hora de Início"
+      },
+      "end": {
+        "title": "Hora de Término",
+        "label": "Selecione a Hora de Término"
+      }
     }
   },
   "recording": {
