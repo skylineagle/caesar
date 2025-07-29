@@ -695,7 +695,7 @@ export function RecordingView({
                 enableScreenshot={true}
               />
             </div>
-            {isDesktop && (
+            {isDesktop && allCameras.length > 1 && (
               <div
                 ref={previewRowRef}
                 className={cn(
