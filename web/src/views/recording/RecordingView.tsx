@@ -58,7 +58,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { isDesktop, isMobile } from "react-device-detect";
+import {
+  isDesktop,
+  isMobile,
+  isMobileOnly,
+  isTablet,
+} from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import { FaShareAlt, FaVideo } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
@@ -657,9 +662,16 @@ export function RecordingView({
                     )
                   : cn(
                       "pt-2 portrait:w-full",
-                      mainCameraAspect == "wide"
-                        ? "aspect-wide landscape:w-full"
-                        : "aspect-video landscape:h-[94%] landscape:xl:h-[65%]",
+                      isMobileOnly &&
+                        (mainCameraAspect == "wide"
+                          ? "aspect-wide landscape:w-full"
+                          : "aspect-video landscape:h-[94%] landscape:xl:h-[65%]"),
+                      isTablet &&
+                        (mainCameraAspect == "wide"
+                          ? "aspect-wide landscape:w-full"
+                          : mainCameraAspect == "normal"
+                            ? "landscape:w-full"
+                            : "aspect-video landscape:h-[100%]"),
                     ),
               )}
               style={{
