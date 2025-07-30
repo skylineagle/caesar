@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "@/context/auth-context";
 import ActivityIndicator from "../indicators/activity-indicator";
 
@@ -9,6 +9,8 @@ export default function ProtectedRoute({
   requiredRoles: ("admin" | "viewer")[];
 }) {
   const { auth } = useContext(AuthContext);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   if (auth.isLoading) {
     return (
@@ -23,17 +25,19 @@ export default function ProtectedRoute({
 
   // Authenticated mode (8971): require login
   if (!auth.user) {
-    return <Navigate to="/login" replace />;
+    // Preserve the current URL as a return parameter
+    const currentUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?return=${currentUrl}`} />;
   }
 
-  // If role is null (shouldn’t happen if isAuthenticated, but type safety), fallback
+  // If role is null (shouldn't happen if isAuthenticated, but type safety), fallback
   // though isAuthenticated should catch this
   if (auth.user.role === null) {
     return <Outlet />;
   }
 
   if (!requiredRoles.includes(auth.user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/unauthorized" />;
   }
 
   return <Outlet />;

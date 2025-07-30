@@ -2,9 +2,20 @@ import { baseUrl } from "./baseUrl";
 import { SWRConfig } from "swr";
 import { WsProvider } from "./ws";
 import axios from "axios";
-import { ReactNode } from "react";
+import { ReactNode, useRef } from "react";
 
 axios.defaults.baseURL = `${baseUrl}api/`;
+
+// Global reference to store the navigate function
+let navigateFunction:
+  | ((to: string, options?: { replace?: boolean }) => void)
+  | null = null;
+
+export const setNavigateFunction = (
+  navigate: (to: string, options?: { replace?: boolean }) => void,
+) => {
+  navigateFunction = navigate;
+};
 
 type ApiProviderType = {
   children?: ReactNode;
@@ -30,9 +41,20 @@ export function ApiProvider({ children, options }: ApiProviderType) {
             [401, 302, 307].includes(error.response.status)
           ) {
             // redirect to the login page if not already there
-            const loginPage = error.response.headers.get("location") ?? "login";
-            if (window.location.href !== loginPage) {
-              window.location.href = loginPage;
+            const loginPage = "/login";
+            if (window.location.pathname !== loginPage) {
+              // Preserve the current URL as a return parameter
+              const currentUrl = encodeURIComponent(
+                window.location.pathname + window.location.search,
+              );
+              const redirectUrl = `${loginPage}?return=${currentUrl}`;
+
+              if (navigateFunction) {
+                navigateFunction(redirectUrl);
+              } else {
+                // Fallback to window.location if navigate function is not available
+                window.location.href = redirectUrl;
+              }
             }
           }
         },

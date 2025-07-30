@@ -220,12 +220,6 @@ export default function PolygonItem({
   const handleDelete = () => {
     setActivePolygonIndex(undefined);
     saveToConfig(polygon);
-    addMessage(
-      "masks_zones",
-      t("masksAndZones.restart_required"),
-      undefined,
-      "masks_zones",
-    );
   };
 
   return (

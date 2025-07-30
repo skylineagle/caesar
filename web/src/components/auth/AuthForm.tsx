@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AuthContext } from "@/context/auth-context";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -29,6 +30,8 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const { t } = useTranslation(["components/auth"]);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const { login } = React.useContext(AuthContext);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const formSchema = z.object({
     user: z.string().min(1, t("form.errors.usernameRequired")),
@@ -59,7 +62,18 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         username: profileRes.data.username,
         role: profileRes.data.role || "viewer",
       });
-      window.location.href = baseUrl;
+
+      // Get the return URL from search parameters
+      const returnUrl = searchParams.get("return");
+
+      if (returnUrl) {
+        // Decode the return URL and navigate to it
+        const decodedUrl = decodeURIComponent(returnUrl);
+        navigate(decodedUrl, { replace: true });
+      } else {
+        // Fallback to home page if no return URL is specified
+        navigate("/", { replace: true });
+      }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const err = error as AxiosError;
