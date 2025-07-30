@@ -56,7 +56,7 @@ def create_fastapi_app(
     database: SqliteQueueDatabase,
     embeddings: Optional[EmbeddingsContext],
     detected_frames_processor,
-    storage_maintainer: StorageMaintainer,
+    storage_maintainer: Optional[StorageMaintainer],
     onvif: OnvifController,
     stats_emitter: StatsEmitter,
     event_metadata_updater: EventMetadataPublisher,
@@ -122,9 +122,9 @@ def create_fastapi_app(
     app.include_router(export.router)
     app.include_router(event.router)
     app.include_router(media.router)
+
     # App Properties
     app.frigate_config = frigate_config
-    app.embeddings = embeddings
     app.detected_frames_processor = detected_frames_processor
     app.storage_maintainer = storage_maintainer
     app.camera_error_image = None
@@ -153,5 +153,14 @@ def create_fastapi_app(
         app.jwt_token = OctKey.import_key(key_bytes)
     else:
         app.jwt_token = None
+
+    # Handle embeddings context - may be None during early startup
+    if embeddings:
+        app.embeddings = embeddings
+    else:
+        app.embeddings = None
+        logger.info(
+            "Embeddings not available yet - some features will be limited until initialization completes"
+        )
 
     return app

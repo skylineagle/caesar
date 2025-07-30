@@ -518,7 +518,7 @@ export default function DraggableGridLayout({
                     key={camera.name}
                     streamName={streamName}
                     autoLive={autoLive ?? globalAutoLive}
-                    showStillWithoutActivity={showStillWithoutActivity ?? true}
+                    showStillWithoutActivity={showStillWithoutActivity ?? false}
                     useWebGL={useWebGL}
                     cameraRef={cameraRef}
                     className={cn(

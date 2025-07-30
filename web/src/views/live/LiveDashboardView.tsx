@@ -538,7 +538,7 @@ export default function LiveDashboardView({
                     cameraConfig={camera}
                     preferredLiveMode={preferredLiveModes[camera.name] ?? "mse"}
                     autoLive={autoLive ?? globalAutoLive}
-                    showStillWithoutActivity={showStillWithoutActivity ?? true}
+                    showStillWithoutActivity={showStillWithoutActivity ?? false}
                     useWebGL={useWebGL}
                     playInBackground={false}
                     showStats={statsStates[camera.name]}

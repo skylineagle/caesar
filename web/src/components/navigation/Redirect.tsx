@@ -1,14 +1,9 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 type RedirectProps = {
   to: string;
 };
-export function Redirect({ to }: RedirectProps) {
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    navigate(to);
-  }, [to, navigate]);
-  return <div />;
+export function Redirect({ to }: RedirectProps) {
+  return <Navigate to={to} replace />;
 }

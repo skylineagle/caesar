@@ -609,6 +609,7 @@ export default function NotificationView({
                         <div className="grid gap-6">
                           {notificationCameras.map((item) => (
                             <CameraNotificationSwitch
+                              key={item.name}
                               config={config}
                               camera={item.name}
                             />

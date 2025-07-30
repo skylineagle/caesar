@@ -525,7 +525,10 @@ class FrigateApp:
         # Set soft file limits.
         set_file_limit()
 
-        # Start frigate services.
+        # Start frigate services - OPTIMIZED ORDER for faster startup
+        logger.info("Starting essential services first...")
+
+        # Phase 1: Infrastructure (must be first)
         self.init_camera_metrics()
         self.init_queues()
         self.init_database()
@@ -536,15 +539,38 @@ class FrigateApp:
         self.init_embeddings_manager()
         self.bind_database()
         self.check_db_data_migrations()
+
+        # Phase 2: Critical services for live streaming
+        self.init_go2rtc()
+        self.init_onvif()
+        self.init_auth()
+        logger.info("✓ Core services ready - live streaming infrastructure prepared!")
+
+        # Phase 3: Communication and lightweight services
         self.init_inter_process_communicator()
         self.start_detectors()
         self.init_dispatcher()
+        self.init_recording_manager()
+        self.init_review_segment_manager()
+
+        # Phase 4: Camera and processing services
+        self.start_camera_capture_processes()
+        logger.info("✓ Camera capture started!")
+
+        # Phase 5: Detection and AI (most time-consuming)
+        logger.info("Starting AI detection services (this may take a moment)...")
+        self.start_detectors()
+        self.init_embeddings_manager()
         self.init_embeddings_client()
+
+        # Phase 6: Processing services
         self.start_video_output_processor()
         self.start_ptz_autotracker()
         self.start_detected_frames_processor()
         self.start_camera_processor()
         self.start_audio_processor()
+
+        # Phase 7: Maintenance and monitoring (lowest priority)
         self.start_storage_maintainer()
         self.start_stats_emitter()
         self.start_timeline_processor()
@@ -553,9 +579,23 @@ class FrigateApp:
         self.start_record_cleanup()
         self.start_watchdog()
 
-        self.init_auth()
+        logger.info("All services started! Starting API server...")
 
         try:
+            logger.info("Creating FastAPI app...")
+            app = create_fastapi_app(
+                self.config,
+                self.db,
+                self.embeddings,
+                self.detected_frames_processor,
+                self.storage_maintainer,
+                self.onvif_controller,
+                self.stats_emitter,
+                self.event_metadata_updater,
+            )
+            logger.info("FastAPI app created successfully!")
+
+            logger.info("Starting uvicorn server...")
             uvicorn.run(
                 create_fastapi_app(
                     self.config,
@@ -572,7 +612,12 @@ class FrigateApp:
                 port=5001,
                 log_level="error",
             )
+            logger.info("Uvicorn server started successfully!")
+        except Exception as e:
+            logger.error(f"Error starting FastAPI server: {e}", exc_info=True)
+            raise
         finally:
+            logger.info("Entering finally block - stopping services...")
             self.stop()
 
     def stop(self) -> None:

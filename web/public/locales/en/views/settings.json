@@ -180,7 +180,7 @@
       "selectDetectionsZones": "Select zones for Detections",
       "limitDetections": "Limit detections to specific zones",
       "toast": {
-        "success": "Review Classification configuration has been saved. Restart Frigate to apply changes."
+        "success": "Review Classification configuration has been saved and applied."
       }
     },
     "addCamera": "Add New Camera",
@@ -217,7 +217,6 @@
     "filter": {
       "all": "All Masks and Zones"
     },
-    "restart_required": "Restart required (masks/zones changed)",
     "toast": {
       "success": {
         "copyCoordinates": "Copied coordinates for {{polyName}} to clipboard."
@@ -327,7 +326,7 @@
         }
       },
       "toast": {
-        "success": "Zone ({{zoneName}}) has been saved. Restart Frigate to apply changes."
+        "success": "Zone ({{zoneName}}) has been saved and applied."
       }
     },
     "motionMasks": {
@@ -351,8 +350,8 @@
       },
       "toast": {
         "success": {
-          "title": "{{polygonName}} has been saved. Restart Frigate to apply changes.",
-          "noName": "Motion Mask has been saved. Restart Frigate to apply changes."
+          "title": "{{polygonName}} has been saved and applied.",
+          "noName": "Motion Mask has been saved and applied."
         }
       }
     },
@@ -376,8 +375,8 @@
       },
       "toast": {
         "success": {
-          "title": "{{polygonName}} has been saved. Restart Frigate to apply changes.",
-          "noName": "Object Mask has been saved. Restart Frigate to apply changes."
+          "title": "{{polygonName}} has been saved and applied.",
+          "noName": "Object Mask has been saved and applied."
         }
       }
     }

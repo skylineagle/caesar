@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { enUS, Locale } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 
-// Map of locale codes to dynamic import functions
 const localeMap: Record<string, () => Promise<Locale>> = {
   "zh-CN": () => import("date-fns/locale/zh-CN").then((module) => module.zhCN),
   es: () => import("date-fns/locale/es").then((module) => module.es),
@@ -33,9 +32,9 @@ const localeMap: Record<string, () => Promise<Locale>> = {
   da: () => import("date-fns/locale/da").then((module) => module.da),
   sk: () => import("date-fns/locale/sk").then((module) => module.sk),
   "yue-Hant": () =>
-    import("date-fns/locale/zh-HK").then((module) => module.zhHK),
-  th: () => import("date-fns/locale/th").then((module) => module.th),
-  ca: () => import("date-fns/locale/ca").then((module) => module.ca),
+    import("date-fns/locale/zh-HK").then((module) => module.default),
+  th: () => import("date-fns/locale/th").then((module) => module.default),
+  ca: () => import("date-fns/locale/ca").then((module) => module.default),
 };
 
 export function useDateLocale(): Locale {

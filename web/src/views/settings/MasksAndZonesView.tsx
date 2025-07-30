@@ -1,40 +1,38 @@
-import { FrigateConfig } from "@/types/frigateConfig";
-import useSWR from "swr";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MotionMaskEditPane from "@/components/settings/MotionMaskEditPane";
+import ObjectMaskEditPane from "@/components/settings/ObjectMaskEditPane";
 import { PolygonCanvas } from "@/components/settings/PolygonCanvas";
-import { Polygon, PolygonType } from "@/types/canvas";
-import { interpolatePoints, parseCoordinates } from "@/utils/canvasUtil";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import { LuExternalLink, LuPlus } from "react-icons/lu";
+import PolygonItem from "@/components/settings/PolygonItem";
+import ZoneEditPane from "@/components/settings/ZoneEditPane";
+import { Button } from "@/components/ui/button";
+import Heading from "@/components/ui/heading";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import copy from "copy-to-clipboard";
-import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
-import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import Heading from "@/components/ui/heading";
-import ZoneEditPane from "@/components/settings/ZoneEditPane";
-import MotionMaskEditPane from "@/components/settings/MotionMaskEditPane";
-import ObjectMaskEditPane from "@/components/settings/ObjectMaskEditPane";
-import PolygonItem from "@/components/settings/PolygonItem";
-import { Link } from "react-router-dom";
-import { isDesktop } from "react-device-detect";
-
-import { useSearchEffect } from "@/hooks/use-overlay-state";
-import { useTranslation } from "react-i18next";
-
+import { useResizeObserver } from "@/hooks/resize-observer";
 import { useDocDomain } from "@/hooks/use-doc-domain";
+import { useSearchEffect } from "@/hooks/use-overlay-state";
+import { Polygon, PolygonType } from "@/types/canvas";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { interpolatePoints, parseCoordinates } from "@/utils/canvasUtil";
 import { getTranslatedLabel } from "@/utils/i18n";
+import copy from "copy-to-clipboard";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isDesktop } from "react-device-detect";
+import { useTranslation } from "react-i18next";
+import { LuExternalLink, LuPlus } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 type MasksAndZoneViewProps = {
   selectedCamera: string;
