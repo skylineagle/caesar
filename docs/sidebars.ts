@@ -24,6 +24,7 @@ const sidebars: SidebarsConfig = {
     Configuration: {
       "Configuration Files": [
         "configuration/index",
+        "configuration/hot_reload",
         "configuration/reference",
         {
           type: "link",
@@ -93,11 +94,11 @@ const sidebars: SidebarsConfig = {
       "configuration/metrics",
       "integrations/third_party_extensions",
     ],
-    'Frigate+': [
-      'plus/index',
-      'plus/annotating',
-      'plus/first_model',
-      'plus/faq',
+    "Frigate+": [
+      "plus/index",
+      "plus/annotating",
+      "plus/first_model",
+      "plus/faq",
     ],
     Troubleshooting: [
       "troubleshooting/faqs",

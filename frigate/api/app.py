@@ -385,8 +385,46 @@ def config_set(request: Request, body: AppConfigSetBody):
             status_code=500,
         )
 
-    if body.requires_restart == 0:
+    # Determine if restart is required based on the configuration changes
+    requires_restart = body.requires_restart
+
+    # If not explicitly set, determine if hot reload is possible
+    if body.requires_restart == 1:
+        # Check if the changes are hot-reloadable
+        url_str = str(request.url)
+        hot_reloadable_patterns = [
+            "motion.mask",
+            "motion.threshold",
+            "motion.contour_area",
+            "motion.improve_contrast",
+            "objects.filters",
+            "zones.",
+            "detect.enabled",
+            "detect.width",
+            "detect.height",
+            "detect.fps",
+            "detect.stationary",
+            "detect.tracked_objects",
+            "enabled",
+        ]
+
+        # Check if the URL contains any hot-reloadable patterns
+        if any(pattern in url_str for pattern in hot_reloadable_patterns):
+            requires_restart = 0
+            logger.info("Configuration change detected as hot-reloadable")
+
+    if requires_restart == 0:
         request.app.frigate_config = config
+        return JSONResponse(
+            content=(
+                {
+                    "success": True,
+                    "message": "Config successfully updated and applied",
+                }
+            ),
+            status_code=200,
+        )
+
     return JSONResponse(
         content=(
             {

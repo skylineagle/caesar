@@ -1,6 +1,6 @@
 import Heading from "@/components/ui/heading";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import {
   Form,

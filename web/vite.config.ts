@@ -5,11 +5,14 @@ import react from "@vitejs/plugin-react-swc";
 import monacoEditorPlugin from "vite-plugin-monaco-editor";
 
 const proxyHost = process.env.PROXY_HOST || "localhost:5000";
+const basePath = process.env.BASE_PATH || "/";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: basePath,
   define: {
     "import.meta.vitest": "undefined",
+    "window.baseUrl": JSON.stringify(basePath),
   },
   server: {
     proxy: {

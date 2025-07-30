@@ -68,6 +68,9 @@ class Dispatcher:
             "birdseye_mode": self._on_birdseye_mode_command,
             "review_alerts": self._on_alerts_command,
             "review_detections": self._on_detections_command,
+            "motion_mask": self._on_motion_mask_command,
+            "object_filters": self._on_object_filters_command,
+            "zones": self._on_zones_command,
         }
         self._global_settings_handlers: dict[str, Callable] = {
             "notifications": self._on_global_notification_command,
@@ -641,3 +644,67 @@ class Dispatcher:
 
         self.config_updater.publish(f"config/review/{camera_name}", review_settings)
         self.publish(f"{camera_name}/review_detections/state", payload, retain=True)
+
+    def _on_motion_mask_command(self, camera_name: str, payload: str) -> None:
+        """Callback for motion mask updates."""
+        motion_settings = self.config.cameras[camera_name].motion
+
+        try:
+            # Parse the mask coordinates from payload
+            if payload:
+                motion_settings.mask = payload
+            else:
+                motion_settings.mask = ""
+
+            logger.info(f"Updated motion mask for {camera_name}")
+            self.config_updater.publish(f"config/motion/{camera_name}", motion_settings)
+            self.publish(f"{camera_name}/motion_mask/state", "updated", retain=True)
+        except Exception as e:
+            logger.error(f"Error updating motion mask for {camera_name}: {e}")
+
+    def _on_object_filters_command(self, camera_name: str, payload: str) -> None:
+        """Callback for object filters updates."""
+        try:
+            # Parse the object filters from payload
+            import json
+
+            filters_data = json.loads(payload)
+
+            # Validate filters_data structure before assignment
+            if not isinstance(filters_data, dict):
+                raise ValueError("Object filters must be a dictionary")
+
+            # Create a copy to avoid modifying shared state directly
+            camera_config = self.config.cameras[camera_name]
+            camera_config.objects.filters = filters_data.copy()
+
+            # Update the object filters in the camera config
+            self.config.cameras[camera_name].objects.filters = filters_data
+
+            logger.info(f"Updated object filters for {camera_name}")
+            self.config_updater.publish(
+                f"config/objects/{camera_name}",
+                self.config.cameras[camera_name].objects,
+            )
+            self.publish(f"{camera_name}/object_filters/state", "updated", retain=True)
+        except Exception as e:
+            logger.error(f"Error updating object filters for {camera_name}: {e}")
+
+    def _on_zones_command(self, camera_name: str, payload: str) -> None:
+        """Callback for zones updates."""
+        try:
+            # Parse the zones from payload
+            import json
+
+            zones_data = json.loads(payload)
+
+            # Update the zones in the camera config
+            self.config.cameras[camera_name].zones = zones_data
+
+            logger.info(f"Updated zones for {camera_name}")
+            self.config_updater.publish(
+                f"config/zones/{camera_name}", self.config.cameras[camera_name].zones
+            )
+            self.publish(f"{camera_name}/zones/state", "updated", retain=True)
+        except Exception as e:
+            logger.error(f"Error updating zones for {camera_name}: {e}")

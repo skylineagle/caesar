@@ -53,10 +53,10 @@ def create_fastapi_app(
     database: SqliteQueueDatabase,
     embeddings: Optional[EmbeddingsContext],
     detected_frames_processor,
-    storage_maintainer: StorageMaintainer,
+    storage_maintainer: Optional[StorageMaintainer],
     onvif: OnvifController,
-    stats_emitter: StatsEmitter,
-    event_metadata_updater: EventMetadataPublisher,
+    stats_emitter: Optional[StatsEmitter],
+    event_metadata_updater: Optional[EventMetadataPublisher],
 ):
     logger.info("Starting FastAPI app")
     app = FastAPI(
@@ -118,9 +118,9 @@ def create_fastapi_app(
     app.include_router(export.router)
     app.include_router(event.router)
     app.include_router(media.router)
+
     # App Properties
     app.frigate_config = frigate_config
-    app.embeddings = embeddings
     app.detected_frames_processor = detected_frames_processor
     app.storage_maintainer = storage_maintainer
     app.camera_error_image = None
@@ -128,5 +128,14 @@ def create_fastapi_app(
     app.stats_emitter = stats_emitter
     app.event_metadata_updater = event_metadata_updater
     app.jwt_token = get_jwt_secret() if frigate_config.auth.enabled else None
+
+    # Handle embeddings context - may be None during early startup
+    if embeddings:
+        app.embeddings = embeddings
+    else:
+        app.embeddings = None
+        logger.info(
+            "Embeddings not available yet - some features will be limited until initialization completes"
+        )
 
     return app
