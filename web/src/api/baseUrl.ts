@@ -11,13 +11,14 @@ const getBaseUrl = () => {
 
   try {
     const pathname = window.location.pathname;
-    const basePathMatch = pathname.match(/^(\/[^\/]+)/);
+    const basePathMatch = pathname.match(/^(\/[^/]+)/);
 
     if (basePathMatch && basePathMatch[1] !== "/") {
       return basePathMatch[1];
     }
   } catch (error) {
-    console.warn("Error parsing base URL from pathname:", error);
+    // eslint-disable-next-line no-console
+    console.error("Error parsing base URL from pathname:", error);
   }
 
   return "/";

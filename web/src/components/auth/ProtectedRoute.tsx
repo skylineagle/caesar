@@ -1,6 +1,6 @@
-import { useContext } from "react";
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "@/context/auth-context";
+import { useContext } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import ActivityIndicator from "../indicators/activity-indicator";
 
 export default function ProtectedRoute({
@@ -10,7 +10,6 @@ export default function ProtectedRoute({
 }) {
   const { auth } = useContext(AuthContext);
   const location = useLocation();
-  const navigate = useNavigate();
 
   if (auth.isLoading) {
     return (

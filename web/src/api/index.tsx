@@ -1,8 +1,8 @@
-import { baseUrl } from "./baseUrl";
-import { SWRConfig } from "swr";
-import { WsProvider } from "./ws";
 import axios from "axios";
-import { ReactNode, useRef } from "react";
+import { ReactNode } from "react";
+import { SWRConfig } from "swr";
+import { baseUrl } from "./baseUrl";
+import { WsProvider } from "./ws";
 
 axios.defaults.baseURL = `${baseUrl}api/`;
 

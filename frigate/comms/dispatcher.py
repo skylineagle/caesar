@@ -670,6 +670,14 @@ class Dispatcher:
 
             filters_data = json.loads(payload)
 
+            # Validate filters_data structure before assignment
+            if not isinstance(filters_data, dict):
+                raise ValueError("Object filters must be a dictionary")
+
+            # Create a copy to avoid modifying shared state directly
+            camera_config = self.config.cameras[camera_name]
+            camera_config.objects.filters = filters_data.copy()
+
             # Update the object filters in the camera config
             self.config.cameras[camera_name].objects.filters = filters_data
 
