@@ -56,7 +56,7 @@ export default function LivePlayer({
   cameraConfig,
   streamName,
   preferredLiveMode,
-  showStillWithoutActivity = true,
+  showStillWithoutActivity = false,
   useWebGL = false,
   windowVisible = true,
   playAudio = false,
