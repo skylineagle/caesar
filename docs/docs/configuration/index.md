@@ -29,12 +29,12 @@ cameras:
 
 When running Frigate through the HA Add-on, the Frigate `/config` directory is mapped to `/addon_configs/<addon_directory>` in the host, where `<addon_directory>` is specific to the variant of the Frigate Add-on you are running.
 
-| Add-on Variant             | Configuration directory                      |
-| -------------------------- | -------------------------------------------- |
-| Frigate                    | `/addon_configs/ccab4aaf_frigate`            |
-| Frigate (Full Access)      | `/addon_configs/ccab4aaf_frigate-fa`         |
-| Frigate Beta               | `/addon_configs/ccab4aaf_frigate-beta`       |
-| Frigate Beta (Full Access) | `/addon_configs/ccab4aaf_frigate-fa-beta`    |
+| Add-on Variant             | Configuration directory                   |
+| -------------------------- | ----------------------------------------- |
+| Frigate                    | `/addon_configs/ccab4aaf_frigate`         |
+| Frigate (Full Access)      | `/addon_configs/ccab4aaf_frigate-fa`      |
+| Frigate Beta               | `/addon_configs/ccab4aaf_frigate-beta`    |
+| Frigate Beta (Full Access) | `/addon_configs/ccab4aaf_frigate-fa-beta` |
 
 **Whenever you see `/config` in the documentation, it refers to this directory.**
 
@@ -77,6 +77,35 @@ go2rtc:
 genai:
   api_key: "{FRIGATE_GENAI_API_KEY}"
 ```
+
+## Hot Reloading Configuration
+
+Frigate supports hot reloading for many configuration changes, allowing you to update settings without restarting the entire application. This provides better uptime and faster configuration updates.
+
+**Key Benefits:**
+
+- **Better Uptime**: No interruption to video processing, recording, or detection
+- **Faster Updates**: Configuration changes take effect immediately
+- **Live Testing**: Adjust motion settings and see effects in real-time
+- **Go2RTC Continuity**: Streaming continues uninterrupted
+
+**What Can Be Hot Reloaded:**
+
+- Motion detection settings (threshold, masks, contour area, contrast)
+- Object detection settings (enabled state, dimensions, FPS, filters)
+- Zones (coordinates, inertia, loitering time, speed thresholds)
+- Camera settings (enabled state, review zones, annotation offset)
+- Notifications (global and camera-specific settings)
+
+**What Requires a Restart:**
+
+- Camera stream URLs and FFmpeg settings
+- Detector configuration (CPU, GPU, Coral settings)
+- Model changes
+- Database, MQTT, recording, and storage configuration
+- Enrichments settings (semantic search, face recognition, LPR)
+
+For detailed information about hot reloading, see the [Hot Reloading Configuration](./hot_reload.md) guide.
 
 ## Common configuration examples
 

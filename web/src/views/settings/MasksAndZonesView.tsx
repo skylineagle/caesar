@@ -1,42 +1,34 @@
-import { FrigateConfig } from "@/types/frigateConfig";
-import useSWR from "swr";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import MotionMaskEditPane from "@/components/settings/MotionMaskEditPane";
+import ObjectMaskEditPane from "@/components/settings/ObjectMaskEditPane";
 import { PolygonCanvas } from "@/components/settings/PolygonCanvas";
-import { Polygon, PolygonType } from "@/types/canvas";
-import { interpolatePoints, parseCoordinates } from "@/utils/canvasUtil";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import { LuExternalLink, LuPlus } from "react-icons/lu";
+import PolygonItem from "@/components/settings/PolygonItem";
+import ZoneEditPane from "@/components/settings/ZoneEditPane";
+import { Button } from "@/components/ui/button";
+import Heading from "@/components/ui/heading";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import copy from "copy-to-clipboard";
-import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
-import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import Heading from "@/components/ui/heading";
-import ZoneEditPane from "@/components/settings/ZoneEditPane";
-import MotionMaskEditPane from "@/components/settings/MotionMaskEditPane";
-import ObjectMaskEditPane from "@/components/settings/ObjectMaskEditPane";
-import PolygonItem from "@/components/settings/PolygonItem";
-import { Link } from "react-router-dom";
+import { useResizeObserver } from "@/hooks/resize-observer";
+import { Polygon, PolygonType } from "@/types/canvas";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { interpolatePoints, parseCoordinates } from "@/utils/canvasUtil";
+import copy from "copy-to-clipboard";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isDesktop } from "react-device-detect";
-import { StatusBarMessagesContext } from "@/context/statusbar-provider";
+import { LuExternalLink, LuPlus } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 import { useSearchEffect } from "@/hooks/use-overlay-state";
 import { useTranslation } from "react-i18next";
@@ -71,8 +63,6 @@ export default function MasksAndZonesView({
   const [editPane, setEditPane] = useState<PolygonType | undefined>(undefined);
   const [activeLine, setActiveLine] = useState<number | undefined>();
   const [snapPoints, setSnapPoints] = useState(false);
-
-  const { addMessage } = useContext(StatusBarMessagesContext)!;
 
   const cameraConfig = useMemo(() => {
     if (config && selectedCamera) {
@@ -196,13 +186,7 @@ export default function MasksAndZonesView({
     setAllPolygons([...(editingPolygons ?? [])]);
     setHoveredPolygonIndex(null);
     setUnsavedChanges(false);
-    addMessage(
-      "masks_zones",
-      t("masksAndZones.restart_required"),
-      undefined,
-      "masks_zones",
-    );
-  }, [t, editingPolygons, setUnsavedChanges, addMessage]);
+  }, [editingPolygons, setUnsavedChanges]);
 
   useEffect(() => {
     if (isLoading) {

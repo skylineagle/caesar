@@ -1,4 +1,29 @@
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Toaster } from "@/components/ui/sonner";
+import { Polygon, PolygonType } from "@/types/canvas";
+import { FrigateConfig } from "@/types/frigateConfig";
+import {
+  flattenPoints,
+  parseCoordinates,
+  toRGBColorString,
+} from "@/utils/canvasUtil";
+import { reviewQueries } from "@/utils/zoneEdutUtil";
+import axios from "axios";
+import { useCallback, useMemo, useState } from "react";
+import { isDesktop, isMobile } from "react-device-detect";
+import { Trans, useTranslation } from "react-i18next";
+import { BsPersonBoundingBox } from "react-icons/bs";
+import { FaDrawPolygon, FaObjectGroup } from "react-icons/fa";
+import { HiOutlineDotsVertical, HiTrash } from "react-icons/hi";
+import { LuCopy, LuPencil } from "react-icons/lu";
+import { toast } from "sonner";
+import useSWR from "swr";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -8,35 +33,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { LuCopy, LuPencil } from "react-icons/lu";
-import { FaDrawPolygon, FaObjectGroup } from "react-icons/fa";
-import { BsPersonBoundingBox } from "react-icons/bs";
-import { HiOutlineDotsVertical, HiTrash } from "react-icons/hi";
-import { isDesktop, isMobile } from "react-device-detect";
-import {
-  flattenPoints,
-  parseCoordinates,
-  toRGBColorString,
-} from "@/utils/canvasUtil";
-import { Polygon, PolygonType } from "@/types/canvas";
-import { useCallback, useContext, useMemo, useState } from "react";
-import axios from "axios";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { reviewQueries } from "@/utils/zoneEdutUtil";
-import IconWrapper from "../ui/icon-wrapper";
-import { StatusBarMessagesContext } from "@/context/statusbar-provider";
 import { buttonVariants } from "../ui/button";
-import { Trans, useTranslation } from "react-i18next";
+import IconWrapper from "../ui/icon-wrapper";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type PolygonItemProps = {
   polygon: Polygon;
@@ -61,7 +60,6 @@ export default function PolygonItem({
   const { data: config, mutate: updateConfig } =
     useSWR<FrigateConfig>("config");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const { addMessage } = useContext(StatusBarMessagesContext)!;
   const [isLoading, setIsLoading] = useState(false);
 
   const cameraConfig = useMemo(() => {
@@ -220,12 +218,6 @@ export default function PolygonItem({
   const handleDelete = () => {
     setActivePolygonIndex(undefined);
     saveToConfig(polygon);
-    addMessage(
-      "masks_zones",
-      t("masksAndZones.restart_required"),
-      undefined,
-      "masks_zones",
-    );
   };
 
   return (
