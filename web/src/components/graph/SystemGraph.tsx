@@ -5,6 +5,7 @@ import { Threshold } from "@/types/graph";
 import { formatUnixTimestampToDateTime } from "@/utils/dateUtil";
 import { useCallback, useEffect, useMemo } from "react";
 import Chart from "react-apexcharts";
+import ApexCharts from "apexcharts";
 import { isMobileOnly } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
