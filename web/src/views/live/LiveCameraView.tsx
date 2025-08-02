@@ -469,7 +469,7 @@ export default function LiveCameraView({
                       severity: "alert",
                     }),
                   );
-                  navigate(`review?${params.toString()}`);
+                  navigate(`/review?${params.toString()}`);
                 }}
               >
                 <LuHistory className="size-5 text-secondary-foreground" />
