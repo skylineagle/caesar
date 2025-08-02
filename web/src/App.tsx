@@ -1,20 +1,21 @@
-import Providers from "@/context/providers";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { setNavigateFunction } from "@/api";
+import { baseUrl } from "@/api/baseUrl";
 import Wrapper from "@/components/Wrapper";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
-
+import Providers from "@/context/providers";
+import { Suspense, lazy, useEffect } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import Statusbar from "./components/Statusbar";
 import Bottombar from "./components/navigation/Bottombar";
-import { Suspense, lazy, useEffect } from "react";
 import { Redirect } from "./components/navigation/Redirect";
 import { cn } from "./lib/utils";
 import { isPWA } from "./utils/isPWA";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { baseUrl } from "@/api/baseUrl";
-import { setNavigateFunction } from "@/api";
 
 const Live = lazy(() => import("@/pages/Live"));
+const GroupView = lazy(() => import("@/pages/GroupView"));
+const LiveCameraPage = lazy(() => import("@/pages/LiveCameraPage"));
 const Events = lazy(() => import("@/pages/Events"));
 const Explore = lazy(() => import("@/pages/Explore"));
 const Exports = lazy(() => import("@/pages/Exports"));
@@ -56,6 +57,8 @@ function AppRoutes() {
                 element={<ProtectedRoute requiredRoles={["viewer", "admin"]} />}
               >
                 <Route index element={<Live />} />
+                <Route path="/group/:group" element={<GroupView />} />
+                <Route path="/camera/:camera" element={<LiveCameraPage />} />
                 <Route path="/review" element={<Events />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/export" element={<Exports />} />

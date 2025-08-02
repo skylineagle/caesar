@@ -18,7 +18,6 @@ import { LuPictureInPicture } from "react-icons/lu";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import useSWR from "swr";
 
-
 type LiveBirdseyeViewProps = {
   supportsFullscreen: boolean;
   fullscreen: boolean;
@@ -206,7 +205,6 @@ export default function LiveBirdseyeView({
                 liveMode={preferredLiveMode}
                 containerRef={containerRef}
                 pip={pip}
-                videoEffects={true}
               />
             </div>
           </TransformComponent>

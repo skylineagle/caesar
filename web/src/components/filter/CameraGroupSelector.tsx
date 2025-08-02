@@ -71,12 +71,12 @@ import { Separator } from "../ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 import { useStreamingSettings } from "@/context/streaming-settings-provider";
-import { useGroup } from "@/hooks/use-url-state";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Trans, useTranslation } from "react-i18next";
 import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type CameraGroupSelectorProps = {
   className?: string;
@@ -85,8 +85,16 @@ type CameraGroupSelectorProps = {
 export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
   const { t } = useTranslation(["components/camera"]);
   const { data: config } = useSWR<FrigateConfig>("config");
-  const { group, setGroup, deleteGroup } = useGroup();
-  // tooltip
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const currentGroup = useMemo(() => {
+    const pathSegments = location.pathname.split("/");
+    if (pathSegments[1] === "group" && pathSegments[2]) {
+      return pathSegments[2];
+    }
+    return "default";
+  }, [location.pathname]);
 
   const [tooltip, setTooltip] = useState<string>();
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout>();
@@ -105,13 +113,6 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
     [timeoutId],
   );
 
-  // groups
-
-  // const [group, setGroup, deleteGroup] = usePersistedOverlayState(
-  //   "cameraGroup",
-  //   "default" as string,
-  // );
-
   const groups = useMemo(() => {
     if (!config) {
       return [];
@@ -122,11 +123,17 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
     );
   }, [config]);
 
-  // add group
-
   const [addGroup, setAddGroup] = useState(false);
 
   const Scroller = isMobile ? ScrollArea : "div";
+
+  const handleGroupSelect = (groupName: string) => {
+    if (groupName === "default") {
+      navigate("/");
+    } else {
+      navigate(`/group/${groupName}`);
+    }
+  };
 
   return (
     <>
@@ -134,9 +141,9 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
         open={addGroup}
         setOpen={setAddGroup}
         currentGroups={groups}
-        activeGroup={group}
-        setGroup={(value) => setGroup(value)}
-        deleteGroup={deleteGroup}
+        activeGroup={currentGroup}
+        setGroup={handleGroupSelect}
+        deleteGroup={() => navigate("/")}
       />
       <Scroller className={`${isMobile ? "whitespace-nowrap" : ""}`}>
         <div
@@ -150,13 +157,13 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
             <TooltipTrigger asChild>
               <Button
                 className={
-                  group == "default"
+                  currentGroup == "default"
                     ? "bg-blue-900 bg-opacity-60 text-selected focus:bg-blue-900 focus:bg-opacity-60"
                     : "bg-secondary text-secondary-foreground focus:bg-secondary focus:text-secondary-foreground"
                 }
                 aria-label={t("menu.live.allCameras", { ns: "common" })}
                 size="xs"
-                onClick={() => (group ? setGroup("default") : null)}
+                onClick={() => handleGroupSelect("default")}
                 onMouseEnter={() => (isDesktop ? showTooltip("default") : null)}
                 onMouseLeave={() => (isDesktop ? showTooltip(undefined) : null)}
               >
@@ -175,13 +182,13 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
                 <TooltipTrigger asChild>
                   <Button
                     className={
-                      group == name
+                      currentGroup == name
                         ? "bg-blue-900 bg-opacity-60 text-selected focus:bg-blue-900 focus:bg-opacity-60"
                         : "bg-secondary text-secondary-foreground"
                     }
                     aria-label={t("group.label")}
                     size="xs"
-                    onClick={() => setGroup(name)}
+                    onClick={() => handleGroupSelect(name)}
                     onMouseEnter={() => (isDesktop ? showTooltip(name) : null)}
                     onMouseLeave={() =>
                       isDesktop ? showTooltip(undefined) : null

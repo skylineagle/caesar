@@ -1,7 +1,3 @@
-import { useState, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { FiRotateCcw } from "react-icons/fi";
-import { LuWand } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,6 +5,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FiRotateCcw } from "react-icons/fi";
+import { LuWand } from "react-icons/lu";
 
 export interface VideoEffects {
   brightness: number;
@@ -30,15 +30,28 @@ type VideoEffectsControlProps = {
   className?: string;
   onEffectsChange: (effects: VideoEffects) => void;
   disabled?: boolean;
+  initialEffects?: VideoEffects;
 };
 
 export const VideoEffectsControl = ({
   className,
   onEffectsChange,
   disabled = false,
+  initialEffects,
 }: VideoEffectsControlProps) => {
-  const [effects, setEffects] = useState<VideoEffects>(defaultEffects);
+  const [effects, setEffects] = useState<VideoEffects>(
+    initialEffects || defaultEffects,
+  );
   const [isOpen, setIsOpen] = useState(false);
+  const isInitializedRef = useRef(false);
+
+  // Only sync once on mount, not on every initialEffects change
+  useEffect(() => {
+    if (initialEffects && !isInitializedRef.current) {
+      setEffects(initialEffects);
+      isInitializedRef.current = true;
+    }
+  }, [initialEffects]);
 
   const handleEffectChange = useCallback(
     (effectName: keyof VideoEffects, value: number[]) => {
@@ -115,15 +128,20 @@ export const VideoEffectsControl = ({
             size="sm"
             disabled={disabled}
             className={cn(
-              "h-10 w-10 rounded-full bg-black/50 p-0 text-white backdrop-blur-sm hover:scale-110 hover:bg-black/70",
-              "transition-all duration-200 ease-in-out",
-              hasActiveEffects &&
-                "bg-selected/50 text-selected hover:bg-selected/70",
+              "h-8 w-8 rounded-full bg-black/40 p-0 text-white/70 backdrop-blur-sm",
+              "opacity-0 transition-all duration-300 ease-in-out",
+              "group-hover:opacity-100 hover:h-9 hover:w-9 hover:bg-black/60 hover:text-white",
+              "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/30",
+              isOpen && "opacity-100",
+              hasActiveEffects && [
+                "bg-primary/40 text-primary-foreground opacity-100",
+                "hover:bg-primary/60 hover:text-primary-foreground",
+              ],
             )}
             aria-label="Video effects"
             onClick={(e) => e.stopPropagation()}
           >
-            <LuWand className="h-5 w-5" />
+            <LuWand className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent

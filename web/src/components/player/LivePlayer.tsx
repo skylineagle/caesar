@@ -24,8 +24,12 @@ import { baseUrl } from "@/api/baseUrl";
 import { PlayerStats } from "./PlayerStats";
 import { LuVideoOff } from "react-icons/lu";
 import { Trans, useTranslation } from "react-i18next";
-import { VideoEffects, VideoEffectsControl } from "./VideoEffectsControl";
-import { useContainerVideoEffects } from "@/hooks/use-video-effects";
+import { VideoEffectsControl } from "./VideoEffectsControl";
+import {
+  useContainerVideoEffects,
+  usePersistedVideoEffects,
+  useHasActiveVideoContent,
+} from "@/hooks/use-video-effects";
 
 type LivePlayerProps = {
   cameraRef?: (ref: HTMLDivElement | null) => void;
@@ -94,17 +98,17 @@ export default function LivePlayer({
     droppedFrameRate: 0, // percentage
   });
 
-  // video effects state
-  const [currentVideoEffects, setCurrentVideoEffects] = useState<VideoEffects>({
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    hue: 0,
-    blur: 0,
-  });
+  // video effects state with persistence
+  const {
+    effects: currentVideoEffects,
+    updateEffects: setCurrentVideoEffects,
+  } = usePersistedVideoEffects(cameraConfig.name);
 
   // Apply video effects to any video/canvas elements in the container
   useContainerVideoEffects(internalContainerRef, currentVideoEffects);
+
+  // Check if there's active video content that can be affected by video effects
+  const hasActiveVideoContent = useHasActiveVideoContent(internalContainerRef);
 
   // camera activity
 
@@ -325,21 +329,16 @@ export default function LivePlayer({
       ref={cameraRef ?? internalContainerRef}
       data-camera={cameraConfig.name}
       className={cn(
-        "relative flex w-full cursor-pointer justify-center outline",
-        (showStillWithoutActivity && !liveReady) || liveReady
-          ? activeTracking
-            ? "outline-3 rounded-lg shadow-severity_alert outline-severity_alert md:rounded-2xl"
-            : activeMotion
-              ? "outline-3 rounded-lg shadow-severity_significant_motion outline-severity_significant_motion md:rounded-2xl"
-              : "outline-0 outline-background"
-          : "outline-0 outline-background",
+        "group relative flex w-full cursor-pointer justify-center rounded-lg",
         "transition-all duration-500",
         className,
       )}
       onClick={onClick}
       onAuxClick={(e) => {
         if (e.button === 1) {
-          window.open(`${baseUrl}#${cameraConfig.name}`, "_blank")?.focus();
+          window
+            .open(`${baseUrl}/camera/${cameraConfig.name}`, "_blank")
+            ?.focus();
         }
       }}
     >
@@ -413,8 +412,8 @@ export default function LivePlayer({
         )}
       >
         <AutoUpdatingCameraImage
-          className="pointer-events-none size-full"
-          cameraClasses="relative size-full flex justify-center"
+          className="pointer-events-none size-full rounded-lg md:rounded-2xl"
+          cameraClasses="relative size-full flex justify-center rounded-lg md:rounded-2xl"
           camera={cameraConfig.name}
           showFps={false}
           reloadInterval={stillReloadInterval}
@@ -470,10 +469,11 @@ export default function LivePlayer({
       {showStats && (
         <PlayerStats stats={stats} minimal={cameraRef !== undefined} />
       )}
-      {videoEffects && cameraEnabled && (
+      {videoEffects && cameraEnabled && liveReady && hasActiveVideoContent && (
         <VideoEffectsControl
           onEffectsChange={setCurrentVideoEffects}
           disabled={!liveReady}
+          initialEffects={currentVideoEffects}
         />
       )}
     </div>

@@ -1,13 +1,11 @@
-import WebRtcPlayer from "./WebRTCPlayer";
+import { cn } from "@/lib/utils";
 import { BirdseyeConfig } from "@/types/frigateConfig";
+import { LivePlayerMode } from "@/types/live";
+import React from "react";
 import ActivityIndicator from "../indicators/activity-indicator";
 import JSMpegPlayer from "./JSMpegPlayer";
 import MSEPlayer from "./MsePlayer";
-import { LivePlayerMode } from "@/types/live";
-import { cn } from "@/lib/utils";
-import React, { useState } from "react";
-import { VideoEffects, VideoEffectsControl } from "./VideoEffectsControl";
-import { useContainerVideoEffects } from "@/hooks/use-video-effects";
+import WebRtcPlayer from "./WebRTCPlayer";
 
 type LivePlayerProps = {
   className?: string;
@@ -16,7 +14,6 @@ type LivePlayerProps = {
   pip?: boolean;
   containerRef: React.MutableRefObject<HTMLDivElement | null>;
   onClick?: () => void;
-  videoEffects?: boolean;
 };
 
 export default function BirdseyeLivePlayer({
@@ -26,7 +23,6 @@ export default function BirdseyeLivePlayer({
   pip,
   containerRef,
   onClick,
-  videoEffects,
 }: LivePlayerProps) {
   let player;
   if (liveMode == "webrtc") {
@@ -67,19 +63,7 @@ export default function BirdseyeLivePlayer({
     );
   } else {
     player = <ActivityIndicator />;
-      }
-
-  // video effects state
-  const [currentVideoEffects, setCurrentVideoEffects] = useState<VideoEffects>({
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    hue: 0,
-    blur: 0,
-  });
-
-  // Apply video effects to any video/canvas elements in the container
-  useContainerVideoEffects(containerRef, currentVideoEffects);
+  }
 
   return (
     <div
@@ -93,12 +77,6 @@ export default function BirdseyeLivePlayer({
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
       <div className="size-full">{player}</div>
-      {videoEffects && (
-        <VideoEffectsControl
-          onEffectsChange={setCurrentVideoEffects}
-          disabled={false}
-        />
-      )}
     </div>
   );
 }

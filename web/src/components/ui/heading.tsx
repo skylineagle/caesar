@@ -17,7 +17,7 @@ const Heading = ({
         <h1
           className={cn(
             "scroll-m-20 text-3xl font-extrabold tracking-tight",
-            className
+            className,
           )}
         >
           {children}
@@ -27,8 +27,8 @@ const Heading = ({
       return (
         <h2
           className={cn(
-            "scroll-m-20 text-3xl font-semibold tracking-tight transition-colors first:mt-0 mb-3",
-            className
+            "mb-3 scroll-m-20 text-3xl font-semibold tracking-tight transition-colors first:mt-0",
+            className,
           )}
         >
           {children}
@@ -38,8 +38,8 @@ const Heading = ({
       return (
         <h3
           className={cn(
-            "scroll-m-20 text-2xl font-semibold tracking-tight mb-3",
-            className
+            "mb-3 scroll-m-20 text-2xl font-semibold tracking-tight",
+            className,
           )}
         >
           {children}
@@ -50,7 +50,7 @@ const Heading = ({
         <h4
           className={cn(
             "scroll-m-20 text-xl font-semibold tracking-tight",
-            className
+            className,
           )}
         >
           {children}
@@ -61,7 +61,7 @@ const Heading = ({
         <h1
           className={cn(
             "scroll-m-20 text-3xl font-extrabold tracking-tight",
-            className
+            className,
           )}
         >
           {children}

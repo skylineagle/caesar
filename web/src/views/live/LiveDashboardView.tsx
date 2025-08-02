@@ -1,10 +1,13 @@
 import { useFrigateReviews } from "@/api/ws";
 import Logo from "@/components/Logo";
+import { AnimatedEventCard } from "@/components/card/AnimatedEventCard";
 import { CameraGroupSelector } from "@/components/filter/CameraGroupSelector";
 import { LiveGridIcon, LiveListIcon } from "@/components/icons/LiveIcons";
-import { AnimatedEventCard } from "@/components/card/AnimatedEventCard";
+import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
+import { CameraWithBorder } from "@/components/camera/CameraWithBorder";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -13,12 +16,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useStreamingSettings } from "@/context/streaming-settings-provider";
+import { useResizeObserver } from "@/hooks/resize-observer";
+import useCameraLiveMode from "@/hooks/use-camera-live-mode";
 import { usePersistence } from "@/hooks/use-persistence";
+import { cn } from "@/lib/utils";
 import {
   AllGroupsStreamingSettings,
   CameraConfig,
   FrigateConfig,
 } from "@/types/frigateConfig";
+import {
+  AudioState,
+  LivePlayerError,
+  StatsState,
+  VolumeState,
+} from "@/types/live";
 import { ReviewSegment } from "@/types/review";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -27,23 +40,12 @@ import {
   isMobileOnly,
   isTablet,
 } from "react-device-detect";
-import useSWR from "swr";
-import DraggableGridLayout from "./DraggableGridLayout";
+import { useTranslation } from "react-i18next";
+import { FaCompress, FaExpand } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { LuLayoutDashboard } from "react-icons/lu";
-import { cn } from "@/lib/utils";
-import {
-  AudioState,
-  LivePlayerError,
-  StatsState,
-  VolumeState,
-} from "@/types/live";
-import { FaCompress, FaExpand } from "react-icons/fa";
-import useCameraLiveMode from "@/hooks/use-camera-live-mode";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import LiveContextMenu from "@/components/menu/LiveContextMenu";
-import { useStreamingSettings } from "@/context/streaming-settings-provider";
-import { useTranslation } from "react-i18next";
+import useSWR from "swr";
+import DraggableGridLayout from "./DraggableGridLayout";
 
 type LiveDashboardViewProps = {
   cameras: CameraConfig[];
@@ -459,7 +461,6 @@ export default function LiveDashboardView({
                   liveMode={birdseyeConfig.restream ? "mse" : "jsmpeg"}
                   onClick={() => onSelectCamera("birdseye")}
                   containerRef={birdseyeContainerRef}
-                  videoEffects={true}
                 />
               </div>
             )}
@@ -500,58 +501,89 @@ export default function LiveDashboardView({
                 currentGroupStreamingSettings?.[camera.name]
                   ?.compatibilityMode || false;
               return (
-                <LiveContextMenu
+                <CameraWithBorder
+                  camera={camera}
                   className={grow}
                   key={camera.name}
-                  camera={camera.name}
-                  cameraGroup={cameraGroup}
-                  streamName={streamName}
-                  preferredLiveMode={preferredLiveModes[camera.name] ?? "mse"}
-                  isRestreamed={isRestreamedStates[camera.name]}
-                  supportsAudio={
-                    supportsAudioOutputStates[streamName]?.supportsAudio ??
-                    false
-                  }
-                  audioState={audioStates[camera.name]}
-                  toggleAudio={() => toggleAudio(camera.name)}
-                  statsState={statsStates[camera.name]}
-                  toggleStats={() => toggleStats(camera.name)}
-                  volumeState={volumeStates[camera.name] ?? 1}
-                  setVolumeState={(value) =>
-                    setVolumeStates({
-                      [camera.name]: value,
-                    })
-                  }
-                  muteAll={muteAll}
-                  unmuteAll={unmuteAll}
-                  resetPreferredLiveMode={() =>
-                    resetPreferredLiveMode(camera.name)
-                  }
-                  config={config}
                 >
-                  <LivePlayer
-                    cameraRef={cameraRef}
-                    key={camera.name}
-                    className={`${grow} rounded-lg bg-black md:rounded-2xl`}
-                    windowVisible={
-                      windowVisible && visibleCameras.includes(camera.name)
-                    }
-                    cameraConfig={camera}
-                    preferredLiveMode={preferredLiveModes[camera.name] ?? "mse"}
-                    autoLive={autoLive ?? globalAutoLive}
-                    showStillWithoutActivity={showStillWithoutActivity ?? false}
-                    useWebGL={useWebGL}
-                    playInBackground={false}
-                    showStats={statsStates[camera.name]}
+                  <LiveContextMenu
+                    className="h-full w-full"
+                    camera={camera.name}
+                    cameraGroup={cameraGroup}
                     streamName={streamName}
-                    onClick={() => onSelectCamera(camera.name)}
-                    onError={(e) => handleError(camera.name, e)}
-                    onResetLiveMode={() => resetPreferredLiveMode(camera.name)}
-                    playAudio={audioStates[camera.name] ?? false}
-                    volume={volumeStates[camera.name]}
-                    videoEffects={true}
-                  />
-                </LiveContextMenu>
+                    preferredLiveMode={preferredLiveModes[camera.name] ?? "mse"}
+                    isRestreamed={isRestreamedStates[camera.name]}
+                    supportsAudio={
+                      supportsAudioOutputStates[streamName]?.supportsAudio ??
+                      false
+                    }
+                    audioState={audioStates[camera.name]}
+                    toggleAudio={() => toggleAudio(camera.name)}
+                    statsState={statsStates[camera.name]}
+                    toggleStats={() => toggleStats(camera.name)}
+                    volumeState={volumeStates[camera.name] ?? 1}
+                    setVolumeState={(value) =>
+                      setVolumeStates({
+                        [camera.name]: value,
+                      })
+                    }
+                    muteAll={muteAll}
+                    unmuteAll={unmuteAll}
+                    resetPreferredLiveMode={() =>
+                      resetPreferredLiveMode(camera.name)
+                    }
+                    config={config}
+                  >
+                    <TransformWrapper
+                      minScale={1.0}
+                      wheel={{ smoothStep: 0.005 }}
+                    >
+                      <TransformComponent
+                        wrapperStyle={{
+                          width: "100%",
+                          height: "100%",
+                        }}
+                        contentStyle={{
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <LivePlayer
+                          cameraRef={cameraRef}
+                          key={camera.name}
+                          className={`${grow} rounded-lg bg-black md:rounded-2xl`}
+                          windowVisible={
+                            windowVisible &&
+                            visibleCameras.includes(camera.name)
+                          }
+                          cameraConfig={camera}
+                          preferredLiveMode={
+                            preferredLiveModes[camera.name] ?? "mse"
+                          }
+                          autoLive={autoLive ?? globalAutoLive}
+                          showStillWithoutActivity={
+                            showStillWithoutActivity ?? false
+                          }
+                          useWebGL={useWebGL}
+                          playInBackground={false}
+                          showStats={statsStates[camera.name]}
+                          streamName={streamName}
+                          onClick={() => onSelectCamera(camera.name)}
+                          onError={(e) => handleError(camera.name, e)}
+                          onResetLiveMode={() =>
+                            resetPreferredLiveMode(camera.name)
+                          }
+                          playAudio={audioStates[camera.name] ?? false}
+                          volume={volumeStates[camera.name]}
+                          videoEffects={true}
+                        />
+                      </TransformComponent>
+                    </TransformWrapper>
+                  </LiveContextMenu>
+                </CameraWithBorder>
               );
             })}
           </div>
