@@ -10,6 +10,7 @@ import {
 import CameraFeatureToggle from "@/components/dynamic/CameraFeatureToggle";
 import FilterSwitch from "@/components/filter/FilterSwitch";
 import LivePlayer from "@/components/player/LivePlayer";
+import { CameraWithBorder } from "@/components/camera/CameraWithBorder";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
@@ -54,7 +55,6 @@ import {
   isIOS,
   isMobile,
   isTablet,
-  useMobileOrientation,
 } from "react-device-detect";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import {
@@ -136,7 +136,6 @@ export default function LiveCameraView({
 }: LiveCameraViewProps) {
   const { t } = useTranslation(["views/live", "components/dialog"]);
   const navigate = useNavigate();
-  const { isPortrait } = useMobileOrientation();
   const mainRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [{ width: windowWidth, height: windowHeight }] =
@@ -342,29 +341,41 @@ export default function LiveCameraView({
     }
   }, [cameraAspectRatio, containerAspectRatio, fullscreen]);
 
-  const growClassName = useMemo(() => {
-    if (isMobile) {
-      if (isPortrait) {
-        return "absolute left-0.5 right-0.5 top-[50%] -translate-y-[50%]";
-      } else {
-        if (cameraAspectRatio > containerAspectRatio) {
-          return "p-2 absolute left-0 top-[50%] -translate-y-[50%]";
-        } else {
-          return "p-2 absolute top-0.5 bottom-0.5 left-[50%] -translate-x-[50%]";
-        }
-      }
+  const getContainerClasses = useMemo(() => {
+    if (fullscreen) {
+      return "absolute inset-0 z-30 bg-black";
     }
 
+    return `flex size-full flex-col p-2 ${isMobile ? "landscape:flex-row landscape:gap-1" : ""}`;
+  }, [fullscreen]);
+
+  const getControlsClasses = useMemo(() => {
     if (fullscreen) {
-      if (cameraAspectRatio > containerAspectRatio) {
-        return "absolute inset-x-2 top-[50%] -translate-y-[50%]";
-      } else {
-        return "absolute inset-y-2 left-[50%] -translate-x-[50%]";
-      }
-    } else {
-      return "absolute top-0.5 bottom-0.5 left-[50%] -translate-x-[50%]";
+      return `absolute right-32 top-1 z-40 ${isMobile ? "landscape:bottom-1 landscape:left-2 landscape:right-auto landscape:top-auto" : ""}`;
     }
-  }, [fullscreen, isPortrait, cameraAspectRatio, containerAspectRatio]);
+
+    return `flex h-12 w-full flex-row items-center justify-between ${isMobile ? "landscape:h-full landscape:w-12 landscape:flex-col" : ""}`;
+  }, [fullscreen]);
+
+  const getPlayerContainerClasses = useMemo(() => {
+    if (fullscreen) {
+      return "absolute inset-0 overflow-hidden";
+    }
+
+    return `flex-1 relative overflow-hidden min-h-0 ${isMobile ? "landscape:flex-1" : ""}`;
+  }, [fullscreen]);
+
+  const getPlayerWrapperClasses = useMemo(() => {
+    return "relative flex items-center justify-center";
+  }, []);
+
+  const getPlayerClasses = useMemo(() => {
+    if (fullscreen) {
+      return "w-full h-full object-contain";
+    }
+
+    return "w-full h-full object-contain rounded-lg border border-border shadow-sm";
+  }, [fullscreen]);
 
   // On mobile devices that support it, try to orient screen
   // to best fit the camera feed in fullscreen mode
@@ -409,21 +420,8 @@ export default function LiveCameraView({
   return (
     <TransformWrapper minScale={1.0} wheel={{ smoothStep: 0.005 }}>
       <Toaster position="top-center" closeButton={true} />
-      <div
-        ref={mainRef}
-        className={
-          fullscreen
-            ? `fixed inset-0 z-30 bg-black`
-            : `flex size-full flex-col p-2 ${isMobile ? "landscape:flex-row landscape:gap-1" : ""}`
-        }
-      >
-        <div
-          className={
-            fullscreen
-              ? `absolute right-32 top-1 z-40 ${isMobile ? "landscape:bottom-1 landscape:left-2 landscape:right-auto landscape:top-auto" : ""}`
-              : `flex h-12 w-full flex-row items-center justify-between ${isMobile ? "landscape:h-full landscape:w-12 landscape:flex-col" : ""}`
-          }
-        >
+      <div ref={mainRef} className={getContainerClasses}>
+        <div className={getControlsClasses}>
           {!fullscreen ? (
             <div
               className={`flex items-center gap-2 ${isMobile ? "landscape:flex-col" : ""}`}
@@ -570,7 +568,11 @@ export default function LiveCameraView({
             </div>
           </TooltipProvider>
         </div>
-        <div id="player-container" className="size-full" ref={containerRef}>
+        <div
+          id="player-container"
+          className={getPlayerContainerClasses}
+          ref={containerRef}
+        >
           <TransformComponent
             wrapperStyle={{
               width: "100%",
@@ -580,20 +582,26 @@ export default function LiveCameraView({
               position: "relative",
               width: "100%",
               height: "100%",
-              padding: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: fullscreen ? "0" : "8px",
             }}
           >
-            <div
-              className={`flex flex-col items-center justify-center ${growClassName}`}
+            <CameraWithBorder
+              camera={camera}
+              className={getPlayerWrapperClasses}
               ref={clickOverlayRef}
               onClick={handleOverlayClick}
               style={{
                 aspectRatio: constrainedAspectRatio,
+                maxWidth: "100%",
+                maxHeight: "100%",
               }}
             >
               <LivePlayer
                 key={camera.name}
-                className={`${fullscreen ? "*:rounded-none" : ""}`}
+                className={getPlayerClasses}
                 windowVisible
                 showStillWithoutActivity={false}
                 cameraConfig={camera}
@@ -609,8 +617,9 @@ export default function LiveCameraView({
                 containerRef={containerRef}
                 setFullResolution={setFullResolution}
                 onError={handleError}
+                videoEffects={true}
               />
-            </div>
+            </CameraWithBorder>
           </TransformComponent>
         </div>
       </div>

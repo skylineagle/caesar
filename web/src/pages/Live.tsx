@@ -1,30 +1,20 @@
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import { useGroup } from "@/hooks/use-url-state";
 import { FrigateConfig } from "@/types/frigateConfig";
-import LiveBirdseyeView from "@/views/live/LiveBirdseyeView";
-import LiveCameraView from "@/views/live/LiveCameraView";
 import LiveDashboardView from "@/views/live/LiveDashboardView";
-import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
 
 function Live() {
   const { t } = useTranslation(["views/live"]);
   const { data: config } = useSWR<FrigateConfig>("config");
-  const { group: cameraGroup } = useGroup();
-
-  // selection
-  const [selectedCameraName, setSelectedCameraName] = useQueryState(
-    "camera",
-    parseAsString.withDefault("default"),
-  );
+  const navigate = useNavigate();
 
   const mainRef = useRef<HTMLDivElement | null>(null);
 
-  const { fullscreen, toggleFullscreen, supportsFullScreen } =
-    useFullscreen(mainRef);
+  const { fullscreen, toggleFullscreen } = useFullscreen(mainRef);
 
   useKeyboardListener(["f"], (key, modifiers) => {
     if (!modifiers.down) {
@@ -38,97 +28,44 @@ function Live() {
     }
   });
 
-  // document title
-
   useEffect(() => {
-    if (selectedCameraName) {
-      const capitalized = selectedCameraName
-        .split("_")
-        .filter((text) => text)
-        .map((text) => text[0].toUpperCase() + text.substring(1));
-      document.title = t("documentTitle.withCamera", {
-        camera: capitalized.join(" "),
-      });
-    } else if (cameraGroup && cameraGroup != "default") {
-      document.title = t("documentTitle.withCamera", {
-        camera: `${cameraGroup[0].toUpperCase()}${cameraGroup.substring(1)}`,
-      });
-    } else {
-      document.title = t("documentTitle", { ns: "views/live" });
-    }
-  }, [cameraGroup, selectedCameraName, t]);
-
-  // settings
-
-  const includesBirdseye = useMemo(() => {
-    if (
-      config &&
-      Object.keys(config.camera_groups).length &&
-      cameraGroup &&
-      config.camera_groups[cameraGroup] &&
-      cameraGroup != "default"
-    ) {
-      return config.camera_groups[cameraGroup].cameras.includes("birdseye");
-    } else {
-      return false;
-    }
-  }, [config, cameraGroup]);
+    document.title = t("documentTitle", { ns: "views/live" });
+  }, [t]);
 
   const cameras = useMemo(() => {
     if (!config) {
       return [];
     }
 
-    if (
-      Object.keys(config.camera_groups).length &&
-      cameraGroup &&
-      config.camera_groups[cameraGroup] &&
-      cameraGroup != "default"
-    ) {
-      const group = config.camera_groups[cameraGroup];
-      return Object.values(config.cameras)
-        .filter(
-          (conf) => conf.enabled_in_config && group.cameras.includes(conf.name),
-        )
-        .sort((aConf, bConf) => aConf.ui.order - bConf.ui.order);
+    return Object.values(config.cameras)
+      .filter((conf) => conf.ui.dashboard && conf.enabled_in_config)
+      .sort((aConf, bConf) => aConf.ui.order - bConf.ui.order);
+  }, [config]);
+
+  const includesBirdseye = useMemo(() => {
+    if (!config) {
+      return false;
     }
 
     return Object.values(config.cameras)
       .filter((conf) => conf.ui.dashboard && conf.enabled_in_config)
-      .sort((aConf, bConf) => aConf.ui.order - bConf.ui.order);
-  }, [config, cameraGroup]);
+      .some((conf) => conf.name === "birdseye");
+  }, [config]);
 
-  const selectedCamera = useMemo(
-    () => cameras.find((cam) => cam.name == selectedCameraName),
-    [cameras, selectedCameraName],
-  );
+  const handleSelectCamera = (cameraName: string) => {
+    navigate(`/camera/${cameraName}`);
+  };
 
   return (
     <div className="size-full" ref={mainRef}>
-      {selectedCameraName === "birdseye" ? (
-        <LiveBirdseyeView
-          supportsFullscreen={supportsFullScreen}
-          fullscreen={fullscreen}
-          toggleFullscreen={toggleFullscreen}
-        />
-      ) : selectedCamera ? (
-        <LiveCameraView
-          config={config}
-          camera={selectedCamera}
-          supportsFullscreen={supportsFullScreen}
-          fullscreen={fullscreen}
-          toggleFullscreen={toggleFullscreen}
-        />
-      ) : (
-        <LiveDashboardView
-          cameras={cameras}
-          cameraGroup={cameraGroup ?? "default"}
-          includeBirdseye={includesBirdseye}
-          onSelectCamera={setSelectedCameraName}
-          fullscreen={fullscreen}
-          toggleFullscreen={toggleFullscreen}
-        />
-      )}
+      <LiveDashboardView
+        cameras={cameras}
+        cameraGroup="default"
+        includeBirdseye={includesBirdseye}
+        onSelectCamera={handleSelectCamera}
+        fullscreen={fullscreen}
+        toggleFullscreen={toggleFullscreen}
+      />
     </div>
   );
 }
