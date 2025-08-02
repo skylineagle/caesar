@@ -15,6 +15,7 @@ type WebRtcPlayerProps = {
   setStats?: (stats: PlayerStatsType) => void;
   onPlaying?: () => void;
   onError?: (error: LivePlayerError) => void;
+  videoEffects?: boolean;
 };
 
 export default function WebRtcPlayer({
@@ -43,6 +44,9 @@ export default function WebRtcPlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [bufferTimeout, setBufferTimeout] = useState<NodeJS.Timeout>();
   const videoLoadTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // video effects are managed by the floating VideoEffectsControl
+  // and applied at the container level in LivePlayer
 
   const PeerConnection = useCallback(
     async (media: string) => {

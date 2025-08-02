@@ -1,11 +1,11 @@
-import WebRtcPlayer from "./WebRTCPlayer";
+import { cn } from "@/lib/utils";
 import { BirdseyeConfig } from "@/types/frigateConfig";
+import { LivePlayerMode } from "@/types/live";
+import React from "react";
 import ActivityIndicator from "../indicators/activity-indicator";
 import JSMpegPlayer from "./JSMpegPlayer";
 import MSEPlayer from "./MsePlayer";
-import { LivePlayerMode } from "@/types/live";
-import { cn } from "@/lib/utils";
-import React from "react";
+import WebRtcPlayer from "./WebRTCPlayer";
 
 type LivePlayerProps = {
   className?: string;

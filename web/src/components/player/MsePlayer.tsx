@@ -27,6 +27,7 @@ type MSEPlayerProps = {
   onPlaying?: () => void;
   setFullResolution?: React.Dispatch<SetStateAction<VideoResolutionType>>;
   onError?: (error: LivePlayerError) => void;
+  videoEffects?: boolean;
 };
 
 function MSEPlayer({
@@ -79,6 +80,9 @@ function MSEPlayer({
     [key: string]: (msg: { value: string; type: string }) => void;
   }>({});
   const msRef = useRef<MediaSource | null>(null);
+
+  // video effects are managed by the floating VideoEffectsControl
+  // and applied at the container level in LivePlayer
 
   const wsURL = useMemo(() => {
     return `${baseUrl.replace(/^http/, "ws")}live/mse/api/ws?src=${camera}`;

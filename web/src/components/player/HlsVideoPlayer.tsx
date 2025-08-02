@@ -1,4 +1,5 @@
 import { useMuted, usePlaybackRate, useVolume } from "@/hooks/use-url-state";
+import { useVideoEffects } from "@/hooks/use-video-effects";
 import { cn } from "@/lib/utils";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { VideoResolutionType } from "@/types/live";
@@ -18,6 +19,7 @@ import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { toast } from "sonner";
 import useSWR from "swr";
 import VideoControls from "./VideoControls";
+import { VideoEffects } from "./VideoEffectsControl";
 
 // Android native hls does not seek correctly
 const USE_NATIVE_HLS = !isAndroid;
@@ -79,6 +81,15 @@ export default function HlsVideoPlayer({
   const [useHlsCompat, setUseHlsCompat] = useState(false);
   const [loadedMetadata, setLoadedMetadata] = useState(false);
   const [bufferTimeout, setBufferTimeout] = useState<NodeJS.Timeout>();
+  const [videoEffects] = useState<VideoEffects>({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    hue: 0,
+    blur: 0,
+  });
+
+  useVideoEffects(videoRef, videoEffects);
 
   const handleLoadedMetadata = useCallback(() => {
     setLoadedMetadata(true);
@@ -410,6 +421,12 @@ export default function HlsVideoPlayer({
             }
           }}
         />
+        {/* {frigateControls && (
+          <VideoEffectsControl
+            onEffectsChange={setVideoEffects}
+            disabled={!videoRef.current}
+          />
+        )} */}
       </TransformComponent>
     </TransformWrapper>
   );

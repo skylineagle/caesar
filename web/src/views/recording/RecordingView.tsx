@@ -506,7 +506,7 @@ export function RecordingView({
             aria-label="Go to the main camera live view"
             size="sm"
             onClick={() => {
-              navigate(`/#${mainCamera}`);
+              navigate(`/live/${mainCamera}`);
             }}
           >
             <FaVideo className="size-5 text-secondary-foreground" />
