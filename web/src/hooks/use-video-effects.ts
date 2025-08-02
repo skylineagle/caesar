@@ -120,9 +120,6 @@ export const useContainerVideoEffects = (
     // Apply effects immediately
     applyEffects();
 
-    // Set up interval for JSMpeg canvas elements that might update dynamically
-    const interval = setInterval(applyEffects, 1000);
-
     // Set up mutation observer to detect new video/canvas elements
     const observer = new MutationObserver(() => {
       // Use requestAnimationFrame for better performance than setTimeout
@@ -135,7 +132,6 @@ export const useContainerVideoEffects = (
     });
 
     return () => {
-      clearInterval(interval);
       observer.disconnect();
     };
   }, [applyEffects, containerRef]); // Watch both applyEffects and containerRef for changes

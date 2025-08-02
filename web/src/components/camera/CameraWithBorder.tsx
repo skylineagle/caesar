@@ -1,6 +1,6 @@
+import { useCameraActivity } from "@/hooks/use-camera-activity";
 import { cn } from "@/lib/utils";
 import { CameraConfig } from "@/types/frigateConfig";
-import { useCameraActivity } from "@/hooks/use-camera-activity";
 import { ReactNode, forwardRef } from "react";
 
 type CameraWithBorderProps = {
@@ -34,3 +34,5 @@ export const CameraWithBorder = forwardRef<
     </div>
   );
 });
+
+CameraWithBorder.displayName = "CameraWithBorder";

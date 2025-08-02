@@ -704,7 +704,6 @@ const BirdseyeLivePlayerGridItem = React.forwardRef<
       birdseyeConfig,
       liveMode,
       onClick,
-      videoEffects,
       ...props
     },
     ref,
