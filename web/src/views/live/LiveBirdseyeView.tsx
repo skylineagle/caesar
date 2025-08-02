@@ -27,9 +27,7 @@ type LiveBirdseyeViewProps = {
 };
 
 export default function LiveBirdseyeView({
-  supportsFullscreen,
   fullscreen,
-  toggleFullscreen,
 }: LiveBirdseyeViewProps) {
   const { t } = useTranslation(["views/live"]);
   const { data: config } = useSWR<FrigateConfig>("config");
@@ -50,6 +48,7 @@ export default function LiveBirdseyeView({
   // playback state
 
   const [pip, setPip] = useState(false);
+
   const cameraAspectRatio = useMemo(() => {
     if (!config) {
       return 16 / 9;
@@ -212,20 +211,20 @@ export default function LiveBirdseyeView({
             <div
               className={`mr-1 flex flex-row items-center gap-2 *:rounded-lg ${isMobile ? "landscape:flex-col" : ""}`}
             >
-              {supportsFullscreen && (
-                <CameraFeatureToggle
-                  className="p-2 md:p-0"
-                  variant={fullscreen ? "overlay" : "primary"}
-                  Icon={fullscreen ? FaCompress : FaExpand}
-                  isActive={fullscreen}
-                  title={
-                    fullscreen
-                      ? t("button.close", { ns: "common" })
-                      : t("button.fullscreen", { ns: "common" })
+              <CameraFeatureToggle
+                className="p-2"
+                variant="overlay"
+                Icon={fullscreen ? FaCompress : FaExpand}
+                isActive={fullscreen}
+                title={fullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                onClick={() => {
+                  if (fullscreen) {
+                    document.exitFullscreen();
+                  } else {
+                    containerRef.current?.requestFullscreen();
                   }
-                  onClick={toggleFullscreen}
-                />
-              )}
+                }}
+              />
               {!isIOS && !isFirefox && config.birdseye.restream && (
                 <CameraFeatureToggle
                   className="p-2 md:p-0"

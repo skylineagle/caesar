@@ -1,13 +1,14 @@
-import WebRtcPlayer from "./WebRTCPlayer";
-import { CameraConfig } from "@/types/frigateConfig";
-import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MSEPlayer from "./MsePlayer";
-import JSMpegPlayer from "./JSMpegPlayer";
-import { MdCircle } from "react-icons/md";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { baseUrl } from "@/api/baseUrl";
+import { VideoEffectsControl } from "@/components/player/VideoEffectsControl";
 import { useCameraActivity } from "@/hooks/use-camera-activity";
+import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
+import {
+  useContainerVideoEffects,
+  useHasActiveVideoContent,
+  usePersistedVideoEffects,
+} from "@/hooks/use-video-effects";
+import { cn } from "@/lib/utils";
+import { CameraConfig } from "@/types/frigateConfig";
 import {
   LivePlayerError,
   LivePlayerMode,
@@ -15,16 +16,21 @@ import {
   VideoResolutionType,
 } from "@/types/live";
 import { getIconForLabel } from "@/utils/iconUtil";
-import Chip from "../indicators/Chip";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
-import { cn } from "@/lib/utils";
-import { TbExclamationCircle } from "react-icons/tb";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { baseUrl } from "@/api/baseUrl";
-import { PlayerStats } from "./PlayerStats";
-import { LuVideoOff } from "react-icons/lu";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
+import { LuVideoOff } from "react-icons/lu";
+import { MdCircle } from "react-icons/md";
+import { TbExclamationCircle } from "react-icons/tb";
+import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
+import ActivityIndicator from "../indicators/activity-indicator";
+import Chip from "../indicators/Chip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import JSMpegPlayer from "./JSMpegPlayer";
+import MSEPlayer from "./MsePlayer";
+import { PlayerStats } from "./PlayerStats";
+import WebRtcPlayer from "./WebRTCPlayer";
 
 type LivePlayerProps = {
   cameraRef?: (ref: HTMLDivElement | null) => void;
@@ -48,6 +54,7 @@ type LivePlayerProps = {
   setFullResolution?: React.Dispatch<React.SetStateAction<VideoResolutionType>>;
   onError?: (error: LivePlayerError) => void;
   onResetLiveMode?: () => void;
+  videoEffects?: boolean;
 };
 
 export default function LivePlayer({
@@ -72,14 +79,17 @@ export default function LivePlayer({
   setFullResolution,
   onError,
   onResetLiveMode,
+  videoEffects,
 }: LivePlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation(["common", "components/player"]);
 
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
 
   const cameraName = useCameraFriendlyName(cameraConfig);
   // stats
 
+  // player state
+  const [liveReady, setLiveReady] = useState(false);
   const [stats, setStats] = useState<PlayerStatsType>({
     streamType: "-",
     bandwidth: 0, // in kbps
@@ -89,6 +99,18 @@ export default function LivePlayer({
     decodedFrames: 0,
     droppedFrameRate: 0, // percentage
   });
+
+  // video effects state with persistence
+  const {
+    effects: currentVideoEffects,
+    updateEffects: setCurrentVideoEffects,
+  } = usePersistedVideoEffects(cameraConfig.name);
+
+  // Apply video effects to any video/canvas elements in the container
+  useContainerVideoEffects(internalContainerRef, currentVideoEffects);
+
+  // Check if there's active video content that can be affected by video effects
+  const hasActiveVideoContent = useHasActiveVideoContent(internalContainerRef);
 
   // camera activity
 
@@ -108,8 +130,6 @@ export default function LivePlayer({
   );
 
   // camera live state
-
-  const [liveReady, setLiveReady] = useState(false);
 
   const liveReadyRef = useRef(liveReady);
   const cameraActiveRef = useRef(cameraActive);
@@ -311,21 +331,16 @@ export default function LivePlayer({
       ref={cameraRef ?? internalContainerRef}
       data-camera={cameraConfig.name}
       className={cn(
-        "relative flex w-full cursor-pointer justify-center outline",
-        (showStillWithoutActivity && !liveReady) || liveReady
-          ? activeTracking
-            ? "outline-3 rounded-lg shadow-severity_alert outline-severity_alert md:rounded-2xl"
-            : activeMotion
-              ? "outline-3 rounded-lg shadow-severity_significant_motion outline-severity_significant_motion md:rounded-2xl"
-              : "outline-0 outline-background"
-          : "outline-0 outline-background",
+        "group relative flex w-full cursor-pointer justify-center rounded-lg",
         "transition-all duration-500",
         className,
       )}
       onClick={onClick}
       onAuxClick={(e) => {
         if (e.button === 1) {
-          window.open(`${baseUrl}#${cameraConfig.name}`, "_blank")?.focus();
+          window
+            .open(`${baseUrl}/camera/${cameraConfig.name}`, "_blank")
+            ?.focus();
         }
       }}
     >
@@ -399,8 +414,8 @@ export default function LivePlayer({
         )}
       >
         <AutoUpdatingCameraImage
-          className="pointer-events-none size-full"
-          cameraClasses="relative size-full flex justify-center"
+          className="pointer-events-none size-full rounded-lg md:rounded-2xl"
+          cameraClasses="relative size-full flex justify-center rounded-lg md:rounded-2xl"
           camera={cameraConfig.name}
           showFps={false}
           reloadInterval={stillReloadInterval}
@@ -455,6 +470,13 @@ export default function LivePlayer({
       </div>
       {showStats && (
         <PlayerStats stats={stats} minimal={cameraRef !== undefined} />
+      )}
+      {videoEffects && cameraEnabled && liveReady && hasActiveVideoContent && (
+        <VideoEffectsControl
+          onEffectsChange={setCurrentVideoEffects}
+          disabled={!liveReady}
+          initialEffects={currentVideoEffects}
+        />
       )}
     </div>
   );

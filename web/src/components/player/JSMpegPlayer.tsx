@@ -133,8 +133,8 @@ export default function JSMpegPlayer({
           {
             protocols: [],
             audio: false,
-            disableGl: !useWebGL,
-            disableWebAssembly: !useWebGL,
+            disableGl: camera !== "birdseye" || !useWebGL,
+            disableWebAssembly: true,
             videoBufferSize: 1024 * 1024 * 4,
             onVideoDecode: () => {
               if (!hasDataRef.current) {

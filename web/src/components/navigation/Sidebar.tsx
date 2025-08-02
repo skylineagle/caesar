@@ -12,6 +12,7 @@ function Sidebar() {
   const basePath = useMemo(() => new URL(baseUrl).pathname, []);
 
   const isRootMatch = useMatch("/");
+  const isGroupMatch = useMatch("/group/:group");
   const isBasePathMatch = useMatch(basePath);
 
   const navbarLinks = useNavigation();
@@ -25,7 +26,7 @@ function Sidebar() {
         </Link>
         {navbarLinks.map((item) => {
           const showCameraGroups =
-            (isRootMatch || isBasePathMatch) && item.id === 1;
+            (isRootMatch || isBasePathMatch || isGroupMatch) && item.id === 1;
 
           return (
             <div key={item.id}>
