@@ -51,14 +51,11 @@ export const useContainerVideoEffects = (
       .filter(Boolean)
       .join(" ");
 
-    // Find video elements that are actually playing (not still images)
     const videoElements = containerRef.current.querySelectorAll("video");
     const playingVideos: HTMLVideoElement[] = [];
 
     videoElements.forEach((video) => {
       const videoEl = video as HTMLVideoElement;
-      // Only apply effects to videos that have loaded data (not just still images)
-      // Check if video has actual content loaded and is not just a placeholder
       if (
         videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
         videoEl.videoWidth > 0 &&
@@ -69,26 +66,21 @@ export const useContainerVideoEffects = (
       }
     });
 
-    // Special handling for JSMpeg canvases (these are always "playing" when visible)
     const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
     const activeJsmpegCanvases: HTMLCanvasElement[] = [];
     jsmpegContainers.forEach((container) => {
       const canvas = container.querySelector("canvas");
-      // Only apply to JSMpeg canvases that have content (width/height > 0)
       if (canvas && canvas.width > 0 && canvas.height > 0) {
         activeJsmpegCanvases.push(canvas as HTMLCanvasElement);
       }
     });
 
-    // Apply effects only to playing videos
     playingVideos.forEach((video) => {
       video.style.filter = filterString;
     });
 
-    // Apply effects to active JSMpeg canvases
     activeJsmpegCanvases.forEach((canvas) => {
       canvas.style.filter = filterString;
-      // Force canvas to redraw by updating a CSS property
       canvas.style.transform = canvas.style.transform || "translateZ(0)";
     });
   }, [containerRef, effects]);
@@ -96,13 +88,11 @@ export const useContainerVideoEffects = (
   const resetEffects = useCallback(() => {
     if (!containerRef.current) return;
 
-    // Reset all video elements (both playing and paused)
     const allVideoElements = containerRef.current.querySelectorAll("video");
     allVideoElements.forEach((video) => {
       (video as HTMLVideoElement).style.filter = "";
     });
 
-    // Reset all JSMpeg canvases
     const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
     jsmpegContainers.forEach((container) => {
       const canvas = container.querySelector("canvas");
@@ -113,16 +103,12 @@ export const useContainerVideoEffects = (
     });
   }, [containerRef]);
 
-  // Single useEffect to handle all video effects application
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Apply effects immediately
     applyEffects();
 
-    // Set up mutation observer to detect new video/canvas elements
     const observer = new MutationObserver(() => {
-      // Use requestAnimationFrame for better performance than setTimeout
       requestAnimationFrame(applyEffects);
     });
 
@@ -134,12 +120,11 @@ export const useContainerVideoEffects = (
     return () => {
       observer.disconnect();
     };
-  }, [applyEffects, containerRef]); // Watch both applyEffects and containerRef for changes
+  }, [applyEffects, containerRef]);
 
   return { applyEffects, resetEffects };
 };
 
-// Default effects - using const to ensure stable reference
 const defaultVideoEffects: VideoEffects = {
   brightness: 100,
   contrast: 100,
@@ -148,7 +133,6 @@ const defaultVideoEffects: VideoEffects = {
   blur: 0,
 };
 
-// Hook for persisting video effects per camera
 export const usePersistedVideoEffects = (cameraName: string) => {
   const [persistedEffects, setPersistedEffects] = usePersistence<VideoEffects>(
     `camera-video-effects-${cameraName}`,
@@ -166,7 +150,6 @@ export const usePersistedVideoEffects = (cameraName: string) => {
     setPersistedEffects(defaultVideoEffects);
   }, [setPersistedEffects]);
 
-  // Use stable reference for effects to prevent unnecessary re-renders
   const effects = useMemo(() => {
     return persistedEffects ?? defaultVideoEffects;
   }, [persistedEffects]);
@@ -178,7 +161,6 @@ export const usePersistedVideoEffects = (cameraName: string) => {
   };
 };
 
-// Hook to check if there are any video elements that can be affected
 export const useHasActiveVideoContent = (
   containerRef: RefObject<HTMLElement>,
 ) => {
@@ -190,7 +172,6 @@ export const useHasActiveVideoContent = (
       return;
     }
 
-    // Check for video elements with content
     const videoElements = containerRef.current.querySelectorAll("video");
     const hasActiveVideos = Array.from(videoElements).some((video) => {
       const videoEl = video as HTMLVideoElement;
@@ -202,7 +183,6 @@ export const useHasActiveVideoContent = (
       );
     });
 
-    // Check for JSMpeg canvases with content
     const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
     const hasActiveJsmpeg = Array.from(jsmpegContainers).some((container) => {
       const canvas = container.querySelector("canvas");
@@ -215,13 +195,10 @@ export const useHasActiveVideoContent = (
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Check immediately
     checkForActiveContent();
 
-    // Set up interval to periodically check for content
     const interval = setInterval(checkForActiveContent, 1000);
 
-    // Set up mutation observer to detect when video/canvas elements are added or changed
     const observer = new MutationObserver(() => {
       requestAnimationFrame(checkForActiveContent);
     });
