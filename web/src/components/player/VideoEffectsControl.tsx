@@ -45,7 +45,6 @@ export const VideoEffectsControl = ({
   const [isOpen, setIsOpen] = useState(false);
   const isInitializedRef = useRef(false);
 
-  // Only sync once on mount, not on every initialEffects change
   useEffect(() => {
     if (initialEffects && !isInitializedRef.current) {
       setEffects(initialEffects);

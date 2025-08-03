@@ -35,6 +35,7 @@ type DynamicVideoPlayerProps = {
   setFullResolution: React.Dispatch<React.SetStateAction<VideoResolutionType>>;
   toggleFullscreen: () => void;
   containerRef?: React.MutableRefObject<HTMLDivElement | null>;
+  enableScreenshot?: boolean;
 };
 export default function DynamicVideoPlayer({
   className,
@@ -52,6 +53,7 @@ export default function DynamicVideoPlayer({
   setFullResolution,
   toggleFullscreen,
   containerRef,
+  enableScreenshot = false,
 }: DynamicVideoPlayerProps) {
   const { t } = useTranslation(["components/player"]);
   const apiHost = useApiHost();
@@ -284,6 +286,8 @@ export default function DynamicVideoPlayer({
             setIsBuffering(true);
           }
         }}
+        cameraName={camera}
+        enableScreenshot={enableScreenshot}
       />
       <PreviewPlayer
         className={cn(

@@ -12,7 +12,8 @@ import {
 import CameraFeatureToggle from "@/components/dynamic/CameraFeatureToggle";
 import FilterSwitch from "@/components/filter/FilterSwitch";
 import LivePlayer from "@/components/player/LivePlayer";
-import { CameraWithBorder } from "@/components/camera/CameraWithBorder";
+import { ScreenshotButton } from "@/components/player/ScreenshotButton";
+
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
@@ -516,6 +517,21 @@ export default function LiveCameraView({
                   onClick={toggleFullscreen}
                 />
               )}
+              {cameraEnabled && (
+                <ScreenshotButton
+                  videoElement={
+                    preferredLiveMode === "jsmpeg"
+                      ? (containerRef?.current?.querySelector(
+                          "canvas",
+                        ) as HTMLCanvasElement) || null
+                      : (containerRef?.current?.querySelector(
+                          "video",
+                        ) as HTMLVideoElement) || null
+                  }
+                  cameraName={camera.name}
+                  className="p-2 md:p-0"
+                />
+              )}
               {!isIOS && !isFirefox && preferredLiveMode != "jsmpeg" && (
                 <CameraFeatureToggle
                   className="p-2 md:p-0"
@@ -620,8 +636,7 @@ export default function LiveCameraView({
               padding: fullscreen ? "0" : "8px",
             }}
           >
-            <CameraWithBorder
-              camera={camera}
+            <div
               className={getPlayerWrapperClasses}
               ref={clickOverlayRef}
               onClick={handleOverlayClick}
@@ -651,7 +666,7 @@ export default function LiveCameraView({
                 onError={handleError}
                 videoEffects={true}
               />
-            </CameraWithBorder>
+            </div>
           </TransformComponent>
           {camera?.audio?.enabled_in_config &&
             audioTranscriptionState == "ON" &&
