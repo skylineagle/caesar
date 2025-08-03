@@ -500,8 +500,15 @@ export default function LiveDashboardView({
               const useWebGL =
                 currentGroupStreamingSettings?.[camera.name]
                   ?.compatibilityMode || false;
+
               return (
-                <div className={grow} key={camera.name}>
+                <div
+                  className={cn(
+                    "group relative flex w-full cursor-pointer justify-center overflow-hidden rounded-lg outline-0 outline-background transition-all duration-500 md:rounded-2xl",
+                    grow,
+                  )}
+                  key={camera.name}
+                >
                   <LiveContextMenu
                     className="h-full w-full"
                     camera={camera.name}
