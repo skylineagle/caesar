@@ -1,10 +1,10 @@
-import { useCallback } from "react";
-import { LuCamera } from "react-icons/lu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { useTranslation } from "react-i18next";
 import { captureScreenshot, getScreenshotFilename } from "@/utils/screenshot";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
+import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { LuCamera } from "react-icons/lu";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type ScreenshotButtonProps = {
   videoElement: HTMLVideoElement | HTMLCanvasElement | null;
@@ -32,7 +32,6 @@ export const ScreenshotButton = ({
       await captureScreenshot(videoElement, filename);
       toast.success(t("screenshot.success.captured"));
     } catch (error) {
-      console.error("Screenshot failed:", error);
       toast.error(t("screenshot.error.failed"));
     }
   }, [videoElement, cameraName, timestamp, t]);

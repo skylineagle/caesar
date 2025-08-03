@@ -1,11 +1,8 @@
 import {
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  useEnabledState,
+  useNotifications,
+  useNotificationSuspend,
+} from "@/api/ws";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -16,43 +13,46 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Dialog } from "@/components/ui/dialog";
+import { VolumeSlider } from "@/components/ui/slider";
+import { useStreamingSettings } from "@/context/streaming-settings-provider";
+import { useDateLocale } from "@/hooks/use-date-locale";
+import { useIsAdmin } from "@/hooks/use-is-admin";
+import { cn } from "@/lib/utils";
+import {
+  AllGroupsStreamingSettings,
+  FrigateConfig,
+  GroupStreamingSettings,
+} from "@/types/frigateConfig";
+import { formatUnixTimestampToDateTime } from "@/utils/dateUtil";
+import {
+  captureLiveScreenshot,
+  getScreenshotFilename,
+} from "@/utils/screenshot";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import {
+  IoIosNotifications,
+  IoIosNotificationsOff,
+  IoIosWarning,
+} from "react-icons/io";
+import { LuCamera } from "react-icons/lu";
 import {
   MdVolumeDown,
   MdVolumeMute,
   MdVolumeOff,
   MdVolumeUp,
 } from "react-icons/md";
-import { Dialog } from "@/components/ui/dialog";
-import { VolumeSlider } from "@/components/ui/slider";
-import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
-import {
-  AllGroupsStreamingSettings,
-  FrigateConfig,
-  GroupStreamingSettings,
-} from "@/types/frigateConfig";
-import { useStreamingSettings } from "@/context/streaming-settings-provider";
-import {
-  IoIosNotifications,
-  IoIosNotificationsOff,
-  IoIosWarning,
-} from "react-icons/io";
-import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { formatUnixTimestampToDateTime } from "@/utils/dateUtil";
-import {
-  useEnabledState,
-  useNotifications,
-  useNotificationSuspend,
-} from "@/api/ws";
-import { useTranslation } from "react-i18next";
-import { useDateLocale } from "@/hooks/use-date-locale";
-import { useIsAdmin } from "@/hooks/use-is-admin";
-import { LuCamera } from "react-icons/lu";
-import {
-  captureLiveScreenshot,
-  getScreenshotFilename,
-} from "@/utils/screenshot";
 import { toast } from "sonner";
+import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
 
 type LiveContextMenuProps = {
   className?: string;
@@ -282,7 +282,6 @@ export default function LiveContextMenu({
         t("screenshot.success.captured", { ns: "components/player" }),
       );
     } catch (error) {
-      console.error("Screenshot failed:", error);
       toast.error(t("screenshot.error.failed", { ns: "components/player" }));
     }
   };
