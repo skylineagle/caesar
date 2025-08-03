@@ -47,6 +47,12 @@ import {
 import { useTranslation } from "react-i18next";
 import { useDateLocale } from "@/hooks/use-date-locale";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { LuCamera } from "react-icons/lu";
+import {
+  captureLiveScreenshot,
+  getScreenshotFilename,
+} from "@/utils/screenshot";
+import { toast } from "sonner";
 
 type LiveContextMenuProps = {
   className?: string;
@@ -264,6 +270,23 @@ export default function LiveContextMenu({
     return t("time.untilForTime", { ns: "common", time });
   };
 
+  const handleScreenshot = async () => {
+    if (!isEnabled) {
+      return;
+    }
+
+    try {
+      const filename = getScreenshotFilename(camera);
+      await captureLiveScreenshot(camera, filename);
+      toast.success(
+        t("screenshot.success.captured", { ns: "components/player" }),
+      );
+    } catch (error) {
+      console.error("Screenshot failed:", error);
+      toast.error(t("screenshot.error.failed", { ns: "components/player" }));
+    }
+  };
+
   return (
     <div className={cn("w-full", className)}>
       <ContextMenu key={camera} onOpenChange={handleOpenChange}>
@@ -306,6 +329,17 @@ export default function LiveContextMenu({
             </>
           )}
           <ContextMenuSeparator />
+          <ContextMenuItem disabled={!isEnabled}>
+            <div
+              className="flex w-full cursor-pointer items-center justify-start gap-2"
+              onClick={isEnabled ? handleScreenshot : undefined}
+            >
+              <LuCamera className="size-4" />
+              <div className="text-primary">
+                {t("screenshot.button.tooltip", { ns: "components/player" })}
+              </div>
+            </div>
+          </ContextMenuItem>
           {isAdmin && (
             <>
               <ContextMenuItem>

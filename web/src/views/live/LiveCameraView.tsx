@@ -10,6 +10,7 @@ import {
 import CameraFeatureToggle from "@/components/dynamic/CameraFeatureToggle";
 import FilterSwitch from "@/components/filter/FilterSwitch";
 import LivePlayer from "@/components/player/LivePlayer";
+import { ScreenshotButton } from "@/components/player/ScreenshotButton";
 
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
@@ -485,6 +486,21 @@ export default function LiveCameraView({
                       : t("button.fullscreen", { ns: "common" })
                   }
                   onClick={toggleFullscreen}
+                />
+              )}
+              {cameraEnabled && (
+                <ScreenshotButton
+                  videoElement={
+                    preferredLiveMode === "jsmpeg"
+                      ? (containerRef?.current?.querySelector(
+                          "canvas",
+                        ) as HTMLCanvasElement) || null
+                      : (containerRef?.current?.querySelector(
+                          "video",
+                        ) as HTMLVideoElement) || null
+                  }
+                  cameraName={camera.name}
+                  className="p-2 md:p-0"
                 />
               )}
               {!isIOS && !isFirefox && preferredLiveMode != "jsmpeg" && (

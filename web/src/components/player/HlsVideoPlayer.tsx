@@ -47,6 +47,8 @@ type HlsVideoPlayerProps = {
   onUploadFrame?: (playTime: number) => Promise<AxiosResponse> | undefined;
   toggleFullscreen?: () => void;
   onError?: (error: RecordingPlayerError) => void;
+  cameraName?: string;
+  enableScreenshot?: boolean;
 };
 export default function HlsVideoPlayer({
   videoRef,
@@ -66,6 +68,8 @@ export default function HlsVideoPlayer({
   onUploadFrame,
   toggleFullscreen,
   onError,
+  cameraName,
+  enableScreenshot = false,
 }: HlsVideoPlayerProps) {
   const { t } = useTranslation("components/player");
   const { data: config } = useSWR<FrigateConfig>("config");
@@ -229,6 +233,7 @@ export default function HlsVideoPlayer({
             playbackRate: true,
             plusUpload: config?.plus?.enabled == true,
             fullscreen: supportsFullscreen,
+            screenshot: enableScreenshot,
           }}
           setControlsOpen={setControlsOpen}
           setMuted={(muted) => setMuted(muted)}
@@ -271,6 +276,8 @@ export default function HlsVideoPlayer({
           fullscreen={fullscreen}
           toggleFullscreen={toggleFullscreen}
           containerRef={containerRef}
+          cameraName={cameraName}
+          timestamp={getVideoTime()}
         />
       )}
       <TransformComponent

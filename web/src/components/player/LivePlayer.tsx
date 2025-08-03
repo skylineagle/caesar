@@ -466,6 +466,7 @@ export default function LivePlayer({
           </Chip>
         )}
       </div>
+
       {showStats && (
         <PlayerStats stats={stats} minimal={cameraRef !== undefined} />
       )}
