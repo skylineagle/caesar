@@ -85,7 +85,6 @@ export default function HlsVideoPlayer({
   });
 
   useVideoEffects(videoRef, videoEffects);
-
   const handleLoadedMetadata = useCallback(() => {
     setLoadedMetadata(true);
     if (videoRef.current) {
@@ -402,12 +401,6 @@ export default function HlsVideoPlayer({
             }
           }}
         />
-        {/* {frigateControls && (
-          <VideoEffectsControl
-            onEffectsChange={setVideoEffects}
-            disabled={!videoRef.current}
-          />
-        )} */}
       </TransformComponent>
     </TransformWrapper>
   );

@@ -6,7 +6,7 @@ import { LiveGridIcon, LiveListIcon } from "@/components/icons/LiveIcons";
 import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
-import { CameraWithBorder } from "@/components/camera/CameraWithBorder";
+
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -501,11 +501,7 @@ export default function LiveDashboardView({
                 currentGroupStreamingSettings?.[camera.name]
                   ?.compatibilityMode || false;
               return (
-                <CameraWithBorder
-                  camera={camera}
-                  className={grow}
-                  key={camera.name}
-                >
+                <div className={grow} key={camera.name}>
                   <LiveContextMenu
                     className="h-full w-full"
                     camera={camera.name}
@@ -583,7 +579,7 @@ export default function LiveDashboardView({
                       </TransformComponent>
                     </TransformWrapper>
                   </LiveContextMenu>
-                </CameraWithBorder>
+                </div>
               );
             })}
           </div>
