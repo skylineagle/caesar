@@ -2,7 +2,7 @@ import { EditGroupDialog } from "@/components/filter/CameraGroupSelector";
 import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
-import { CameraWithBorder } from "@/components/camera/CameraWithBorder";
+
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
@@ -489,11 +489,7 @@ export default function DraggableGridLayout({
                 currentGroupStreamingSettings?.[camera.name]
                   ?.compatibilityMode || false;
               return (
-                <CameraWithBorder
-                  camera={camera}
-                  className={grow}
-                  key={camera.name}
-                >
+                <div className={grow} key={camera.name}>
                   <GridLiveContextMenu
                     className="h-full w-full"
                     camera={camera.name}
@@ -580,7 +576,7 @@ export default function DraggableGridLayout({
                     </TransformWrapper>
                     {isEditMode && showCircles && <CornerCircles />}
                   </GridLiveContextMenu>
-                </CameraWithBorder>
+                </div>
               );
             })}
           </ResponsiveGridLayout>

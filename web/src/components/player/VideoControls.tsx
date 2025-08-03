@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { FaCompress, FaExpand } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
+import { ScreenshotButton } from "./ScreenshotButton";
 
 type VideoControls = {
   volume?: boolean;
@@ -41,6 +42,7 @@ type VideoControls = {
   playbackRate?: boolean;
   plusUpload?: boolean;
   fullscreen?: boolean;
+  screenshot?: boolean;
 };
 
 const CONTROLS_DEFAULT: VideoControls = {
@@ -49,6 +51,7 @@ const CONTROLS_DEFAULT: VideoControls = {
   playbackRate: true,
   plusUpload: false,
   fullscreen: false,
+  screenshot: false,
 };
 const PLAYBACK_RATE_DEFAULT = isSafari ? [0.5, 1, 2] : [0.5, 1, 2, 4, 8, 16];
 const MIN_ITEMS_WRAP = 6;
@@ -73,6 +76,8 @@ type VideoControlsProps = {
   onUploadFrame?: () => void;
   toggleFullscreen?: () => void;
   containerRef?: React.MutableRefObject<HTMLDivElement | null>;
+  cameraName?: string;
+  timestamp?: number;
 };
 export default function VideoControls({
   className,
@@ -94,6 +99,8 @@ export default function VideoControls({
   onUploadFrame,
   toggleFullscreen,
   containerRef,
+  cameraName,
+  timestamp,
 }: VideoControlsProps) {
   // layout
 
@@ -290,6 +297,13 @@ export default function VideoControls({
           }}
           onUploadFrame={onUploadFrame}
           containerRef={containerRef}
+        />
+      )}
+      {features.screenshot && video && cameraName && (
+        <ScreenshotButton
+          videoElement={video}
+          cameraName={cameraName}
+          timestamp={timestamp}
         />
       )}
       {features.fullscreen && toggleFullscreen && (

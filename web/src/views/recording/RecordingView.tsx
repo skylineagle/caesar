@@ -720,6 +720,7 @@ export function RecordingView({
                 setFullResolution={setFullResolution}
                 toggleFullscreen={toggleFullscreen}
                 containerRef={mainLayoutRef}
+                enableScreenshot={true}
               />
             </div>
             {isDesktop && (
