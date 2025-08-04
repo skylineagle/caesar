@@ -455,9 +455,15 @@ export default function LivePlayer({
           ((showStillWithoutActivity && !liveReady) || liveReady) && (
             <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
           )}
-        {((!liveReady && showStillWithoutActivity) || !cameraEnabled) && (
+        {((!liveReady && showStillWithoutActivity) ||
+          !cameraEnabled ||
+          (liveReady && cameraEnabled)) && (
           <Chip
-            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
+            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize transition-opacity duration-200 ${
+              liveReady && cameraEnabled
+                ? "opacity-0 group-hover:opacity-100"
+                : "opacity-100"
+            }`}
           >
             {cameraConfig.name.replaceAll("_", " ")}
           </Chip>
