@@ -2,14 +2,48 @@ from datetime import datetime
 
 from fastapi.testclient import TestClient
 
-from frigate.models import Event, Recordings, ReviewSegment
+from frigate.api.auth import get_current_user
+from frigate.models import Event, Recordings, ReviewSegment, User
 from frigate.test.http_api.base_http_test import BaseTestHttp
 
 
 class TestHttpApp(BaseTestHttp):
     def setUp(self):
-        super().setUp([Event, Recordings, ReviewSegment])
+        super().setUp([Event, Recordings, ReviewSegment, User])
         self.app = super().create_app()
+        self.user_id = "admin"
+
+        # Create admin user for tests
+        try:
+            User.get(User.username == self.user_id)
+        except User.DoesNotExist:
+            User.create(
+                username=self.user_id,
+                password_hash="dummy_hash",
+                role="admin",
+                notification_tokens=[],
+            )
+
+        # Mock get_current_user for all tests
+        async def mock_get_current_user():
+            return {"username": self.user_id, "role": "admin"}
+
+        # Mock filter_cameras_by_permission to return all cameras
+        async def mock_filter_cameras_by_permission(request, cameras):
+            return cameras
+
+        self.app.dependency_overrides[get_current_user] = mock_get_current_user
+
+        # Monkey patch the filter_cameras_by_permission function
+        import frigate.api.event
+
+        frigate.api.event.filter_cameras_by_permission = (
+            mock_filter_cameras_by_permission
+        )
+
+    def tearDown(self):
+        self.app.dependency_overrides.clear()
+        super().tearDown()
 
     ####################################################################################################################
     ###################################  GET /events Endpoint   #########################################################
