@@ -1,13 +1,12 @@
-import WebRtcPlayer from "./WebRTCPlayer";
-import { CameraConfig } from "@/types/frigateConfig";
-import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MSEPlayer from "./MsePlayer";
-import JSMpegPlayer from "./JSMpegPlayer";
-import { MdCircle } from "react-icons/md";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { baseUrl } from "@/api/baseUrl";
 import { useCameraActivity } from "@/hooks/use-camera-activity";
+import {
+  useContainerVideoEffects,
+  useHasActiveVideoContent,
+  usePersistedVideoEffects,
+} from "@/hooks/use-video-effects";
+import { cn } from "@/lib/utils";
+import { CameraConfig } from "@/types/frigateConfig";
 import {
   LivePlayerError,
   LivePlayerMode,
@@ -15,21 +14,22 @@ import {
   VideoResolutionType,
 } from "@/types/live";
 import { getIconForLabel } from "@/utils/iconUtil";
-import Chip from "../indicators/Chip";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
-import { cn } from "@/lib/utils";
-import { TbExclamationCircle } from "react-icons/tb";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { baseUrl } from "@/api/baseUrl";
-import { PlayerStats } from "./PlayerStats";
-import { LuVideoOff } from "react-icons/lu";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { LuVideoOff } from "react-icons/lu";
+import { MdCircle } from "react-icons/md";
+import { TbExclamationCircle } from "react-icons/tb";
+import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
+import ActivityIndicator from "../indicators/activity-indicator";
+import Chip from "../indicators/Chip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import JSMpegPlayer from "./JSMpegPlayer";
+import MSEPlayer from "./MsePlayer";
+import { PlayerStats } from "./PlayerStats";
 import { VideoEffectsControl } from "./VideoEffectsControl";
-import {
-  useContainerVideoEffects,
-  usePersistedVideoEffects,
-  useHasActiveVideoContent,
-} from "@/hooks/use-video-effects";
+import WebRtcPlayer from "./WebRTCPlayer";
 
 type LivePlayerProps = {
   cameraRef?: (ref: HTMLDivElement | null) => void;
@@ -117,7 +117,6 @@ export default function LivePlayer({
     activeMotion,
     activeTracking,
     objects,
-    offline,
   } = useCameraActivity(cameraConfig);
 
   const cameraActive = useMemo(
@@ -161,7 +160,7 @@ export default function LivePlayer({
   // camera still state
 
   const stillReloadInterval = useMemo(() => {
-    if (!windowVisible || offline || !showStillWithoutActivity) {
+    if (!windowVisible || !showStillWithoutActivity) {
       return -1; // no reason to update the image when the window is not visible
     }
 
@@ -188,7 +187,6 @@ export default function LivePlayer({
     liveReady,
     activeMotion,
     activeTracking,
-    offline,
     windowVisible,
     cameraActive,
   ]);
@@ -351,7 +349,6 @@ export default function LivePlayer({
         )}
       {player}
       {cameraEnabled &&
-        !offline &&
         (!showStillWithoutActivity || isReEnabling) &&
         !liveReady && <ActivityIndicator />}
 
@@ -421,12 +418,12 @@ export default function LivePlayer({
         />
       </div>
 
-      {offline && !showStillWithoutActivity && cameraEnabled && (
-        <div className="absolute inset-0 left-1/2 top-1/2 flex h-96 w-96 -translate-x-1/2 -translate-y-1/2">
-          <div className="flex flex-col items-center justify-center rounded-lg bg-background/50 p-5">
+      {!liveReady && !showStillWithoutActivity && cameraEnabled && (
+        <div className="absolute inset-0 flex h-full w-full items-center justify-center">
+          <div className="flex max-w-sm flex-col items-center justify-center rounded-lg bg-background/50 p-5">
             <p className="my-5 text-lg">{t("streamOffline.title")}</p>
             <TbExclamationCircle className="mb-3 size-10" />
-            <p className="max-w-96 text-center">
+            <p className="text-center">
               <Trans
                 ns="components/player"
                 values={{
@@ -453,12 +450,12 @@ export default function LivePlayer({
 
       <div className="absolute right-2 top-2">
         {autoLive &&
-          !offline &&
+          liveReady &&
           activeMotion &&
           ((showStillWithoutActivity && !liveReady) || liveReady) && (
             <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
           )}
-        {((offline && showStillWithoutActivity) || !cameraEnabled) && (
+        {((!liveReady && showStillWithoutActivity) || !cameraEnabled) && (
           <Chip
             className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
           >

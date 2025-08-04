@@ -19,6 +19,7 @@
     "motionTuner": "Motion Tuner",
     "debug": "Debug",
     "users": "Users",
+    "cameraPermissions": "Camera Permissions",
     "notifications": "Notifications",
     "frigateplus": "Frigate+"
   },
