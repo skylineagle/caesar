@@ -47,5 +47,18 @@
     "success": {
       "submittedFrigatePlus": "Bildruta har skickats till Frigate+ med lyckat resultat"
     }
+  },
+  "screenshot": {
+    "button": {
+      "aria": "Take screenshot",
+      "tooltip": "Take screenshot"
+    },
+    "success": {
+      "captured": "Screenshot captured successfully"
+    },
+    "error": {
+      "noVideoElement": "No video element found",
+      "failed": "Failed to capture screenshot"
+    }
   }
 }

@@ -54,7 +54,7 @@ export default function DynamicVideoPlayer({
   containerRef,
   enableScreenshot = false,
 }: DynamicVideoPlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation("components/player");
   const apiHost = useApiHost();
   const { data: config } = useSWR<FrigateConfig>("config");
 

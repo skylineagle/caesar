@@ -12,6 +12,7 @@ import Bottombar from "./components/navigation/Bottombar";
 import { Redirect } from "./components/navigation/Redirect";
 import { cn } from "./lib/utils";
 import { isPWA } from "./utils/isPWA";
+import { Toaster } from "sonner";
 
 const Live = lazy(() => import("@/pages/Live"));
 const GroupView = lazy(() => import("@/pages/GroupView"));
@@ -88,6 +89,7 @@ function App() {
     <Providers>
       <BrowserRouter basename={basePath}>
         <AppRoutes />
+        <Toaster position="top-center" />
       </BrowserRouter>
     </Providers>
   );

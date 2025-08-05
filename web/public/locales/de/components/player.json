@@ -47,5 +47,18 @@
       "submittedFrigatePlus": "Bild erfolgreich an Frigate+ gesendet"
     }
   },
-  "noPreviewFoundFor": "Keine Vorschau für {{cameraName}} gefunden"
+  "noPreviewFoundFor": "Keine Vorschau für {{cameraName}} gefunden",
+  "screenshot": {
+    "button": {
+      "aria": "Screenshot aufnehmen",
+      "tooltip": "Screenshot aufnehmen"
+    },
+    "success": {
+      "captured": "Screenshot erfolgreich aufgenommen"
+    },
+    "error": {
+      "noVideoElement": "Kein Video-Element gefunden",
+      "failed": "Screenshot-Aufnahme fehlgeschlagen"
+    }
+  }
 }

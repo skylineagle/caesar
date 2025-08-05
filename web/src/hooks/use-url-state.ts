@@ -117,7 +117,7 @@ export function useSeverity() {
 export function useShowReviewed() {
   const [showReviewed, setShowReviewed] = useQueryState(
     "showReviewed",
-    parseAsBoolean.withDefault(false),
+    parseAsBoolean.withDefault(true),
   );
 
   return {
