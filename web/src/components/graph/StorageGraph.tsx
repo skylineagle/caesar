@@ -3,7 +3,6 @@ import { useEffect, useMemo } from "react";
 import Chart from "react-apexcharts";
 import ApexCharts from "apexcharts";
 import { getUnitSize } from "@/utils/storageUtil";
-import { useI18nReady } from "@/hooks/use-i18n-ready";
 
 type StorageGraphProps = {
   graphId: string;
@@ -12,7 +11,6 @@ type StorageGraphProps = {
 };
 export function StorageGraph({ graphId, used, total }: StorageGraphProps) {
   const { theme, systemTheme } = useTheme();
-  const isI18nReady = useI18nReady();
 
   const options = useMemo(() => {
     return {

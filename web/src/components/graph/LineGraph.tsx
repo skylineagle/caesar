@@ -9,7 +9,6 @@ import { isMobileOnly } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import { MdCircle } from "react-icons/md";
 import useSWR from "swr";
-import { useI18nReady } from "@/hooks/use-i18n-ready";
 
 const GRAPH_COLORS = ["#5C7CFA", "#ED5CFA", "#FAD75C"];
 
@@ -28,7 +27,6 @@ export function CameraLineGraph({
   data,
 }: CameraLineGraphProps) {
   const { t } = useTranslation(["views/system", "common"]);
-  const isI18nReady = useI18nReady();
   const { data: config } = useSWR<FrigateConfig>("config", {
     revalidateOnFocus: false,
   });
@@ -137,16 +135,6 @@ export function CameraLineGraph({
     ApexCharts.exec(graphId, "updateOptions", options, true, true);
   }, [graphId, options]);
 
-  if (!isI18nReady) {
-    return (
-      <div className="flex w-full flex-col">
-        <div className="h-[120px] flex items-center justify-center">
-          <div className="text-xs text-muted-foreground">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex w-full flex-col">
       {lastValues && (
@@ -201,7 +189,6 @@ export function EventsPerSecondsLineGraph({
 
   const locale = useDateLocale();
   const { t } = useTranslation(["common"]);
-  const isI18nReady = useI18nReady();
 
   const timeFormat = config?.ui.time_format === "24hour" ? "24hour" : "12hour";
   const format = useMemo(() => {
@@ -290,23 +277,6 @@ export function EventsPerSecondsLineGraph({
   useEffect(() => {
     ApexCharts.exec(graphId, "updateOptions", options, true, true);
   }, [graphId, options]);
-
-  if (!isI18nReady) {
-    return (
-      <div className="flex w-full flex-col">
-        <div className="flex items-center gap-1">
-          <div className="text-xs text-secondary-foreground">{name}</div>
-          <div className="text-xs text-primary">
-            {lastValue}
-            {unit}
-          </div>
-        </div>
-        <div className="h-[120px] flex items-center justify-center">
-          <div className="text-xs text-muted-foreground">Loading...</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex w-full flex-col">
