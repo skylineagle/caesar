@@ -5,9 +5,11 @@ import { Threshold } from "@/types/graph";
 import { formatUnixTimestampToDateTime } from "@/utils/dateUtil";
 import { useCallback, useEffect, useMemo } from "react";
 import Chart from "react-apexcharts";
+import ApexCharts from "apexcharts";
 import { isMobileOnly } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
+import { useI18nReady } from "@/hooks/use-i18n-ready";
 
 type ThresholdBarGraphProps = {
   graphId: string;
@@ -49,6 +51,7 @@ export function ThresholdBarGraph({
 
   const locale = useDateLocale();
   const { t } = useTranslation(["common"]);
+  const isI18nReady = useI18nReady();
 
   const timeFormat = config?.ui.time_format === "24hour" ? "24hour" : "12hour";
   const format = useMemo(() => {
@@ -182,6 +185,23 @@ export function ThresholdBarGraph({
     copiedData[0].data = [...fakeData, ...data[0].data];
     return copiedData;
   }, [data]);
+
+  if (!isI18nReady) {
+    return (
+      <div className="flex w-full flex-col">
+        <div className="flex items-center gap-1">
+          <div className="text-xs text-secondary-foreground">{name}</div>
+          <div className="text-xs text-primary">
+            {lastValue}
+            {unit}
+          </div>
+        </div>
+        <div className="h-[120px] flex items-center justify-center">
+          <div className="text-xs text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-col">
