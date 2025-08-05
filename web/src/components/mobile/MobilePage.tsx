@@ -54,14 +54,9 @@ export function MobilePage({
 
     const handlePopState = (event: PopStateEvent) => {
       if (open && isActive) {
-        event.preventDefault();
+        // Don't prevent default - let the browser handle navigation
+        // Just close the mobile page
         setOpen(false);
-        // Delay replaceState to ensure state updates are processed
-        setTimeout(() => {
-          if (isActive) {
-            window.history.replaceState(null, "", location.pathname);
-          }
-        }, 0);
       }
     };
 
@@ -72,6 +67,13 @@ export function MobilePage({
       window.removeEventListener("popstate", handlePopState);
     };
   }, [open, setOpen, location.pathname]);
+
+  useEffect(() => {
+    // Clean up history state when mobile page is closed normally
+    if (!open && window.history.state?.isMobilePage) {
+      window.history.replaceState(null, "", location.pathname);
+    }
+  }, [open, location.pathname]);
 
   return (
     <MobilePageContext.Provider value={{ open, onOpenChange: setOpen }}>
