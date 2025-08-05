@@ -6,9 +6,6 @@ import ExportDialog from "@/components/overlay/ExportDialog";
 import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
 import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
 import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
-import PreviewPlayer, {
-  PreviewController,
-} from "@/components/player/PreviewPlayer";
 import { DynamicVideoController } from "@/components/player/dynamic/DynamicVideoController";
 import DynamicVideoPlayer from "@/components/player/dynamic/DynamicVideoPlayer";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
@@ -47,6 +44,7 @@ import {
 import { TimelineType, TimeRange } from "@/types/timeline";
 import { copyToClipboard } from "@/utils/browserUtil";
 import { getChunkedTimeDay } from "@/utils/timelineUtil";
+import { parseAsFloat, useQueryState } from "nuqs";
 import {
   MutableRefObject,
   useCallback,
@@ -106,8 +104,6 @@ export function RecordingView({
   const mainControllerRef = useRef<DynamicVideoController | null>(null);
   const mainLayoutRef = useRef<HTMLDivElement | null>(null);
   const cameraLayoutRef = useRef<HTMLDivElement | null>(null);
-  const previewRowRef = useRef<HTMLDivElement | null>(null);
-  const previewRefs = useRef<{ [camera: string]: PreviewController }>({});
 
   const [playbackStart, setPlaybackStart] = useState(
     startTime >= timeRange.after && startTime <= timeRange.before
@@ -177,10 +173,14 @@ export function RecordingView({
     }
   }, [selectedRangeIdx, chunkedTimeRange]);
 
-  // scrubbing and timeline state
-
   const [scrubbing, setScrubbing] = useState(false);
-  const [currentTime, setCurrentTime] = useState<number>(startTime);
+  const [currentTime, setCurrentTime] = useQueryState(
+    "currentTime",
+    parseAsFloat.withDefault(startTime).withOptions({
+      shallow: true,
+      throttleMs: 2000,
+    }),
+  );
   const [playerTime, setPlayerTime] = useState(startTime);
 
   const updateSelectedSegment = useCallback(
@@ -211,10 +211,6 @@ export function RecordingView({
       }
 
       mainControllerRef.current?.scrubToTimestamp(currentTime);
-
-      Object.values(previewRefs.current).forEach((controller) => {
-        controller.scrubToTimestamp(currentTime);
-      });
     }
     // we only want to seek when current time updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,7 +236,7 @@ export function RecordingView({
         updateSelectedSegment(time, true);
       }
     },
-    [currentTimeRange, updateSelectedSegment],
+    [currentTimeRange, setCurrentTime, updateSelectedSegment],
   );
 
   useEffect(() => {
@@ -266,18 +262,6 @@ export function RecordingView({
     width: 0,
     height: 0,
   });
-
-  const onSelectCamera = useCallback(
-    (newCam: string) => {
-      setMainCamera(newCam);
-      setFullResolution({
-        width: 0,
-        height: 0,
-      });
-      setPlaybackStart(currentTime);
-    },
-    [currentTime],
-  );
 
   const handleShare = useCallback(() => {
     const shareData = {
@@ -430,68 +414,6 @@ export function RecordingView({
     mainCamera,
     getCameraAspect,
   ]);
-
-  const previewRowOverflows = useMemo(() => {
-    if (!previewRowRef.current) {
-      return false;
-    }
-
-    return (
-      previewRowRef.current.scrollWidth > previewRowRef.current.clientWidth ||
-      previewRowRef.current.scrollHeight > previewRowRef.current.clientHeight
-    );
-    // we only want to update when the scroll size changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewRowRef.current?.scrollWidth, previewRowRef.current?.scrollHeight]);
-
-  // visibility listener for lazy loading
-
-  const [visiblePreviews, setVisiblePreviews] = useState<string[]>([]);
-  const visiblePreviewObserver = useRef<IntersectionObserver | null>(null);
-  useEffect(() => {
-    const visibleCameras = new Set<string>();
-    visiblePreviewObserver.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const camera = (entry.target as HTMLElement).dataset.camera;
-
-          if (!camera) {
-            return;
-          }
-
-          if (entry.isIntersecting) {
-            visibleCameras.add(camera);
-          } else {
-            visibleCameras.delete(camera);
-          }
-
-          setVisiblePreviews([...visibleCameras]);
-        });
-      },
-      { threshold: 0.1 },
-    );
-
-    return () => {
-      visiblePreviewObserver.current?.disconnect();
-    };
-  }, []);
-
-  const previewRef = useCallback(
-    (node: HTMLElement | null) => {
-      if (!visiblePreviewObserver.current) {
-        return;
-      }
-
-      try {
-        if (node) visiblePreviewObserver.current.observe(node);
-      } catch (e) {
-        // no op
-      }
-    },
-    // we need to listen on the value of the ref
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visiblePreviewObserver.current],
-  );
 
   return (
     <div ref={contentRef} className="flex size-full flex-col pt-2">
@@ -703,9 +625,6 @@ export function RecordingView({
                 onTimestampUpdate={(timestamp) => {
                   setPlayerTime(timestamp);
                   setCurrentTime(timestamp);
-                  Object.values(previewRefs.current ?? {}).forEach((prev) =>
-                    prev.scrubToTimestamp(Math.floor(timestamp)),
-                  );
                 }}
                 onClipEnded={onClipEnded}
                 onControllerReady={(controller) => {

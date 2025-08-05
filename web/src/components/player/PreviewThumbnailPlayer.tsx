@@ -42,7 +42,7 @@ export default function PreviewThumbnailPlayer({
   onClick,
   onTimeUpdate,
 }: PreviewPlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation("components/player");
   const apiHost = useApiHost();
   const { data: config } = useSWR<FrigateConfig>("config");
   const [imgRef, imgLoaded, onImgLoad] = useImageLoaded();

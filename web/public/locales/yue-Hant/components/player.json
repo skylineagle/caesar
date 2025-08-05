@@ -47,5 +47,18 @@
     }
   },
   "noPreviewFoundFor": "找不到 {{cameraName}} 的預覽",
-  "livePlayerRequiredIOSVersion": "此串流類型需要 iOS 17.1 或以上版本。"
+  "livePlayerRequiredIOSVersion": "此串流類型需要 iOS 17.1 或以上版本。",
+  "screenshot": {
+    "button": {
+      "aria": "Take screenshot",
+      "tooltip": "Take screenshot"
+    },
+    "success": {
+      "captured": "Screenshot captured successfully"
+    },
+    "error": {
+      "noVideoElement": "No video element found",
+      "failed": "Failed to capture screenshot"
+    }
+  }
 }

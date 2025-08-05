@@ -47,7 +47,7 @@ export default function PreviewPlayer({
   onControllerReady,
   onClick,
 }: PreviewPlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation("components/player");
   const [currentHourFrame, setCurrentHourFrame] = useState<string>();
   const currentPreview = usePreviewForTimeRange(
     cameraPreviews,
@@ -145,7 +145,7 @@ function PreviewVideoPlayer({
   onClick,
   setCurrentHourFrame,
 }: PreviewVideoPlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation("components/player");
   const { data: config } = useSWR<FrigateConfig>("config");
 
   // controlling playback
@@ -462,7 +462,7 @@ function PreviewFramesPlayer({
   onControllerReady,
   onClick,
 }: PreviewFramesPlayerProps) {
-  const { t } = useTranslation(["components/player"]);
+  const { t } = useTranslation("components/player");
 
   // frames data
 
