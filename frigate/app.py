@@ -74,8 +74,7 @@ from frigate.storage import StorageMaintainer
 from frigate.timeline import TimelineProcessor
 from frigate.track.object_processing import TrackedObjectProcessor
 from frigate.util.builtin import empty_and_close_queue
-from frigate.util.image import SharedMemoryFrameManager, UntrackedSharedMemory
-from frigate.util.object import get_camera_regions_grid
+from frigate.util.image import UntrackedSharedMemory
 from frigate.util.services import set_file_limit
 from frigate.version import VERSION
 from frigate.watchdog import FrigateWatchdog

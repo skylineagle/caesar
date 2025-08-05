@@ -47,5 +47,18 @@
     "success": {
       "submittedFrigatePlus": "Image soumise avec succès à Frigate+"
     }
+  },
+  "screenshot": {
+    "button": {
+      "aria": "Prendre une capture d'écran",
+      "tooltip": "Prendre une capture d'écran"
+    },
+    "success": {
+      "captured": "Capture d'écran capturée avec succès"
+    },
+    "error": {
+      "noVideoElement": "Aucun élément vidéo trouvé",
+      "failed": "Échec de la capture d'écran"
+    }
   }
 }

@@ -1,4 +1,7 @@
+import datetime
+
 from peewee import (
+    AutoField,
     BlobField,
     BooleanField,
     CharField,
@@ -149,3 +152,14 @@ class Trigger(Model):
 
     class Meta:
         primary_key = CompositeKey("camera", "name")
+
+
+class CameraPermission(Model):  # type: ignore[misc]
+    id = AutoField()  # noqa: F821
+    username = CharField(null=False, max_length=30, index=True)
+    camera_name = CharField(null=False, max_length=20, index=True)
+    created_at = DateTimeField(default=datetime.datetime.now)
+
+    class Meta:
+        table_name = "camera_permission"
+        indexes = ((("username", "camera_name"), True),)

@@ -135,7 +135,10 @@ class TestHttp(unittest.TestCase):
 
         with TestClient(app) as client:
             _insert_mock_event(id)
-            event = client.get(f"/events/{id}").json()
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
 
         assert event
         assert event["id"] == id
@@ -158,11 +161,20 @@ class TestHttp(unittest.TestCase):
 
         with TestClient(app) as client:
             _insert_mock_event(id)
-            event = client.get(f"/events/{id}").json()
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
             assert event
             assert event["id"] == id
-            client.delete(f"/events/{id}", headers={"remote-role": "admin"})
-            event = client.get(f"/events/{id}").json()
+            client.delete(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            )
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
             assert event == "Event not found"
 
     def test_event_retention(self):
@@ -171,13 +183,25 @@ class TestHttp(unittest.TestCase):
 
         with TestClient(app) as client:
             _insert_mock_event(id)
-            client.post(f"/events/{id}/retain", headers={"remote-role": "admin"})
-            event = client.get(f"/events/{id}").json()
+            client.post(
+                f"/events/{id}/retain",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            )
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
             assert event
             assert event["id"] == id
             assert event["retain_indefinitely"] is True
-            client.delete(f"/events/{id}/retain", headers={"remote-role": "admin"})
-            event = client.get(f"/events/{id}").json()
+            client.delete(
+                f"/events/{id}/retain",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            )
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
             assert event
             assert event["id"] == id
             assert event["retain_indefinitely"] is False
@@ -193,13 +217,16 @@ class TestHttp(unittest.TestCase):
             _insert_mock_event(morning_id, morning)
             _insert_mock_event(evening_id, evening)
             # both events come back
-            events = client.get("/events").json()
+            events = client.get(
+                "/events", headers={"remote-user": "admin", "remote-role": "admin"}
+            ).json()
             assert events
             assert len(events) == 2
             # morning event is excluded
             events = client.get(
                 "/events",
                 params={"time_range": "07:00,24:00"},
+                headers={"remote-user": "admin", "remote-role": "admin"},
             ).json()
             assert events
             # assert len(events) == 1
@@ -207,6 +234,7 @@ class TestHttp(unittest.TestCase):
             events = client.get(
                 "/events",
                 params={"time_range": "00:00,18:00"},
+                headers={"remote-user": "admin", "remote-role": "admin"},
             ).json()
             assert events
             assert len(events) == 1
@@ -229,20 +257,26 @@ class TestHttp(unittest.TestCase):
             new_sub_label_response = client.post(
                 f"/events/{id}/sub_label",
                 json={"subLabel": sub_label},
-                headers={"remote-role": "admin"},
+                headers={"remote-user": "admin", "remote-role": "admin"},
             )
             assert new_sub_label_response.status_code == 200
-            event = client.get(f"/events/{id}").json()
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
             assert event
             assert event["id"] == id
             assert event["sub_label"] == sub_label
             empty_sub_label_response = client.post(
                 f"/events/{id}/sub_label",
                 json={"subLabel": ""},
-                headers={"remote-role": "admin"},
+                headers={"remote-user": "admin", "remote-role": "admin"},
             )
             assert empty_sub_label_response.status_code == 200
-            event = client.get(f"/events/{id}").json()
+            event = client.get(
+                f"/events/{id}",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            ).json()
             assert event
             assert event["id"] == id
             assert event["sub_label"] == None
@@ -265,9 +299,11 @@ class TestHttp(unittest.TestCase):
             client.post(
                 f"/events/{id}/sub_label",
                 json={"subLabel": sub_label},
-                headers={"remote-role": "admin"},
+                headers={"remote-user": "admin", "remote-role": "admin"},
             )
-            sub_labels = client.get("/sub_labels").json()
+            sub_labels = client.get(
+                "/sub_labels", headers={"remote-user": "admin", "remote-role": "admin"}
+            ).json()
             assert sub_labels
             assert sub_labels == [sub_label]
 
@@ -275,7 +311,9 @@ class TestHttp(unittest.TestCase):
         app = self.__init_app()
 
         with TestClient(app) as client:
-            config = client.get("/config").json()
+            config = client.get(
+                "/config", headers={"remote-user": "admin", "remote-role": "admin"}
+            ).json()
             assert config
             assert config["cameras"]["front_door"]
 
@@ -285,7 +323,10 @@ class TestHttp(unittest.TestCase):
 
         with TestClient(app) as client:
             _insert_mock_recording(id)
-            response = client.get("/front_door/recordings")
+            response = client.get(
+                "/front_door/recordings",
+                headers={"remote-user": "admin", "remote-role": "admin"},
+            )
             assert response.status_code == 200
             recording = response.json()
             assert recording

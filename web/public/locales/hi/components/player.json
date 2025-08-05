@@ -4,5 +4,18 @@
   "noPreviewFoundFor": "{{cameraName}} के लिए कोई पूर्वावलोकन नहीं मिला",
   "submitFrigatePlus": {
     "title": "इस फ्रेम को फ्रिगेट+ पर सबमिट करें?"
+  ,
+  "screenshot": {
+    "button": {
+      "aria": "Take screenshot",
+      "tooltip": "Take screenshot"
+    },
+    "success": {
+      "captured": "Screenshot captured successfully"
+    },
+    "error": {
+      "noVideoElement": "No video element found",
+      "failed": "Failed to capture screenshot"
+    }
   }
 }

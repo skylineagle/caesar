@@ -2,7 +2,7 @@ import axios from "axios";
 import { createContext, useEffect, useState } from "react";
 import useSWR from "swr";
 
-interface AuthState {
+export interface AuthState {
   user: { username: string; role: "admin" | "viewer" | null } | null;
   isLoading: boolean;
   isAuthenticated: boolean; // true if auth is required
@@ -27,7 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
   });
 
-  const { data: profile, error } = useSWR("/profile", {
+  const {
+    data: profile,
+    error,
+    mutate,
+  } = useSWR("/profile", {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
     fetcher: (url) =>
@@ -44,14 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (profile) {
-      if (profile.username && profile.username !== "anonymous") {
+      if (profile.username) {
         const newUser = {
           username: profile.username,
           role: profile.role || "viewer",
         };
         setAuth({ user: newUser, isLoading: false, isAuthenticated: true });
       } else {
-        // Unauthenticated mode (anonymous)
+        // No username provided
         setAuth({ user: null, isLoading: false, isAuthenticated: false });
       }
     }
@@ -59,6 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (user: AuthState["user"]) => {
     setAuth({ user, isLoading: false, isAuthenticated: true });
+    // Trigger a profile refresh to update the user context
+    mutate();
   };
 
   const logout = () => {

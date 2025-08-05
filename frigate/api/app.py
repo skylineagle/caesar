@@ -25,6 +25,7 @@ from peewee import SQL, operator
 from pydantic import ValidationError
 
 from frigate.api.auth import require_role
+from frigate.api.camera_permissions import filter_cameras_by_permission
 from frigate.api.defs.query.app_query_parameters import AppTimelineHourlyQueryParameters
 from frigate.api.defs.request.app_body import AppConfigSetBody
 from frigate.api.defs.tags import Tags
@@ -136,7 +137,7 @@ def metrics(request: Request):
 
 
 @router.get("/config")
-def config(request: Request):
+async def config(request: Request):
     config_obj: FrigateConfig = request.app.frigate_config
     config: dict[str, dict[str, Any]] = config_obj.model_dump(
         mode="json", warnings="none", exclude_none=True
@@ -148,7 +149,22 @@ def config(request: Request):
     # remove the proxy secret
     config["proxy"].pop("auth_secret", None)
 
+    # Filter cameras by user permissions
+    all_cameras = list(request.app.frigate_config.cameras.keys())
+    allowed_cameras = await filter_cameras_by_permission(request, all_cameras)
+
+    # Filter the config to only include allowed cameras
+    filtered_cameras = {
+        camera_name: camera_config
+        for camera_name, camera_config in config["cameras"].items()
+        if camera_name in allowed_cameras
+    }
+    config["cameras"] = filtered_cameras
+
     for camera_name, camera in request.app.frigate_config.cameras.items():
+        if camera_name not in allowed_cameras:
+            continue
+
         camera_dict = config["cameras"][camera_name]
 
         # clean paths

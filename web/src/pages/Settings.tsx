@@ -38,6 +38,7 @@ import NotificationView from "@/views/settings/NotificationsSettingsView";
 import EnrichmentsSettingsView from "@/views/settings/EnrichmentsSettingsView";
 import UiSettingsView from "@/views/settings/UiSettingsView";
 import FrigatePlusSettingsView from "@/views/settings/FrigatePlusSettingsView";
+import CameraPermissionsView from "@/components/settings/CameraPermissionsView";
 import { useSearchEffect } from "@/hooks/use-overlay-state";
 import { useSearchParams } from "react-router-dom";
 import { useInitialCameraState } from "@/api/ws";
@@ -57,6 +58,7 @@ const allSettingsViews = [
   "triggers",
   "debug",
   "users",
+  "cameraPermissions",
   "notifications",
   "frigateplus",
 ] as const;
@@ -285,6 +287,9 @@ export default function Settings() {
           />
         )}
         {page == "users" && <AuthenticationView />}
+        {page == "cameraPermissions" && config && (
+          <CameraPermissionsView config={config} />
+        )}
         {page == "notifications" && (
           <NotificationView setUnsavedChanges={setUnsavedChanges} />
         )}

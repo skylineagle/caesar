@@ -14,6 +14,7 @@ import { Redirect } from "./components/navigation/Redirect";
 import { cn } from "./lib/utils";
 import { FrigateConfig } from "./types/frigateConfig";
 import { isPWA } from "./utils/isPWA";
+import { Toaster } from "sonner";
 
 const Live = lazy(() => import("@/pages/Live"));
 const GroupView = lazy(() => import("@/pages/GroupView"));

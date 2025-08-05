@@ -20,6 +20,7 @@ from peewee import JOIN, DoesNotExist, fn, operator
 from playhouse.shortcuts import model_to_dict
 
 from frigate.api.auth import require_role
+from frigate.api.camera_permissions import filter_cameras_by_permission
 from frigate.api.defs.query.events_query_parameters import (
     DEFAULT_TIME_RANGE,
     EventsQueryParams,
@@ -61,7 +62,7 @@ router = APIRouter(tags=[Tags.events])
 
 
 @router.get("/events", response_model=list[EventResponse])
-def events(params: EventsQueryParams = Depends()):
+async def events(request: Request, params: EventsQueryParams = Depends()):
     camera = params.camera
     cameras = params.cameras
 
@@ -113,6 +114,16 @@ def events(params: EventsQueryParams = Depends()):
 
     clauses = []
 
+    # Filter cameras by user permissions
+    all_cameras = list(request.app.frigate_config.cameras.keys())
+    allowed_cameras = await filter_cameras_by_permission(request, all_cameras)
+
+    if not allowed_cameras:
+        return []
+
+    # Always filter by allowed cameras
+    clauses.append((Event.camera << allowed_cameras))
+
     selected_columns = [
         Event.id,
         Event.camera,
@@ -132,10 +143,15 @@ def events(params: EventsQueryParams = Depends()):
     ]
 
     if camera != "all":
-        clauses.append((Event.camera == camera))
+        if camera in allowed_cameras:
+            clauses.append((Event.camera == camera))
+        else:
+            return []
 
     if cameras != "all":
-        camera_list = cameras.split(",")
+        camera_list = [cam for cam in cameras.split(",") if cam in allowed_cameras]
+        if not camera_list:
+            return []
         clauses.append((Event.camera << camera_list))
 
     if labels != "all":

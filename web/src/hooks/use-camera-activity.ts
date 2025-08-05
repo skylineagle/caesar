@@ -7,14 +7,14 @@ import {
 } from "@/api/ws";
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import { MotionData, ReviewSegment } from "@/types/review";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTimelineUtils } from "./use-timeline-utils";
 import { AudioDetection, ObjectType } from "@/types/ws";
-import useDeepMemo from "./use-deep-memo";
-import { isEqual } from "lodash";
-import { useAutoFrigateStats } from "./use-stats";
-import useSWR from "swr";
 import { getAttributeLabels } from "@/utils/iconUtil";
+import { isEqual } from "lodash";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import useDeepMemo from "./use-deep-memo";
+import { useAutoFrigateStats } from "./use-stats";
+import { useTimelineUtils } from "./use-timeline-utils";
 
 type useCameraActivityReturn = {
   enabled?: boolean;
