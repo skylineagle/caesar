@@ -8,92 +8,117 @@ export const getTranslatedLabel = (label: string) => {
   return t(`${label.replace(/\s+/g, "_").toLowerCase()}`, { ns: "objects" });
 };
 
-i18n
-  .use(initReactI18next)
-  .use(HttpBackend)
-  .init({
-    fallbackLng: "en", // use en if detected lng is not available
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
 
-    backend: {
-      loadPath: "locales/{{lng}}/{{ns}}.json",
-    },
+const initializeI18n = () => {
+  if (initializationPromise) {
+    return initializationPromise;
+  }
 
-    ns: [
-      "common",
-      "objects",
-      "audio",
-      "components/camera",
-      "components/dialog",
-      "components/filter",
-      "components/icons",
-      "components/player",
-      "views/events",
-      "views/explore",
-      "views/live",
-      "views/settings",
-      "views/system",
-      "views/exports",
-      "views/explore",
-    ],
-    defaultNS: "common",
-
-    react: {
-      transSupportBasicHtmlNodes: true,
-      transKeepBasicHtmlNodesFor: [
-        "br",
-        "strong",
-        "i",
-        "em",
-        "li",
-        "p",
-        "code",
-        "span",
-        "p",
-        "ul",
-        "li",
-        "ol",
+  initializationPromise = i18n
+    .use(initReactI18next)
+    .use(HttpBackend)
+    .init({
+      fallbackLng: "en",
+      backend: {
+        loadPath: "locales/{{lng}}/{{ns}}.json",
+      },
+      ns: [
+        "common",
+        "objects",
+        "audio",
+        "components/camera",
+        "components/dialog",
+        "components/filter",
+        "components/icons",
+        "components/player",
+        "views/events",
+        "views/explore",
+        "views/live",
+        "views/settings",
+        "views/system",
+        "views/exports",
+        "views/explore",
       ],
-    },
-    interpolation: {
-      escapeValue: false, // react already safes from xss
-    },
-    keySeparator: ".",
-    parseMissingKeyHandler: (key: string) => {
-      const parts = key.split(".");
+      defaultNS: "common",
+      react: {
+        transSupportBasicHtmlNodes: true,
+        transKeepBasicHtmlNodesFor: [
+          "br",
+          "strong",
+          "i",
+          "em",
+          "li",
+          "p",
+          "code",
+          "span",
+          "p",
+          "ul",
+          "li",
+          "ol",
+        ],
+      },
+      interpolation: {
+        escapeValue: false,
+      },
+      keySeparator: ".",
+      parseMissingKeyHandler: (key: string) => {
+        const parts = key.split(".");
 
-      // Handle special cases for objects and audio
-      if (parts[0] === "object" || parts[0] === "audio") {
-        return (
-          parts[1]
-            ?.split("_")
+        if (parts[0] === "object" || parts[0] === "audio") {
+          return (
+            parts[1]
+              ?.split("_")
+              .map(
+                (word) =>
+                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+              )
+              .join(" ") || key
+          );
+        }
+
+        if (parts.length > 1) {
+          const lastPart = parts[parts.length - 1];
+          return lastPart
+            .split("_")
             .map(
               (word) =>
                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
             )
-            .join(" ") || key
-        );
-      }
+            .join(" ");
+        }
 
-      // For nested keys, try to make them more readable
-      if (parts.length > 1) {
-        const lastPart = parts[parts.length - 1];
-        return lastPart
+        return key
           .split("_")
           .map(
             (word) =>
               word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
           )
           .join(" ");
-      }
+      },
+    })
+    .then(() => {
+      isInitialized = true;
+    })
+    .catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error("Failed to initialize i18n:", error);
+      isInitialized = true;
+    });
 
-      // For single keys, just smart-capitalize and format
-      return key
-        .split("_")
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-        )
-        .join(" ");
-    },
-  });
+  return initializationPromise;
+};
+
+initializeI18n();
+
+export const isI18nReady = () => isInitialized;
+
+export const waitForI18nReady = () => {
+  if (isInitialized) {
+    return Promise.resolve();
+  }
+  return initializationPromise || Promise.resolve();
+};
 
 export default i18n;
