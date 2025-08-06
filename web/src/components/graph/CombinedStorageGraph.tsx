@@ -2,6 +2,7 @@ import { useTheme } from "@/context/theme-provider";
 import { generateColors } from "@/utils/colorUtil";
 import { useCallback, useEffect, useMemo } from "react";
 import Chart from "react-apexcharts";
+import ApexCharts from "apexcharts";
 import {
   Table,
   TableBody,

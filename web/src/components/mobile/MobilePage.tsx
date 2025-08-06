@@ -1,17 +1,17 @@
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { isPWA } from "@/utils/isPWA";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
-  useCallback,
 } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { IoMdArrowRoundBack } from "react-icons/io";
-import { cn } from "@/lib/utils";
-import { isPWA } from "@/utils/isPWA";
-import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { IoMdArrowRoundBack } from "react-icons/io";
 import { useLocation } from "react-router-dom";
 
 const MobilePageContext = createContext<{
@@ -52,16 +52,11 @@ export function MobilePage({
       window.history.pushState({ isMobilePage: true }, "", location.pathname);
     }
 
-    const handlePopState = (event: PopStateEvent) => {
+    const handlePopState = () => {
       if (open && isActive) {
-        event.preventDefault();
+        // Don't prevent default - let the browser handle navigation
+        // Just close the mobile page
         setOpen(false);
-        // Delay replaceState to ensure state updates are processed
-        setTimeout(() => {
-          if (isActive) {
-            window.history.replaceState(null, "", location.pathname);
-          }
-        }, 0);
       }
     };
 
@@ -72,6 +67,13 @@ export function MobilePage({
       window.removeEventListener("popstate", handlePopState);
     };
   }, [open, setOpen, location.pathname]);
+
+  useEffect(() => {
+    // Clean up history state when mobile page is closed normally
+    if (!open && window.history.state?.isMobilePage) {
+      window.history.replaceState(null, "", location.pathname);
+    }
+  }, [open, location.pathname]);
 
   return (
     <MobilePageContext.Provider value={{ open, onOpenChange: setOpen }}>

@@ -188,7 +188,7 @@ export function RecordingView({
     "currentTime",
     parseAsFloat.withDefault(startTime).withOptions({
       shallow: true,
-      throttleMs: 2000,
+      throttleMs: 5000,
     }),
   );
   const [playerTime, setPlayerTime] = useState(startTime);

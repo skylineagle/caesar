@@ -22,7 +22,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { LuVideoOff } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
-import { TbExclamationCircle } from "react-icons/tb";
 import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
 import ActivityIndicator from "../indicators/activity-indicator";
 import Chip from "../indicators/Chip";
@@ -31,6 +30,7 @@ import JSMpegPlayer from "./JSMpegPlayer";
 import MSEPlayer from "./MsePlayer";
 import { PlayerStats } from "./PlayerStats";
 import WebRtcPlayer from "./WebRTCPlayer";
+import { TbExclamationCircle } from "react-icons/tb";
 
 type LivePlayerProps = {
   cameraRef?: (ref: HTMLDivElement | null) => void;
