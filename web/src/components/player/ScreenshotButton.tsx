@@ -51,7 +51,7 @@ export const ScreenshotButton = ({
             }
           }}
         >
-          <LuCamera className="size-5 fill-primary text-primary" />
+          <LuCamera className="size-5" />
         </button>
       </TooltipTrigger>
       <TooltipPortal>

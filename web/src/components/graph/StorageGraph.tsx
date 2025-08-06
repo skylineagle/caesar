@@ -1,6 +1,7 @@
 import { useTheme } from "@/context/theme-provider";
 import { useEffect, useMemo } from "react";
 import Chart from "react-apexcharts";
+import ApexCharts from "apexcharts";
 import { getUnitSize } from "@/utils/storageUtil";
 
 type StorageGraphProps = {
