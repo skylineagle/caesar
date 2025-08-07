@@ -539,7 +539,13 @@ export default function NotificationView({
                   </Heading>
                   <Button
                     aria-label={t("notification.registerDevice")}
-                    disabled={!shouldFetchPubKey || publicKey == undefined}
+                    disabled={
+                      (!config?.notifications.enabled &&
+                        notificationCameras.length === 0 &&
+                        !form.watch("allEnabled") &&
+                        form.watch("cameras").length === 0) ||
+                      publicKey == undefined
+                    }
                     onClick={() => {
                       if (registration == null) {
                         Notification.requestPermission().then((permission) => {
