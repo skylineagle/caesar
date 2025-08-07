@@ -15,6 +15,7 @@ import cv2
 from setproctitle import setproctitle
 
 from frigate.camera import CameraMetrics, PTZMetrics
+from frigate.camera_switch_monitor import CameraSwitchDetector
 from frigate.comms.config_updater import ConfigSubscriber
 from frigate.comms.inter_process import InterProcessRequestor
 from frigate.config import CameraConfig, DetectConfig, ModelConfig
@@ -199,6 +200,32 @@ class CameraWatchdog(threading.Thread):
         self.config_subscriber = ConfigSubscriber(f"config/enabled/{camera_name}", True)
         self.was_enabled = self.config.enabled
 
+        # Initialize camera switch detection if enabled
+        self.camera_switch_detector = None
+        if self.config.camera_switching.enabled:
+            self.camera_switch_detector = CameraSwitchDetector(
+                camera_name, self.config.camera_switching.go2rtc_api_url
+            )
+
+            # Configure thresholds
+            thresholds = self.config.camera_switching.thresholds
+            self.camera_switch_detector.switch_threshold = {
+                "resolution_change": thresholds.resolution_change,
+                "codec_change": thresholds.codec_change,
+                "fps_change_percent": thresholds.fps_change_percent,
+                "error_spike_count": thresholds.error_spike_count,
+            }
+
+            # Set monitoring interval
+            self.camera_switch_detector.monitoring_interval = (
+                self.config.camera_switching.check_interval
+            )
+
+            self.camera_switch_detector.add_switch_callback(self._handle_camera_switch)
+            self.logger.info(f"Camera switch detection enabled for {camera_name}")
+
+        self.last_camera_switch_check = 0
+
     def _update_enabled_state(self) -> bool:
         """Fetch the latest config and update enabled state."""
         _, config_data = self.config_subscriber.check_for_update()
@@ -207,6 +234,59 @@ class CameraWatchdog(threading.Thread):
             return config_data.enabled
 
         return self.config.enabled
+
+    def _handle_camera_switch(self, camera_name: str, reason: str):
+        """Handle camera switch detection by resetting streams."""
+        self.logger.warning(f"Camera switch detected for {camera_name}: {reason}")
+        self.logger.info(f"Resetting camera processes for {camera_name} due to switch")
+
+        # Reset capture thread to clear any corrupted buffers
+        self.reset_capture_thread()
+
+        # Reset other ffmpeg processes as well
+        for p in self.ffmpeg_other_processes:
+            try:
+                self.logger.info(f"Terminating {p['roles']} process for camera switch")
+                p["process"].terminate()
+                p["process"].wait(timeout=10)
+            except Exception as e:
+                self.logger.warning(f"Error terminating process: {e}")
+                try:
+                    p["process"].kill()
+                except:
+                    pass
+
+        # Clear the process list and restart
+        self.ffmpeg_other_processes.clear()
+
+        # Wait a moment for streams to stabilize
+        time.sleep(2)
+
+        # Restart all ffmpeg processes
+        self.start_all_ffmpeg()
+
+    def _check_camera_switch_signals(self):
+        """Check for camera switch reset signals from external monitor."""
+        signal_file = f"/tmp/frigate_reset_{self.camera_name}"
+        try:
+            if os.path.exists(signal_file):
+                with open(signal_file, "r") as f:
+                    lines = f.readlines()
+                    if len(lines) >= 2:
+                        timestamp = float(lines[0].strip())
+                        reason = lines[1].strip()
+
+                        # Only process if this is a new signal
+                        if timestamp > self.last_camera_switch_check:
+                            self.last_camera_switch_check = timestamp
+                            self._handle_camera_switch(
+                                self.camera_name, f"External signal: {reason}"
+                            )
+
+                # Remove the signal file
+                os.unlink(signal_file)
+        except Exception as e:
+            self.logger.debug(f"Error checking camera switch signals: {e}")
 
     def reset_capture_thread(
         self, terminate: bool = True, drain_output: bool = True
@@ -255,6 +335,9 @@ class CameraWatchdog(threading.Thread):
 
             if not enabled:
                 continue
+
+            # Check for camera switch signals
+            self._check_camera_switch_signals()
 
             now = datetime.datetime.now().timestamp()
 
