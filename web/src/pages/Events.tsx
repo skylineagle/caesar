@@ -1,5 +1,5 @@
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { useApiFilterArgs } from "@/hooks/use-api-filter";
+import useApiFilter from "@/hooks/use-api-filter";
 import { useCameraPreviews } from "@/hooks/use-camera-previews";
 import { useTimezone } from "@/hooks/use-date-utils";
 import {
@@ -48,7 +48,7 @@ export default function Events() {
   // review filter
 
   const [reviewFilter, setReviewFilter, reviewSearchParams] =
-    useApiFilterArgs<ReviewFilter>();
+    useApiFilter<ReviewFilter>();
 
   const onUpdateFilter = (newFilter: ReviewFilter) => {
     setReviewFilter(newFilter);
