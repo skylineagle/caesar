@@ -6,7 +6,6 @@ switch and automatically reset streams to prevent corruption.
 """
 
 import logging
-import os
 import threading
 import time
 from dataclasses import dataclass
@@ -15,7 +14,24 @@ from typing import Dict, Optional, Tuple
 
 import requests
 
+from frigate.camera_status_manager import camera_status_manager
+
 logger = logging.getLogger(__name__)
+
+# Global flag to track if camera switching is enabled globally
+_camera_switching_globally_enabled = False
+
+
+def set_camera_switching_global_enabled(enabled: bool):
+    """Set the global camera switching enabled state."""
+    global _camera_switching_globally_enabled
+    _camera_switching_globally_enabled = enabled
+    logger.info(f"Camera switching globally {'enabled' if enabled else 'disabled'}")
+
+
+def is_camera_switching_globally_enabled() -> bool:
+    """Check if camera switching is globally enabled."""
+    return _camera_switching_globally_enabled
 
 
 @dataclass
@@ -161,6 +177,13 @@ class CameraSwitchDetector:
 
         try:
             while not getattr(self, "_stop_monitoring", False):
+                # Check if globally enabled before processing
+                if not is_camera_switching_globally_enabled():
+                    logger.debug(
+                        f"Camera switching globally disabled, skipping monitoring for {self.camera_name}"
+                    )
+                    time.sleep(1)
+                    continue
                 try:
                     stream_data = self.get_stream_info()
                     self.current_metrics = self.parse_stream_metrics(stream_data)
@@ -214,12 +237,10 @@ class CameraSwitchDetector:
         self._stop_monitoring = True
 
     def _export_status(self):
-        """Export current status to a file for API access."""
+        """Export current status via status manager for API access."""
         try:
-            status_file = f"/tmp/frigate_camera_switch_status_{self.camera_name}"
             status_data = {
                 "monitoring_active": True,
-                "last_update": time.time(),
                 "format_changes": self.current_metrics.format_changes,
                 "current_metrics": {
                     "width": self.current_metrics.width,
@@ -231,20 +252,17 @@ class CameraSwitchDetector:
                 },
             }
 
-            with open(status_file, "w") as f:
-                import json
+            # Use status manager instead of file
+            camera_status_manager.update_camera_status(self.camera_name, status_data)
 
-                json.dump(status_data, f)
         except Exception as e:
             logger.debug(f"Failed to export status for {self.camera_name}: {e}")
 
     def _cleanup(self):
         """Clean up resources and temporary files."""
         try:
-            # Remove status file
-            status_file = f"/tmp/frigate_camera_switch_status_{self.camera_name}"
-            if os.path.exists(status_file):
-                os.unlink(status_file)
+            # Remove status from status manager
+            camera_status_manager.remove_camera_status(self.camera_name)
 
             # Clear callbacks to prevent memory leaks
             self.switch_callbacks.clear()
@@ -315,6 +333,13 @@ class StreamResetManager:
 
     def request_camera_reset(self, camera_name: str, reason: str = ""):
         """Request a camera reset due to detected switch."""
+        # Check if globally enabled
+        if not is_camera_switching_globally_enabled():
+            logger.debug(
+                f"Camera switching globally disabled, skipping reset for {camera_name}"
+            )
+            return
+
         current_time = time.time()
 
         # Check cooldown
@@ -493,19 +518,12 @@ class CameraSwitchMonitor:
     def _cleanup_all_files(self):
         """Clean up all temporary files created by the monitoring system."""
         try:
-            import glob
-
-            # Clean up status files (still used by monitoring)
-            status_files = glob.glob("/tmp/frigate_camera_switch_status_*")
-            for status_file in status_files:
-                try:
-                    os.unlink(status_file)
-                    logger.debug(f"Cleaned up status file: {status_file}")
-                except Exception as e:
-                    logger.debug(f"Could not remove status file {status_file}: {e}")
+            # Clean up status manager state
+            camera_status_manager.cleanup()
+            logger.debug("Cleaned up camera status manager state")
 
         except Exception as e:
-            logger.warning(f"Error during file cleanup: {e}")
+            logger.warning(f"Error during cleanup: {e}")
 
     def __del__(self):
         """Destructor to ensure cleanup on object deletion."""

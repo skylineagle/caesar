@@ -1,11 +1,17 @@
 import axios from "axios";
-import { createContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import useSWR from "swr";
 
 export interface AuthState {
   user: { username: string; role: "admin" | "viewer" | null } | null;
   isLoading: boolean;
-  isAuthenticated: boolean; // true if auth is required
+  isAuthenticated: boolean;
 }
 
 interface AuthContextType {
@@ -31,18 +37,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     data: profile,
     error,
     mutate,
+    isValidating,
   } = useSWR("/profile", {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
-    fetcher: (url) =>
-      axios.get(url, { withCredentials: true }).then((res) => res.data),
+    errorRetryCount: 3,
+    errorRetryInterval: 1000,
+    shouldRetryOnError: (error) => {
+      if (axios.isAxiosError(error)) {
+        return error.response?.status !== 401;
+      }
+      return true;
+    },
+    fetcher: async (url) => {
+      try {
+        const response = await axios.get(url, { withCredentials: true });
+        return response.data;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          throw error;
+        }
+        throw error;
+      }
+    },
   });
 
   useEffect(() => {
     if (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        // auth required but not logged in
-        setAuth({ user: null, isLoading: false, isAuthenticated: true });
+        setAuth((prevAuth) => {
+          if (prevAuth.user === null && !prevAuth.isLoading) {
+            return prevAuth;
+          }
+          return { user: null, isLoading: false, isAuthenticated: true };
+        });
+      } else {
+        setAuth((prevAuth) => {
+          if (prevAuth.user === null && !prevAuth.isLoading) {
+            return prevAuth;
+          }
+          return { user: null, isLoading: false, isAuthenticated: false };
+        });
       }
       return;
     }
@@ -53,28 +88,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           username: profile.username,
           role: profile.role || "viewer",
         };
-        setAuth({ user: newUser, isLoading: false, isAuthenticated: true });
+        setAuth((prevAuth) => {
+          if (
+            prevAuth.user?.username === newUser.username &&
+            prevAuth.user?.role === newUser.role &&
+            !prevAuth.isLoading
+          ) {
+            return prevAuth;
+          }
+          return { user: newUser, isLoading: false, isAuthenticated: true };
+        });
       } else {
-        // No username provided
-        setAuth({ user: null, isLoading: false, isAuthenticated: false });
+        setAuth((prevAuth) => {
+          if (prevAuth.user === null && !prevAuth.isLoading) {
+            return prevAuth;
+          }
+          return { user: null, isLoading: false, isAuthenticated: false };
+        });
       }
+    } else if (!isValidating && !error) {
+      setAuth((prevAuth) => {
+        if (!prevAuth.isLoading) {
+          return prevAuth;
+        }
+        return { user: null, isLoading: false, isAuthenticated: false };
+      });
     }
-  }, [profile, error]);
+  }, [profile, error, isValidating]);
 
-  const login = (user: AuthState["user"]) => {
-    setAuth({ user, isLoading: false, isAuthenticated: true });
-    // Trigger a profile refresh to update the user context
-    mutate();
-  };
+  const login = useCallback(
+    (user: AuthState["user"]) => {
+      setAuth({ user, isLoading: false, isAuthenticated: true });
+      mutate();
+    },
+    [mutate],
+  );
 
   const logout = () => {
     setAuth({ user: null, isLoading: false, isAuthenticated: true });
     axios.get("/logout", { withCredentials: true });
   };
 
+  const contextValue = useMemo(
+    () => ({
+      auth,
+      login,
+      logout,
+    }),
+    [auth, login],
+  );
+
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }

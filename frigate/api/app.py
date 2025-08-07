@@ -154,6 +154,7 @@ def camera_switching_camera_status(request: Request, camera_name: str):
 
     status = {
         "camera_name": camera_name,
+        "global_enabled": config.camera_switching.enabled,
         "enabled": camera_config.camera_switching.enabled,
         "config": camera_config.camera_switching.dict()
         if camera_config.camera_switching.enabled
@@ -163,9 +164,10 @@ def camera_switching_camera_status(request: Request, camera_name: str):
         "format_changes": 0,
     }
 
-    # Get status from reset manager and monitoring system
+    # Get status from reset manager and status manager
     try:
         from frigate.camera_reset_manager import camera_reset_manager
+        from frigate.camera_status_manager import camera_status_manager
 
         reset_status = camera_reset_manager.get_camera_status(camera_name)
         status.update(
@@ -176,12 +178,10 @@ def camera_switching_camera_status(request: Request, camera_name: str):
             }
         )
 
-        # Try to get real-time status from monitoring system
-        signal_file = f"/tmp/frigate_camera_switch_status_{camera_name}"
-        if os.path.exists(signal_file):
-            with open(signal_file, "r") as f:
-                data = json.loads(f.read())
-                status.update(data)
+        # Get real-time status from status manager
+        monitoring_status = camera_status_manager.get_camera_status(camera_name)
+        if monitoring_status:
+            status.update(monitoring_status)
     except Exception as e:
         logger.debug(f"Could not read camera switch status: {e}")
 
@@ -199,6 +199,16 @@ def reset_camera_switching(request: Request, camera_name: str):
     if camera_name not in config.cameras:
         return JSONResponse(
             status_code=404, content={"message": f"Camera {camera_name} not found"}
+        )
+
+    # Check if globally enabled
+    if not config.camera_switching.enabled:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "message": "Camera switching is globally disabled",
+                "timestamp": datetime.now().isoformat(),
+            },
         )
 
     # Use the global reset manager to trigger reset

@@ -22,7 +22,25 @@ Frigate's camera switching detection system monitors stream characteristics and 
 
 ## Configuration
 
-To enable camera switching detection, add the `camera_switching` section to your camera configuration:
+### Global Configuration
+
+Add this to your main Frigate configuration to enable/disable the feature globally:
+
+```yaml
+camera_switching:
+  enabled: true # Set to false to completely disable the feature
+```
+
+**When globally disabled:**
+
+- No camera switching code will execute
+- No monitoring threads will be created
+- No API endpoints will function
+- No resource usage from the feature
+
+### Per-Camera Configuration
+
+To enable camera switching detection for specific cameras, add the `camera_switching` section to your camera configuration:
 
 ```yaml
 cameras:
@@ -201,8 +219,9 @@ The camera switching system uses:
 
 - **Direct Method Calls**: Camera resets are triggered via direct callback functions, not file I/O
 - **Global Reset Manager**: Centralized singleton for coordinating resets across all cameras
+- **Global Status Manager**: In-memory status storage with thread-safe access
 - **Thread-Safe Communication**: Proper threading primitives instead of file-based signaling
-- **Status Files**: Only monitoring status uses temporary files: `frigate_camera_switch_status_{camera_name}`
+- **Zero File I/O**: No temporary files used for inter-process communication
 
 All resources are automatically cleaned up and will not accumulate over time.
 

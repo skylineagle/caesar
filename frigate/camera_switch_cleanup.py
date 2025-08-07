@@ -5,9 +5,7 @@ This module provides utilities to clean up resources when Frigate shuts down
 or when the camera switching feature is disabled.
 """
 
-import glob
 import logging
-import os
 import signal
 import sys
 
@@ -17,14 +15,14 @@ logger = logging.getLogger(__name__)
 def cleanup_camera_switch_files():
     """Clean up all temporary files created by camera switching feature."""
     try:
-        # Clean up status files (monitoring still uses these)
-        status_files = glob.glob("/tmp/frigate_camera_switch_status_*")
-        for status_file in status_files:
-            try:
-                os.unlink(status_file)
-                logger.debug(f"Cleaned up status file: {status_file}")
-            except Exception as e:
-                logger.debug(f"Could not remove status file {status_file}: {e}")
+        # Clean up status manager state
+        try:
+            from frigate.camera_status_manager import camera_status_manager
+
+            camera_status_manager.cleanup()
+            logger.debug("Cleaned up camera status manager state")
+        except Exception as e:
+            logger.debug(f"Error cleaning up status manager: {e}")
 
         # Clean up reset manager state
         try:

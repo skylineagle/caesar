@@ -201,9 +201,12 @@ class CameraWatchdog(threading.Thread):
         self.config_subscriber = ConfigSubscriber(f"config/enabled/{camera_name}", True)
         self.was_enabled = self.config.enabled
 
-        # Initialize camera switch detection if enabled
+        # Initialize camera switch detection if enabled per camera
         self.camera_switch_detector = None
-        if self.config.camera_switching.enabled:
+        if (
+            hasattr(self.config, "camera_switching")
+            and self.config.camera_switching.enabled
+        ):
             self.camera_switch_detector = CameraSwitchDetector(
                 camera_name, self.config.camera_switching.go2rtc_api_url
             )

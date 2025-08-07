@@ -1,29 +1,35 @@
 """Camera switching configuration for handling shared RTSP streams."""
 
-from typing import Any
-
 from pydantic import Field
 
-from ..base import FrigateBaseModel
+from frigate.config.base import FrigateBaseModel
 
-__all__ = ["CameraSwitchingConfig"]
+__all__ = ["CameraSwitchingConfig", "CameraSwitchingGlobalConfig"]
 
 
 class CameraSwitchingThresholds(FrigateBaseModel):
-    """Thresholds for detecting camera switches."""
+    """Detection thresholds for camera switches."""
 
     resolution_change: bool = Field(
-        default=True, title="Trigger reset on any resolution change"
+        default=True, title="Detect camera switches based on resolution changes"
     )
-    codec_change: bool = Field(default=True, title="Trigger reset on any codec change")
+
+    codec_change: bool = Field(
+        default=True, title="Detect camera switches based on codec changes"
+    )
+
     fps_change_percent: float = Field(
-        default=50.0,
-        title="Trigger reset when FPS changes by this percentage",
-        ge=0.0,
+        default=20.0,
+        title="Percentage change in FPS to trigger switch detection",
+        ge=1.0,
         le=100.0,
     )
+
     error_spike_count: int = Field(
-        default=5, title="Trigger reset when error count reaches this threshold", ge=1
+        default=5,
+        title="Number of consecutive errors to trigger switch detection",
+        ge=1,
+        le=50,
     )
 
 
@@ -57,5 +63,11 @@ class CameraSwitchingConfig(FrigateBaseModel):
         default="http://localhost:1984/api", title="URL for go2rtc API"
     )
 
-    def __init__(self, **data: Any):
-        super().__init__(**data)
+
+class CameraSwitchingGlobalConfig(FrigateBaseModel):
+    """Global configuration for camera switching feature."""
+
+    enabled: bool = Field(
+        default=False,
+        title="Enable camera switching feature globally. When disabled, no camera switching code will execute.",
+    )

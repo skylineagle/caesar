@@ -71,6 +71,15 @@ class CameraResetManager:
         Returns:
             bool: True if reset was triggered, False if skipped due to cooldown or no callback
         """
+        # Check if globally enabled
+        from frigate.camera_switch_monitor import is_camera_switching_globally_enabled
+
+        if not is_camera_switching_globally_enabled():
+            logger.debug(
+                f"Camera switching globally disabled, skipping reset for {camera_name}"
+            )
+            return False
+
         current_time = time.time()
 
         # Check cooldown

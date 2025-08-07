@@ -632,6 +632,19 @@ class FrigateApp:
     def start(self) -> None:
         logger.info(f"Starting Frigate ({VERSION})")
 
+        # Set global camera switching state
+        try:
+            from frigate.camera_switch_monitor import (
+                set_camera_switching_global_enabled,
+            )
+
+            set_camera_switching_global_enabled(self.config.camera_switching.enabled)
+            logger.debug(
+                f"Camera switching globally {'enabled' if self.config.camera_switching.enabled else 'disabled'}"
+            )
+        except Exception as e:
+            logger.debug(f"Could not set camera switching global state: {e}")
+
         # Register camera switching cleanup handlers
         try:
             from frigate.camera_switch_cleanup import register_cleanup_handlers
