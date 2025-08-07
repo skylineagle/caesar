@@ -106,8 +106,11 @@ def version():
     return VERSION
 
 
-@router.get("/camera_switching/status", tags=[Tags.frigate])
-@require_role("admin")
+@router.get(
+    "/camera_switching/status",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
 def camera_switching_status(request: Request):
     """Get status of camera switching monitoring for all cameras."""
     config: FrigateConfig = request.app.frigate_config
@@ -134,8 +137,11 @@ def camera_switching_status(request: Request):
     return JSONResponse(content=status)
 
 
-@router.get("/camera_switching/{camera_name}/status", tags=[Tags.frigate])
-@require_role("admin")
+@router.get(
+    "/camera_switching/{camera_name}/status",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
 def camera_switching_camera_status(request: Request, camera_name: str):
     """Get detailed status for a specific camera's switching monitoring."""
     config: FrigateConfig = request.app.frigate_config
@@ -157,8 +163,20 @@ def camera_switching_camera_status(request: Request, camera_name: str):
         "format_changes": 0,
     }
 
-    # Try to get real-time status from monitoring system
+    # Get status from reset manager and monitoring system
     try:
+        from frigate.camera_reset_manager import camera_reset_manager
+
+        reset_status = camera_reset_manager.get_camera_status(camera_name)
+        status.update(
+            {
+                "has_reset_callback": reset_status["has_callback"],
+                "last_reset": reset_status["last_reset"],
+                "cooldown_remaining": reset_status["cooldown_remaining"],
+            }
+        )
+
+        # Try to get real-time status from monitoring system
         signal_file = f"/tmp/frigate_camera_switch_status_{camera_name}"
         if os.path.exists(signal_file):
             with open(signal_file, "r") as f:
@@ -170,8 +188,11 @@ def camera_switching_camera_status(request: Request, camera_name: str):
     return JSONResponse(content=status)
 
 
-@router.post("/camera_switching/{camera_name}/reset", tags=[Tags.frigate])
-@require_role("admin")
+@router.post(
+    "/camera_switching/{camera_name}/reset",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
 def reset_camera_switching(request: Request, camera_name: str):
     """Manually trigger a camera switch reset for a specific camera."""
     config: FrigateConfig = request.app.frigate_config
@@ -180,21 +201,57 @@ def reset_camera_switching(request: Request, camera_name: str):
             status_code=404, content={"message": f"Camera {camera_name} not found"}
         )
 
-    # Create a signal file to trigger reset
-    signal_file = f"/tmp/frigate_reset_{camera_name}"
+    # Use the global reset manager to trigger reset
     try:
-        with open(signal_file, "w") as f:
-            f.write(f"{datetime.now().timestamp()}\nManual reset via API\n")
+        from frigate.camera_reset_manager import camera_reset_manager
+
+        success = camera_reset_manager.trigger_camera_reset(
+            camera_name, "Manual reset via API"
+        )
+
+        if success:
+            return JSONResponse(
+                content={
+                    "message": f"Reset triggered for camera {camera_name}",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "message": f"Reset not triggered for camera {camera_name} (cooldown or no callback)",
+                    "timestamp": datetime.now().isoformat(),
+                },
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"message": f"Failed to trigger reset: {str(e)}"}
+        )
+
+
+@router.post(
+    "/camera_switching/cleanup",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def cleanup_camera_switching():
+    """Manually trigger cleanup of camera switching temporary files."""
+    try:
+        from frigate.camera_switch_cleanup import cleanup_camera_switch_files
+
+        cleanup_camera_switch_files()
 
         return JSONResponse(
             content={
-                "message": f"Reset signal sent for camera {camera_name}",
+                "message": "Camera switching cleanup completed successfully",
                 "timestamp": datetime.now().isoformat(),
             }
         )
     except Exception as e:
+        logger.error(f"Error during camera switching cleanup: {e}")
         return JSONResponse(
-            status_code=500, content={"message": f"Failed to trigger reset: {str(e)}"}
+            status_code=500, content={"message": f"Cleanup failed: {str(e)}"}
         )
 
 

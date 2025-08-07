@@ -104,6 +104,14 @@ POST /api/camera_switching/{camera_name}/reset
 
 Manually trigger a camera switch reset for a specific camera.
 
+### Cleanup
+
+```http
+POST /api/camera_switching/cleanup
+```
+
+Manually trigger cleanup of temporary files created by the camera switching system. This removes status files and reset signals.
+
 ## Example Response
 
 ```json
@@ -160,6 +168,43 @@ curl -X POST http://your-frigate-ip:5000/api/camera_switching/shared_camera/rese
 2. **Monitor Logs**: Watch the logs initially to tune thresholds for your specific cameras
 3. **Set Appropriate Intervals**: Balance between detection speed and system load
 4. **Test Thoroughly**: Test the switching behavior during typical camera transition times
+
+## Cleanup and Resource Management
+
+The camera switching feature automatically manages its resources and cleans up temporary files:
+
+### Automatic Cleanup
+
+- **On Shutdown**: All temporary files are cleaned up when Frigate shuts down
+- **Signal Handlers**: SIGTERM and SIGINT signals trigger automatic cleanup
+- **Thread Management**: Monitoring threads are stopped gracefully with timeouts
+- **File Cleanup**: Status files and reset signals are automatically removed
+
+### Manual Cleanup
+
+If needed, you can manually trigger cleanup:
+
+```bash
+# Via API
+curl -X POST http://your-frigate-ip:5000/api/camera_switching/cleanup
+
+# Via command line (inside container)
+python -m frigate.camera_switch_cleanup
+
+# Full cleanup including process check
+python -m frigate.camera_switch_cleanup --full
+```
+
+### System Architecture
+
+The camera switching system uses:
+
+- **Direct Method Calls**: Camera resets are triggered via direct callback functions, not file I/O
+- **Global Reset Manager**: Centralized singleton for coordinating resets across all cameras
+- **Thread-Safe Communication**: Proper threading primitives instead of file-based signaling
+- **Status Files**: Only monitoring status uses temporary files: `frigate_camera_switch_status_{camera_name}`
+
+All resources are automatically cleaned up and will not accumulate over time.
 
 ## Limitations
 

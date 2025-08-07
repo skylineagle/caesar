@@ -6,6 +6,7 @@ switch and automatically reset streams to prevent corruption.
 """
 
 import logging
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -158,40 +159,99 @@ class CameraSwitchDetector:
         """Main monitoring loop to detect camera switches."""
         logger.info(f"Starting camera switch monitoring for {self.camera_name}")
 
-        while True:
-            try:
-                stream_data = self.get_stream_info()
-                self.current_metrics = self.parse_stream_metrics(stream_data)
+        try:
+            while not getattr(self, "_stop_monitoring", False):
+                try:
+                    stream_data = self.get_stream_info()
+                    self.current_metrics = self.parse_stream_metrics(stream_data)
 
-                # Detect switch
-                switch_detected, reason = self.detect_camera_switch(
-                    self.current_metrics, self.previous_metrics
-                )
-
-                if switch_detected:
-                    logger.warning(
-                        f"Camera switch detected for {self.camera_name}: {reason}"
+                    # Detect switch
+                    switch_detected, reason = self.detect_camera_switch(
+                        self.current_metrics, self.previous_metrics
                     )
 
-                    # Increment format change counter
-                    self.current_metrics.format_changes = (
-                        self.previous_metrics.format_changes + 1
+                    if switch_detected:
+                        logger.warning(
+                            f"Camera switch detected for {self.camera_name}: {reason}"
+                        )
+
+                        # Increment format change counter
+                        self.current_metrics.format_changes = (
+                            self.previous_metrics.format_changes + 1
+                        )
+
+                        # Trigger callbacks
+                        for callback in self.switch_callbacks:
+                            try:
+                                callback(self.camera_name, reason)
+                            except Exception as e:
+                                logger.error(f"Error in switch callback: {e}")
+
+                    # Update previous metrics
+                    self.previous_metrics = self.current_metrics
+
+                    # Export status for API access
+                    self._export_status()
+
+                except Exception as e:
+                    logger.error(
+                        f"Error in stream monitoring for {self.camera_name}: {e}"
                     )
 
-                    # Trigger callbacks
-                    for callback in self.switch_callbacks:
-                        try:
-                            callback(self.camera_name, reason)
-                        except Exception as e:
-                            logger.error(f"Error in switch callback: {e}")
+                # Check for stop signal periodically
+                for _ in range(int(self.monitoring_interval)):
+                    if getattr(self, "_stop_monitoring", False):
+                        break
+                    time.sleep(1)
 
-                # Update previous metrics
-                self.previous_metrics = self.current_metrics
+        finally:
+            # Cleanup on exit
+            self._cleanup()
+            logger.info(f"Camera switch monitoring stopped for {self.camera_name}")
 
-            except Exception as e:
-                logger.error(f"Error in stream monitoring for {self.camera_name}: {e}")
+    def stop_monitoring(self):
+        """Stop the monitoring loop gracefully."""
+        self._stop_monitoring = True
 
-            time.sleep(self.monitoring_interval)
+    def _export_status(self):
+        """Export current status to a file for API access."""
+        try:
+            status_file = f"/tmp/frigate_camera_switch_status_{self.camera_name}"
+            status_data = {
+                "monitoring_active": True,
+                "last_update": time.time(),
+                "format_changes": self.current_metrics.format_changes,
+                "current_metrics": {
+                    "width": self.current_metrics.width,
+                    "height": self.current_metrics.height,
+                    "fps": self.current_metrics.fps,
+                    "codec": self.current_metrics.codec,
+                    "error_count": self.current_metrics.error_count,
+                    "last_update": self.current_metrics.last_update,
+                },
+            }
+
+            with open(status_file, "w") as f:
+                import json
+
+                json.dump(status_data, f)
+        except Exception as e:
+            logger.debug(f"Failed to export status for {self.camera_name}: {e}")
+
+    def _cleanup(self):
+        """Clean up resources and temporary files."""
+        try:
+            # Remove status file
+            status_file = f"/tmp/frigate_camera_switch_status_{self.camera_name}"
+            if os.path.exists(status_file):
+                os.unlink(status_file)
+
+            # Clear callbacks to prevent memory leaks
+            self.switch_callbacks.clear()
+
+            logger.debug(f"Cleaned up camera switch detector for {self.camera_name}")
+        except Exception as e:
+            logger.warning(f"Error during cleanup for {self.camera_name}: {e}")
 
 
 class StreamResetManager:
@@ -208,6 +268,8 @@ class StreamResetManager:
         self.active_resets = set()
         self.reset_cooldown = 30  # Minimum seconds between resets for same camera
         self.last_reset_times: Dict[str, float] = {}
+        self._shutdown = False
+        self.camera_reset_callback = None
 
     def reset_go2rtc_stream(self, camera_name: str) -> bool:
         """Reset a specific go2rtc stream."""
@@ -279,14 +341,16 @@ class StreamResetManager:
             logger.info(f"Executing camera reset for {camera_name}: {reason}")
 
             # Step 1: Reset go2rtc stream
-            go2rtc_success = self.reset_go2rtc_stream(camera_name)
+            self.reset_go2rtc_stream(camera_name)
 
-            # Step 2: Signal Frigate to restart camera processes
-            # This would integrate with Frigate's camera watchdog
-            # For now, we'll create a signal file that the watchdog can monitor
-            signal_file = f"/tmp/frigate_reset_{camera_name}"
-            with open(signal_file, "w") as f:
-                f.write(f"{time.time()}\n{reason}\n")
+            # Step 2: Signal Frigate to restart camera processes via callback
+            if hasattr(self, "camera_reset_callback") and self.camera_reset_callback:
+                try:
+                    self.camera_reset_callback(camera_name, reason)
+                except Exception as e:
+                    logger.error(
+                        f"Error in camera reset callback for {camera_name}: {e}"
+                    )
 
             logger.info(f"Camera reset completed for {camera_name}")
             self.last_reset_times[camera_name] = time.time()
@@ -296,14 +360,33 @@ class StreamResetManager:
         finally:
             self.active_resets.discard(camera_name)
 
+    def set_camera_reset_callback(self, callback):
+        """Set callback function to trigger camera resets in Frigate."""
+        self.camera_reset_callback = callback
+
     def process_reset_queue(self):
         """Process queued reset requests."""
-        while True:
+        while not self._shutdown:
             try:
                 camera_name, reason, request_time = self.reset_queue.get(timeout=1)
-                self.execute_camera_reset(camera_name, reason)
-            except:
+                if not self._shutdown:  # Double-check shutdown state
+                    self.execute_camera_reset(camera_name, reason)
+            except Exception:
                 continue
+
+        # Cleanup any remaining resets
+        logger.info("Reset queue processor shutting down, cleaning up...")
+        self._cleanup_reset_signals()
+
+    def shutdown(self):
+        """Shutdown the reset manager gracefully."""
+        self._shutdown = True
+        logger.info("StreamResetManager shutdown requested")
+
+    def _cleanup_reset_signals(self):
+        """Clean up any remaining reset signal files."""
+        # No longer using file-based signaling, but keep method for compatibility
+        pass
 
 
 class CameraSwitchMonitor:
@@ -373,9 +456,61 @@ class CameraSwitchMonitor:
         logger.info(f"Started monitoring {len(self.detectors)} cameras for switching")
 
     def stop_monitoring(self):
-        """Stop all monitoring activities."""
+        """Stop all monitoring activities and cleanup resources."""
         self.running = False
         logger.info("Stopping camera switch monitoring system")
+
+        # Stop all detector threads
+        for camera_name, detector in self.detectors.items():
+            try:
+                detector.stop_monitoring()
+                logger.debug(f"Stopped monitoring for {camera_name}")
+            except Exception as e:
+                logger.warning(f"Error stopping detector for {camera_name}: {e}")
+
+        # Wait for threads to finish (with timeout)
+        for camera_name, thread in self.monitoring_threads.items():
+            try:
+                thread.join(timeout=5)
+                if thread.is_alive():
+                    logger.warning(f"Thread for {camera_name} did not stop gracefully")
+                else:
+                    logger.debug(f"Thread for {camera_name} stopped successfully")
+            except Exception as e:
+                logger.warning(f"Error joining thread for {camera_name}: {e}")
+
+        # Shutdown reset manager
+        try:
+            self.reset_manager.shutdown()
+        except Exception as e:
+            logger.warning(f"Error shutting down reset manager: {e}")
+
+        # Clean up all temporary files
+        self._cleanup_all_files()
+
+        logger.info("Camera switch monitoring system stopped and cleaned up")
+
+    def _cleanup_all_files(self):
+        """Clean up all temporary files created by the monitoring system."""
+        try:
+            import glob
+
+            # Clean up status files (still used by monitoring)
+            status_files = glob.glob("/tmp/frigate_camera_switch_status_*")
+            for status_file in status_files:
+                try:
+                    os.unlink(status_file)
+                    logger.debug(f"Cleaned up status file: {status_file}")
+                except Exception as e:
+                    logger.debug(f"Could not remove status file {status_file}: {e}")
+
+        except Exception as e:
+            logger.warning(f"Error during file cleanup: {e}")
+
+    def __del__(self):
+        """Destructor to ensure cleanup on object deletion."""
+        if self.running:
+            self.stop_monitoring()
 
     def get_status(self) -> Dict:
         """Get status of all monitored cameras."""

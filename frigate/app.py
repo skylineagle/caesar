@@ -632,6 +632,15 @@ class FrigateApp:
     def start(self) -> None:
         logger.info(f"Starting Frigate ({VERSION})")
 
+        # Register camera switching cleanup handlers
+        try:
+            from frigate.camera_switch_cleanup import register_cleanup_handlers
+
+            register_cleanup_handlers()
+            logger.debug("Camera switching cleanup handlers registered")
+        except Exception as e:
+            logger.warning(f"Could not register camera switching cleanup handlers: {e}")
+
         # Ensure global state.
         self.ensure_dirs()
 
@@ -810,6 +819,15 @@ class FrigateApp:
             shm = self.detection_shms.pop()
             shm.close()
             shm.unlink()
+
+        # Cleanup camera switching resources
+        try:
+            from frigate.camera_switch_cleanup import cleanup_camera_switch_files
+
+            logger.info("Cleaning up camera switching resources...")
+            cleanup_camera_switch_files()
+        except Exception as e:
+            logger.warning(f"Error during camera switching cleanup: {e}")
 
         # exit the mp Manager process
         _stop_logging()
