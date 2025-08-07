@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useResizeObserver } from "./resize-observer";
 
 export type VideoResolutionType = {
@@ -17,7 +17,7 @@ export function useVideoDimensions(
   });
 
   const videoAspectRatio = useMemo(() => {
-    return videoResolution.width / videoResolution.height || 16 / 9;
+    return videoResolution.width / videoResolution.height;
   }, [videoResolution]);
 
   const containerAspectRatio = useMemo(() => {
