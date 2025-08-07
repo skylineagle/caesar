@@ -523,7 +523,9 @@ export default function NotificationView({
                     aria-label={t("notification.registerDevice")}
                     disabled={
                       (!config?.notifications.enabled &&
-                        notificationCameras.length === 0) ||
+                        notificationCameras.length === 0 &&
+                        !form.watch("allEnabled") &&
+                        form.watch("cameras").length === 0) ||
                       publicKey == undefined
                     }
                     onClick={() => {
@@ -594,7 +596,6 @@ export default function NotificationView({
                         <div className="grid gap-6">
                           {notificationCameras.map((item) => (
                             <CameraNotificationSwitch
-                              key={item.name}
                               config={config}
                               camera={item.name}
                             />
