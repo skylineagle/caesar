@@ -61,6 +61,7 @@ export function LanguageProvider({
       i18next.changeLanguage(newLanguage);
       return newLanguage;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Error retrieving language data from storage:", error);
       return defaultLanguage;
     }
