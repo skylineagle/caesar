@@ -1,0 +1,98 @@
+# Example Frigate configuration for cameras that switch on the same RTSP URL
+# This configuration handles two cameras that alternate on the same stream URL
+
+# go2rtc configuration - manages the RTSP stream relay
+go2rtc:
+  streams:
+    # Stream name should match your camera name for automatic mapping
+    shared_entrance:
+      # Your actual camera RTSP URL that switches between cameras
+      - rtsp://admin:password@192.168.1.100:554/stream1
+
+    # Optional: Configure a secondary stream for detection if available
+    shared_entrance_sub:
+      - rtsp://admin:password@192.168.1.100:554/substream1
+
+# Camera configuration
+cameras:
+  shared_entrance:
+    # Enable camera switching detection and automatic reset
+    camera_switching:
+      enabled: true # Enable the feature
+      check_interval: 5.0 # Check stream health every 5 seconds
+      reset_cooldown: 30.0 # Wait 30 seconds between resets
+
+      # Detection thresholds - adjust based on your cameras
+      thresholds:
+        resolution_change: true # Reset on any resolution change
+        codec_change: true # Reset on any codec change
+        fps_change_percent: 50.0 # Reset if FPS changes by 50%+
+        error_spike_count: 5 # Reset if 5+ errors detected
+
+      # go2rtc API URL (usually localhost)
+      go2rtc_api_url: "http://localhost:1984/api"
+
+    # FFmpeg configuration - use go2rtc restream
+    ffmpeg:
+      inputs:
+        # Main stream for recording
+        - path: rtsp://127.0.0.1:8554/shared_entrance
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+        # Sub stream for detection (adjust if using main stream for detect)
+        - path: rtsp://127.0.0.1:8554/shared_entrance_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+
+    # Enable recording to capture both cameras
+    record:
+      enabled: true
+      retain:
+        days: 3
+        mode: motion
+      events:
+        retain:
+          default: 7
+          mode: motion
+
+    # Object detection configuration
+    detect:
+      enabled: true
+      width: 1280
+      height: 720
+      fps: 10
+
+    # Motion detection
+    motion:
+      enabled: true
+
+    # Objects to track
+    objects:
+      track:
+        - person
+        - car
+        - truck
+      filters:
+        person:
+          min_area: 2000
+          threshold: 0.7
+
+# Global settings
+mqtt:
+  enabled: false # Enable if you use MQTT
+
+database:
+  path: /media/frigate/frigate.db
+
+detectors:
+  cpu1:
+    type: cpu
+    num_threads: 3
+
+logger:
+  default: info
+  logs:
+    frigate.camera_switch_monitor: debug # Enable debug logs for camera switching
+    watchdog.shared_entrance: info # Monitor camera watchdog logs

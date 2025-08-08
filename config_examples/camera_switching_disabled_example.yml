@@ -1,0 +1,45 @@
+# Example Frigate configuration with global camera switching disabled
+# This shows how to completely disable the camera switching feature
+
+# Global camera switching configuration - DISABLED
+camera_switching:
+  enabled: false # Completely disables the camera switching feature
+
+# Camera configurations
+cameras:
+  shared_camera:
+    enabled: true
+
+    # Per-camera camera switching configuration (ignored when globally disabled)
+    camera_switching:
+      enabled: true # This will be ignored because global is disabled
+      check_interval: 5.0
+      reset_cooldown: 30.0
+      thresholds:
+        resolution_change: true
+        codec_change: true
+        fps_change_percent: 20.0
+        error_spike_count: 5
+      go2rtc_api_url: "http://localhost:1984/api"
+
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/shared_camera
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+            - record
+
+# go2rtc configuration for the shared stream
+go2rtc:
+  streams:
+    shared_camera:
+      - rtsp://camera_ip/shared_stream_url
+
+# Other required Frigate configuration
+mqtt:
+  enabled: false
+
+detectors:
+  cpu:
+    type: cpu

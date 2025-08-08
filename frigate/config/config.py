@@ -51,6 +51,7 @@ from .camera.objects import FilterConfig, ObjectConfig
 from .camera.record import RecordConfig, RetainModeEnum
 from .camera.review import ReviewConfig
 from .camera.snapshots import SnapshotsConfig
+from .camera.switching import CameraSwitchingGlobalConfig
 from .camera.timestamp import TimestampStyleConfig
 from .camera_group import CameraGroupConfig
 from .classification import (
@@ -432,6 +433,10 @@ class FrigateConfig(FrigateBaseModel):
 
     camera_groups: Dict[str, CameraGroupConfig] = Field(
         default_factory=dict, title="Camera group configuration"
+    )
+    camera_switching: CameraSwitchingGlobalConfig = Field(
+        default_factory=CameraSwitchingGlobalConfig,
+        title="Global camera switching configuration.",
     )
 
     _plus_api: PlusApi

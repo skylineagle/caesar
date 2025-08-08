@@ -35,15 +35,19 @@ export function ApiProvider({ children, options }: ApiProviderType) {
           const [path, params] = Array.isArray(key) ? key : [key, undefined];
           return axios.get(path, { params }).then((res) => res.data);
         },
-        onError: (error, _key) => {
+        onError: (error, key) => {
           if (
             error.response &&
             [401, 302, 307].includes(error.response.status)
           ) {
-            // redirect to the login page if not already there
+            const path = Array.isArray(key) ? key[0] : key;
+
+            if (path === "/profile") {
+              return;
+            }
+
             const loginPage = "/login";
             if (window.location.pathname !== loginPage) {
-              // Preserve the current URL as a return parameter
               const currentUrl = encodeURIComponent(
                 window.location.pathname + window.location.search,
               );
@@ -52,7 +56,6 @@ export function ApiProvider({ children, options }: ApiProviderType) {
               if (navigateFunction) {
                 navigateFunction(redirectUrl);
               } else {
-                // Fallback to window.location if navigate function is not available
                 window.location.href = redirectUrl;
               }
             }
