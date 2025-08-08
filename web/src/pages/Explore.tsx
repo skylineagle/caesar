@@ -26,6 +26,15 @@ import { useDocDomain } from "@/hooks/use-doc-domain";
 
 const API_LIMIT = 25;
 
+// always parse these as string arrays
+const SEARCH_FILTER_ARRAY_KEYS = [
+  "cameras",
+  "labels",
+  "sub_labels",
+  "recognized_license_plate",
+  "zones",
+];
+
 export default function Explore() {
   // search field handler
 
@@ -58,13 +67,7 @@ export default function Explore() {
   const [search, setSearch] = useState("");
 
   const [searchFilter, setSearchFilter, searchSearchParams] =
-    useApiFilterArgs<SearchFilter>([
-      "cameras",
-      "labels",
-      "sub_labels",
-      "recognized_license_plate",
-      "zones",
-    ]);
+    useApiFilterArgs<SearchFilter>(SEARCH_FILTER_ARRAY_KEYS);
 
   const searchTerm = useMemo(
     () => searchSearchParams?.["query"] || "",
@@ -72,7 +75,7 @@ export default function Explore() {
   );
 
   const similaritySearch = useMemo(
-    () => searchSearchParams["search_type"] == "similarity",
+    () => searchSearchParams?.["search_type"] === "similarity",
     [searchSearchParams],
   );
 
@@ -93,13 +96,23 @@ export default function Explore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  // Sync searchTerm to search state when not in similarity search
+  useEffect(() => {
+    if (!similaritySearch && searchTerm) {
+      setSearch(searchTerm);
+    }
+  }, [searchTerm, similaritySearch]);
+
   const searchQuery: SearchQuery = useMemo(() => {
     // no search parameters
-    if (searchSearchParams && Object.keys(searchSearchParams).length === 0) {
-      if (defaultView == "grid") {
+    if (!searchSearchParams || Object.keys(searchSearchParams).length === 0) {
+      if (defaultView === "grid") {
         return ["events", {}];
       } else {
-        return null;
+        return [
+          "events",
+          { limit: API_LIMIT, timezone, include_thumbnails: 0 },
+        ];
       }
     }
 
@@ -141,9 +154,6 @@ export default function Explore() {
     }
 
     // parameters and search term
-    if (!similaritySearch) {
-      setSearch(searchTerm);
-    }
 
     return [
       "events/search",
@@ -283,8 +293,8 @@ export default function Explore() {
 
   // model states
 
-  const modelVersion = config?.semantic_search.model || "jinav1";
-  const modelSize = config?.semantic_search.model_size || "small";
+  const modelVersion = config?.semantic_search?.model || "jinav1";
+  const modelSize = config?.semantic_search?.model_size || "small";
 
   // Text model state
   const { payload: textModelState } = useModelState(
@@ -349,7 +359,7 @@ export default function Explore() {
 
   if (
     !defaultViewLoaded ||
-    (config?.semantic_search.enabled &&
+    (config?.semantic_search?.enabled &&
       (!reindexState ||
         !textModelState ||
         !textTokenizerState ||
@@ -363,7 +373,7 @@ export default function Explore() {
 
   return (
     <>
-      {config?.semantic_search.enabled &&
+      {config?.semantic_search?.enabled &&
       (!allModelsLoaded || embeddingsReindexing) ? (
         <div className="absolute inset-0 left-1/2 top-1/2 flex h-96 w-96 -translate-x-1/2 -translate-y-1/2">
           <div className="flex max-w-96 flex-col items-center justify-center space-y-3 rounded-lg bg-background/50 p-5">
@@ -379,17 +389,17 @@ export default function Explore() {
                 <div className="pt-5 text-center">
                   <AnimatedCircularProgressBar
                     min={0}
-                    max={reindexState.total_objects}
-                    value={reindexState.processed_objects}
+                    max={reindexState?.total_objects || 0}
+                    value={reindexState?.processed_objects || 0}
                     gaugePrimaryColor="hsl(var(--selected))"
                     gaugeSecondaryColor="hsl(var(--secondary))"
                   />
                 </div>
                 <div className="flex w-96 flex-col gap-2 py-5">
-                  {reindexState.time_remaining !== null && (
+                  {reindexState?.time_remaining !== null && (
                     <div className="mb-3 flex flex-col items-center justify-center gap-1">
                       <div className="text-primary-variant">
-                        {reindexState.time_remaining === -1
+                        {reindexState?.time_remaining === -1
                           ? t(
                               "exploreIsUnavailable.embeddingsReindexing.startingUp",
                             )
@@ -397,8 +407,10 @@ export default function Explore() {
                               "exploreIsUnavailable.embeddingsReindexing.estimatedTime",
                             )}
                       </div>
-                      {reindexState.time_remaining >= 0 &&
-                        (formatSecondsToDuration(reindexState.time_remaining) ||
+                      {reindexState?.time_remaining >= 0 &&
+                        (formatSecondsToDuration(
+                          reindexState?.time_remaining,
+                        ) ||
                           t(
                             "exploreIsUnavailable.embeddingsReindexing.finishingShortly",
                           ))}
@@ -410,7 +422,7 @@ export default function Explore() {
                         "exploreIsUnavailable.embeddingsReindexing.step.thumbnailsEmbedded",
                       )}
                     </span>
-                    {reindexState.thumbnails}
+                    {reindexState?.thumbnails}
                   </div>
                   <div className="flex flex-row items-center justify-center gap-3">
                     <span className="text-primary-variant">
@@ -418,7 +430,7 @@ export default function Explore() {
                         "exploreIsUnavailable.embeddingsReindexing.step.descriptionsEmbedded",
                       )}
                     </span>
-                    {reindexState.descriptions}
+                    {reindexState?.descriptions}
                   </div>
                   <div className="flex flex-row items-center justify-center gap-3">
                     <span className="text-primary-variant">
@@ -426,8 +438,8 @@ export default function Explore() {
                         "exploreIsUnavailable.embeddingsReindexing.step.trackedObjectsProcessed",
                       )}
                     </span>
-                    {reindexState.processed_objects} /{" "}
-                    {reindexState.total_objects}
+                    {reindexState?.processed_objects} /{" "}
+                    {reindexState?.total_objects}
                   </div>
                 </div>
               </>

@@ -456,7 +456,7 @@ function EventItem({
               {event.has_snapshot &&
                 event.plus_id == undefined &&
                 event.data.type == "object" &&
-                config?.plus.enabled && (
+                config?.plus?.enabled && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Chip
@@ -493,7 +493,7 @@ function EventItem({
                 </Tooltip>
               )}
 
-              {event.has_snapshot && config?.semantic_search.enabled && (
+              {event.has_snapshot && config?.semantic_search?.enabled && (
                 <Tooltip>
                   <TooltipTrigger>
                     <Chip

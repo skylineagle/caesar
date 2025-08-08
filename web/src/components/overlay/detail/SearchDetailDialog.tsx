@@ -662,7 +662,7 @@ function ObjectDetailsTab({
   // face training
 
   const hasFace = useMemo(() => {
-    if (!config?.face_recognition.enabled || !search) {
+    if (!config?.face_recognition?.enabled || !search) {
       return false;
     }
 
@@ -862,7 +862,7 @@ function ObjectDetailsTab({
           <div
             className={cn("flex w-full flex-row gap-2", isMobile && "flex-col")}
           >
-            {config?.semantic_search.enabled &&
+            {config?.semantic_search?.enabled &&
               setSimilarity != undefined &&
               search.data.type == "object" && (
                 <Button
