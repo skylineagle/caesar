@@ -221,7 +221,7 @@ function ExploreThumbnailImage({
   const [imgRef, imgLoaded, onImgLoad] = useImageLoaded();
 
   const handleFindSimilar = () => {
-    if (config?.semantic_search.enabled) {
+    if (config?.semantic_search?.enabled) {
       setSimilaritySearch(event);
     }
   };
