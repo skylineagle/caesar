@@ -242,7 +242,7 @@ class TestHttp(unittest.TestCase):
         id = "123456.random"
         sub_label = "sub"
 
-        def update_event(topic, payload):
+        def update_event(payload: Any, topic: str):
             event = Event.get(id=id)
             event.sub_label = payload[1]
             event.save()
@@ -284,7 +284,7 @@ class TestHttp(unittest.TestCase):
         id = "123456.random"
         sub_label = "sub"
 
-        def update_event(topic, payload):
+        def update_event(payload: Any, _: str):
             event = Event.get(id=id)
             event.sub_label = payload[1]
             event.save()
