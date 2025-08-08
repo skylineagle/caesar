@@ -16,7 +16,7 @@ from peewee import (
 from playhouse.sqlite_ext import JSONField
 
 
-class Event(Model):  # type: ignore[misc]
+class Event(Model):
     id = CharField(null=False, primary_key=True, max_length=30)
     label = CharField(index=True, max_length=20)
     sub_label = CharField(max_length=100, null=True)
@@ -54,7 +54,7 @@ class Event(Model):  # type: ignore[misc]
     data = JSONField()  # ex: tracked object box, region, etc.
 
 
-class Timeline(Model):  # type: ignore[misc]
+class Timeline(Model):
     timestamp = DateTimeField()
     camera = CharField(index=True, max_length=20)
     source = CharField(index=True, max_length=20)  # ex: tracked object, audio, external
@@ -63,13 +63,13 @@ class Timeline(Model):  # type: ignore[misc]
     data = JSONField()  # ex: tracked object id, region, box, etc.
 
 
-class Regions(Model):  # type: ignore[misc]
+class Regions(Model):
     camera = CharField(null=False, primary_key=True, max_length=20)
     grid = JSONField()  # json blob of grid
     last_update = DateTimeField()
 
 
-class Recordings(Model):  # type: ignore[misc]
+class Recordings(Model):
     id = CharField(null=False, primary_key=True, max_length=30)
     camera = CharField(index=True, max_length=20)
     path = CharField(unique=True)
@@ -83,7 +83,7 @@ class Recordings(Model):  # type: ignore[misc]
     regions = IntegerField(null=True)
 
 
-class Export(Model):  # type: ignore[misc]
+class Export(Model):
     id = CharField(null=False, primary_key=True, max_length=30)
     camera = CharField(index=True, max_length=20)
     name = CharField(index=True, max_length=100)
@@ -93,7 +93,7 @@ class Export(Model):  # type: ignore[misc]
     in_progress = BooleanField()
 
 
-class ReviewSegment(Model):  # type: ignore[misc]
+class ReviewSegment(Model):
     id = CharField(null=False, primary_key=True, max_length=30)
     camera = CharField(index=True, max_length=20)
     start_time = DateTimeField()
@@ -103,7 +103,7 @@ class ReviewSegment(Model):  # type: ignore[misc]
     data = JSONField()  # additional data about detection like list of labels, zone, areas of significant motion
 
 
-class UserReviewStatus(Model):  # type: ignore[misc]
+class UserReviewStatus(Model):
     user_id = CharField(max_length=30)
     review_segment = ForeignKeyField(ReviewSegment, backref="user_reviews")
     has_been_reviewed = BooleanField(default=False)
@@ -112,7 +112,7 @@ class UserReviewStatus(Model):  # type: ignore[misc]
         indexes = ((("user_id", "review_segment"), True),)
 
 
-class Previews(Model):  # type: ignore[misc]
+class Previews(Model):
     id = CharField(null=False, primary_key=True, max_length=30)
     camera = CharField(index=True, max_length=20)
     path = CharField(unique=True)
@@ -122,14 +122,14 @@ class Previews(Model):  # type: ignore[misc]
 
 
 # Used for temporary table in record/cleanup.py
-class RecordingsToDelete(Model):  # type: ignore[misc]
+class RecordingsToDelete(Model):
     id = CharField(null=False, primary_key=False, max_length=30)
 
     class Meta:
         temporary = True
 
 
-class User(Model):  # type: ignore[misc]
+class User(Model):
     username = CharField(null=False, primary_key=True, max_length=30)
     role = CharField(
         max_length=20,
