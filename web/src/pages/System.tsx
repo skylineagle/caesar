@@ -30,9 +30,9 @@ function System() {
     const metrics = [...allMetrics];
 
     if (
-      !config?.semantic_search.enabled &&
-      !config?.lpr.enabled &&
-      !config?.face_recognition.enabled
+      !config?.semantic_search?.enabled &&
+      !config?.lpr?.enabled &&
+      !config?.face_recognition?.enabled
     ) {
       const index = metrics.indexOf("enrichments");
       metrics.splice(index, 1);
