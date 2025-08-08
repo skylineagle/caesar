@@ -45,7 +45,7 @@ type LivePlayerProps = {
   playAudio?: boolean;
   volume?: number;
   playInBackground: boolean;
-  micEnabled?: boolean; // only webrtc supports mic
+  micEnabled?: boolean;
   iOSCompatFullScreen?: boolean;
   pip?: boolean;
   autoLive?: boolean;
@@ -92,27 +92,22 @@ export default function LivePlayer({
   const [liveReady, setLiveReady] = useState(false);
   const [stats, setStats] = useState<PlayerStatsType>({
     streamType: "-",
-    bandwidth: 0, // in kbps
-    latency: undefined, // in seconds
+    bandwidth: 0,
+    latency: undefined,
     totalFrames: 0,
     droppedFrames: undefined,
     decodedFrames: 0,
-    droppedFrameRate: 0, // percentage
+    droppedFrameRate: 0,
   });
 
-  // video effects state with persistence
   const {
     effects: currentVideoEffects,
     updateEffects: setCurrentVideoEffects,
   } = usePersistedVideoEffects(cameraConfig.name);
 
-  // Apply video effects to any video/canvas elements in the container
   useContainerVideoEffects(internalContainerRef, currentVideoEffects);
 
-  // Check if there's active video content that can be affected by video effects
   const hasActiveVideoContent = useHasActiveVideoContent(internalContainerRef);
-
-  // camera activity
 
   const {
     enabled: cameraEnabled,
@@ -127,8 +122,6 @@ export default function LivePlayer({
       (windowVisible && (activeMotion || activeTracking)),
     [activeMotion, activeTracking, showStillWithoutActivity, windowVisible],
   );
-
-  // camera live state
 
   const liveReadyRef = useRef(liveReady);
   const cameraActiveRef = useRef(cameraActive);
@@ -220,8 +213,6 @@ export default function LivePlayer({
     setLiveReady(true);
   }, []);
 
-  // enabled states
-
   const [isReEnabling, setIsReEnabling] = useState(false);
   const prevCameraEnabledRef = useRef(cameraEnabled ?? true);
 
@@ -230,12 +221,10 @@ export default function LivePlayer({
       return;
     }
     if (!prevCameraEnabledRef.current && cameraEnabled) {
-      // Camera enabled
       setLiveReady(false);
       setIsReEnabling(true);
       setKey((prevKey) => prevKey + 1);
     } else if (prevCameraEnabledRef.current && !cameraEnabled) {
-      // Camera disabled
       setLiveReady(false);
       setKey((prevKey) => prevKey + 1);
     }
@@ -329,8 +318,11 @@ export default function LivePlayer({
       ref={cameraRef ?? internalContainerRef}
       data-camera={cameraConfig.name}
       className={cn(
-        "group relative flex w-full cursor-pointer justify-center rounded-lg",
-        "transition-all duration-500",
+        "relative m-2 flex w-full cursor-pointer justify-center rounded-lg outline outline-background transition-all duration-500",
+        activeTracking &&
+          ((showStillWithoutActivity && !liveReady) || liveReady)
+          ? "outline-3 rounded-lg border-severity_alert shadow-severity_alert outline-severity_alert md:rounded-2xl"
+          : "outline-0",
         className,
       )}
       onClick={onClick}

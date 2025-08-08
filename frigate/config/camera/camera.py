@@ -37,6 +37,7 @@ from .onvif import OnvifConfig
 from .record import RecordConfig
 from .review import ReviewConfig
 from .snapshots import SnapshotsConfig
+from .switching import CameraSwitchingConfig
 from .timestamp import TimestampStyleConfig
 from .ui import CameraUiConfig
 from .zone import ZoneConfig
@@ -133,6 +134,9 @@ class CameraConfig(FrigateBaseModel):
     )
     zones: dict[str, ZoneConfig] = Field(
         default_factory=dict, title="Zone configuration."
+    )
+    camera_switching: CameraSwitchingConfig = Field(
+        default_factory=CameraSwitchingConfig, title="Camera switching configuration."
     )
     enabled_in_config: Optional[bool] = Field(
         default=None, title="Keep track of original state of camera."
