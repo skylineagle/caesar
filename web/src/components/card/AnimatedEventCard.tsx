@@ -96,7 +96,10 @@ export function AnimatedEventCard({
 
   // image behavior
 
-  const [alertVideos] = usePersistence("alertVideos", true);
+  const [alertVideos, _, alertVideosLoaded] = usePersistence(
+    "alertVideos",
+    true,
+  );
 
   const aspectRatio = useMemo(() => {
     if (
@@ -140,7 +143,7 @@ export function AnimatedEventCard({
               <TooltipContent>{t("markAsReviewed")}</TooltipContent>
             </Tooltip>
           )}
-          {previews != undefined && (
+          {previews != undefined && alertVideosLoaded && (
             <div
               className="size-full cursor-pointer"
               onClick={onOpenReview}
