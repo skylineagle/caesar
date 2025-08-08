@@ -222,7 +222,7 @@ function ExploreThumbnailImage({
   const navigate = useNavigate();
 
   const handleFindSimilar = () => {
-    if (config?.semantic_search.enabled) {
+    if (config?.semantic_search?.enabled) {
       setSimilaritySearch(event);
     }
   };

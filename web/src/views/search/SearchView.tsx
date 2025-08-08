@@ -639,7 +639,7 @@ export default function SearchView({
                         searchResult={value}
                         columns={columns}
                         findSimilar={() => {
-                          if (config?.semantic_search.enabled) {
+                          if (config?.semantic_search?.enabled) {
                             setSimilaritySearch(value);
                           }
                         }}

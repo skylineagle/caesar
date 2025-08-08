@@ -1,19 +1,19 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
 import {
-  LuX,
-  LuFilter,
-  LuChevronDown,
-  LuChevronUp,
-  LuTrash2,
-  LuStar,
-  LuSearch,
-} from "react-icons/lu";
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { usePersistence } from "@/hooks/use-persistence";
+import useSuggestions from "@/hooks/use-suggestions";
+import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
 import {
   FilterType,
   SavedSearchQuery,
@@ -21,25 +21,6 @@ import {
   SearchSortType,
   SearchSource,
 } from "@/types/search";
-import useSuggestions from "@/hooks/use-suggestions";
-import {
-  Command,
-  CommandInput,
-  CommandList,
-  CommandGroup,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { usePersistence } from "@/hooks/use-persistence";
-import { SaveSearchDialog } from "./SaveSearchDialog";
-import { DeleteSearchDialog } from "./DeleteSearchDialog";
 import {
   convertLocalDateToTimestamp,
   convertTo12Hour,
@@ -47,13 +28,31 @@ import {
   isValidTimeRange,
   to24Hour,
 } from "@/utils/dateUtil";
+import { getTranslatedLabel } from "@/utils/i18n";
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from "@radix-ui/react-tooltip";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import {
+  LuChevronDown,
+  LuChevronUp,
+  LuFilter,
+  LuSearch,
+  LuStar,
+  LuTrash2,
+  LuX,
+} from "react-icons/lu";
+import { MdImageSearch } from "react-icons/md";
 import { toast } from "sonner";
 import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { MdImageSearch } from "react-icons/md";
-import { useTranslation } from "react-i18next";
-import { getTranslatedLabel } from "@/utils/i18n";
 import { CameraNameLabel } from "../camera/CameraNameLabel";
+import { DeleteSearchDialog } from "@/components/input/DeleteSearchDialog";
+import { SaveSearchDialog } from "@/components/input/SaveSearchDialog";
 
 type InputWithTagsProps = {
   inputFocused: boolean;
@@ -88,8 +87,6 @@ export default function InputWithTags({
   const [isSimilaritySearch, setIsSimilaritySearch] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const commandRef = useRef<HTMLDivElement>(null);
-
-  // TODO: search history from browser storage
 
   const [searchHistory, setSearchHistory, searchHistoryLoaded] = usePersistence<
     SavedSearchQuery[]
