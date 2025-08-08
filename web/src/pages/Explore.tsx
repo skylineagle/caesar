@@ -26,6 +26,15 @@ import { useDocDomain } from "@/hooks/use-doc-domain";
 
 const API_LIMIT = 25;
 
+// always parse these as string arrays
+const SEARCH_FILTER_ARRAY_KEYS = [
+  "cameras",
+  "labels",
+  "sub_labels",
+  "recognized_license_plate",
+  "zones",
+];
+
 export default function Explore() {
   // search field handler
 
@@ -58,13 +67,7 @@ export default function Explore() {
   const [search, setSearch] = useState("");
 
   const [searchFilter, setSearchFilter, searchSearchParams] =
-    useApiFilterArgs<SearchFilter>([
-      "cameras",
-      "labels",
-      "sub_labels",
-      "recognized_license_plate",
-      "zones",
-    ]);
+    useApiFilterArgs<SearchFilter>(SEARCH_FILTER_ARRAY_KEYS);
 
   const searchTerm = useMemo(
     () => searchSearchParams?.["query"] || "",
@@ -72,7 +75,7 @@ export default function Explore() {
   );
 
   const similaritySearch = useMemo(
-    () => searchSearchParams["search_type"] == "similarity",
+    () => searchSearchParams?.["search_type"] === "similarity",
     [searchSearchParams],
   );
 
@@ -93,13 +96,23 @@ export default function Explore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  // Sync searchTerm to search state when not in similarity search
+  useEffect(() => {
+    if (!similaritySearch && searchTerm) {
+      setSearch(searchTerm);
+    }
+  }, [searchTerm, similaritySearch]);
+
   const searchQuery: SearchQuery = useMemo(() => {
     // no search parameters
-    if (searchSearchParams && Object.keys(searchSearchParams).length === 0) {
-      if (defaultView == "grid") {
+    if (!searchSearchParams || Object.keys(searchSearchParams).length === 0) {
+      if (defaultView === "grid") {
         return ["events", {}];
       } else {
-        return null;
+        return [
+          "events",
+          { limit: API_LIMIT, timezone, include_thumbnails: 0 },
+        ];
       }
     }
 
@@ -141,9 +154,6 @@ export default function Explore() {
     }
 
     // parameters and search term
-    if (!similaritySearch) {
-      setSearch(searchTerm);
-    }
 
     return [
       "events/search",
