@@ -106,6 +106,165 @@ def version():
     return VERSION
 
 
+@router.get(
+    "/camera_switching/status",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def camera_switching_status(request: Request):
+    """Get status of camera switching monitoring for all cameras."""
+    config: FrigateConfig = request.app.frigate_config
+    status = {
+        "enabled_cameras": [],
+        "total_cameras": len(config.cameras),
+        "system_enabled": False,
+    }
+
+    for camera_name, camera_config in config.cameras.items():
+        if camera_config.camera_switching.enabled:
+            status["enabled_cameras"].append(
+                {
+                    "name": camera_name,
+                    "config": {
+                        "check_interval": camera_config.camera_switching.check_interval,
+                        "reset_cooldown": camera_config.camera_switching.reset_cooldown,
+                        "thresholds": camera_config.camera_switching.thresholds.dict(),
+                    },
+                }
+            )
+            status["system_enabled"] = True
+
+    return JSONResponse(content=status)
+
+
+@router.get(
+    "/camera_switching/{camera_name}/status",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def camera_switching_camera_status(request: Request, camera_name: str):
+    """Get detailed status for a specific camera's switching monitoring."""
+    config: FrigateConfig = request.app.frigate_config
+    if camera_name not in config.cameras:
+        return JSONResponse(
+            status_code=404, content={"message": f"Camera {camera_name} not found"}
+        )
+
+    camera_config = config.cameras[camera_name]
+
+    status = {
+        "camera_name": camera_name,
+        "global_enabled": config.camera_switching.enabled,
+        "enabled": camera_config.camera_switching.enabled,
+        "config": camera_config.camera_switching.dict()
+        if camera_config.camera_switching.enabled
+        else None,
+        "monitoring_active": False,
+        "last_reset": None,
+        "format_changes": 0,
+    }
+
+    # Get status from reset manager and status manager
+    try:
+        from frigate.camera_reset_manager import camera_reset_manager
+        from frigate.camera_status_manager import camera_status_manager
+
+        reset_status = camera_reset_manager.get_camera_status(camera_name)
+        status.update(
+            {
+                "has_reset_callback": reset_status["has_callback"],
+                "last_reset": reset_status["last_reset"],
+                "cooldown_remaining": reset_status["cooldown_remaining"],
+            }
+        )
+
+        # Get real-time status from status manager
+        monitoring_status = camera_status_manager.get_camera_status(camera_name)
+        if monitoring_status:
+            status.update(monitoring_status)
+    except Exception as e:
+        logger.debug(f"Could not read camera switch status: {e}")
+
+    return JSONResponse(content=status)
+
+
+@router.post(
+    "/camera_switching/{camera_name}/reset",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def reset_camera_switching(request: Request, camera_name: str):
+    """Manually trigger a camera switch reset for a specific camera."""
+    config: FrigateConfig = request.app.frigate_config
+    if camera_name not in config.cameras:
+        return JSONResponse(
+            status_code=404, content={"message": f"Camera {camera_name} not found"}
+        )
+
+    # Check if globally enabled
+    if not config.camera_switching.enabled:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "message": "Camera switching is globally disabled",
+                "timestamp": datetime.now().isoformat(),
+            },
+        )
+
+    # Use the global reset manager to trigger reset
+    try:
+        from frigate.camera_reset_manager import camera_reset_manager
+
+        success = camera_reset_manager.trigger_camera_reset(
+            camera_name, "Manual reset via API"
+        )
+
+        if success:
+            return JSONResponse(
+                content={
+                    "message": f"Reset triggered for camera {camera_name}",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "message": f"Reset not triggered for camera {camera_name} (cooldown or no callback)",
+                    "timestamp": datetime.now().isoformat(),
+                },
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"message": f"Failed to trigger reset: {str(e)}"}
+        )
+
+
+@router.post(
+    "/camera_switching/cleanup",
+    tags=[Tags.app],
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def cleanup_camera_switching():
+    """Manually trigger cleanup of camera switching temporary files."""
+    try:
+        from frigate.camera_switch_cleanup import cleanup_camera_switch_files
+
+        cleanup_camera_switch_files()
+
+        return JSONResponse(
+            content={
+                "message": "Camera switching cleanup completed successfully",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error during camera switching cleanup: {e}")
+        return JSONResponse(
+            status_code=500, content={"message": f"Cleanup failed: {str(e)}"}
+        )
+
+
 @router.get("/stats")
 def stats(request: Request):
     return JSONResponse(content=request.app.stats_emitter.get_latest_stats())

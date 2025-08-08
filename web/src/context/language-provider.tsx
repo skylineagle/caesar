@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import i18next from "i18next";
 import { supportedLanguageKeys } from "@/lib/const";
 
@@ -25,6 +32,8 @@ export function LanguageProvider({
   defaultLanguage?: string;
   storageKey?: string;
 }) {
+  const reloadTimeoutRef = useRef<NodeJS.Timeout>();
+
   const systemLanguage = useMemo<string>(() => {
     if (typeof window === "undefined") return defaultLanguage;
 
@@ -34,7 +43,6 @@ export function LanguageProvider({
       return systemLanguage;
     }
 
-    // browser languages may include a -REGION (ex: en-US)
     if (systemLanguage.includes("-")) {
       const shortenedSystemLanguage = systemLanguage.split("-")[0];
 
@@ -60,7 +68,6 @@ export function LanguageProvider({
   });
 
   useEffect(() => {
-    // set document lang for smart capitalization
     document.documentElement.lang = language;
 
     if (language === systemLanguage) return;
@@ -72,9 +79,24 @@ export function LanguageProvider({
     setLanguage: (language: string) => {
       localStorage.setItem(storageKey, language);
       setLanguage(language);
-      window.location.reload();
+
+      if (reloadTimeoutRef.current) {
+        clearTimeout(reloadTimeoutRef.current);
+      }
+
+      reloadTimeoutRef.current = setTimeout(() => {
+        window.location.reload();
+      }, 100);
     },
   };
+
+  useEffect(() => {
+    return () => {
+      if (reloadTimeoutRef.current) {
+        clearTimeout(reloadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <LanguageProviderContext.Provider {...props} value={value}>
@@ -83,7 +105,6 @@ export function LanguageProvider({
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useLanguage = () => {
   const context = useContext(LanguageProviderContext);
 
