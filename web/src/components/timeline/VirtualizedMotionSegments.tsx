@@ -180,11 +180,9 @@ export const VirtualizedMotionSegments = forwardRef<
 
         let recorded = true;
         if (recordingIntervals.length > 0) {
-          recorded = recordingIntervals.some((r) => {
-            const segStart = segmentTime;
-            const segEnd = segmentTime + segmentDuration;
-            return segStart < r.end && segEnd > r.start;
-          });
+          recorded = recordingIntervals.some(
+            (r) => segmentTime >= r.start && segmentTime <= r.end,
+          );
         } else if (isTimestampRecorded) {
           recorded = isTimestampRecorded(segmentTime);
         }

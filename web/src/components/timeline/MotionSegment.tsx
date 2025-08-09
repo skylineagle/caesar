@@ -142,9 +142,10 @@ export function MotionSegment({
       : ""
   }`;
 
-  const noRecordingPatternClasses = !recorded
-    ? "before:absolute before:inset-0 before:bg-[repeating-linear-gradient(135deg,theme(colors.gray.400)/35_0_6px,transparent_6px_10px)] before:content-['']"
-    : "";
+  const noRecordingPatternClasses =
+    !recorded && !severity[0]
+      ? "before:absolute before:inset-0 before:bg-[repeating-linear-gradient(135deg,theme(colors.gray.400)/50_0_6px,transparent_6px_10px)] before:content-['']"
+      : "";
 
   const severityColorsBg: { [key: number]: string } = {
     1: reviewed
@@ -181,10 +182,11 @@ export function MotionSegment({
             },
             segmentClasses,
             noRecordingPatternClasses,
-            recorded && severity[0] && "bg-gradient-to-r",
-            recorded && severity[0] && severityColorsBg[severity[0]],
+            severity[0] && "bg-gradient-to-r",
+            severity[0] && severityColorsBg[severity[0]],
             !recorded &&
-              "border-l-2 border-dashed border-gray-500/40 bg-gray-200/30",
+              !severity[0] &&
+              "border-l-2 border-dashed border-gray-500/50 bg-gray-200/40",
           )}
           onClick={segmentClick}
           onTouchEnd={(event) => handleTouchStart(event, segmentClick)}
