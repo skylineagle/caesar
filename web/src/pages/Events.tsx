@@ -432,6 +432,19 @@ export default function Events() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, date, reviewFilter?.cameras, urlCurrentTime, config]);
 
+  // keep the review filter's day in sync with URL after/before so UI shows the right day
+  useEffect(() => {
+    if (after !== null && before !== null) {
+      if (reviewFilter?.after !== after || reviewFilter?.before !== before) {
+        setReviewFilter({
+          ...(reviewFilter ?? ({} as ReviewFilter)),
+          after,
+          before,
+        });
+      }
+    }
+  }, [after, before, reviewFilter, setReviewFilter]);
+
   useEffect(() => {
     if (recording) {
       if (
