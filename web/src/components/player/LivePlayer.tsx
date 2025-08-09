@@ -237,82 +237,6 @@ export default function LivePlayer({
     }
   }, [liveReady, isReEnabling]);
 
-  if (!cameraConfig) {
-    return <ActivityIndicator />;
-  }
-
-  let player;
-  if (!autoLive || !streamName || !cameraEnabled) {
-    player = null;
-  } else if (preferredLiveMode == "webrtc") {
-    player = (
-      <WebRtcPlayer
-        key={"webrtc_" + key}
-        className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
-        camera={streamName}
-        playbackEnabled={cameraActive || liveReady}
-        getStats={showStats}
-        setStats={setStats}
-        audioEnabled={playAudio}
-        volume={volume}
-        microphoneEnabled={micEnabled}
-        iOSCompatFullScreen={iOSCompatFullScreen}
-        onPlaying={playerIsPlaying}
-        pip={pip}
-        onError={onError}
-      />
-    );
-  } else if (preferredLiveMode == "mse") {
-    if ("MediaSource" in window || "ManagedMediaSource" in window) {
-      player = (
-        <MSEPlayer
-          key={"mse_" + key}
-          className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
-          camera={streamName}
-          playbackEnabled={cameraActive || liveReady}
-          audioEnabled={playAudio}
-          volume={volume}
-          playInBackground={playInBackground}
-          getStats={showStats}
-          setStats={setStats}
-          onPlaying={playerIsPlaying}
-          pip={pip}
-          setFullResolution={setFullResolution}
-          onError={onError}
-        />
-      );
-    } else {
-      player = (
-        <div className="w-5xl text-center text-sm">
-          {t("livePlayerRequiredIOSVersion")}
-        </div>
-      );
-    }
-  } else if (preferredLiveMode == "jsmpeg") {
-    if (cameraActive || !showStillWithoutActivity || liveReady) {
-      player = (
-        <JSMpegPlayer
-          key={"jsmpeg_" + key}
-          className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
-          camera={cameraConfig.name}
-          width={cameraConfig.detect.width}
-          height={cameraConfig.detect.height}
-          playbackEnabled={
-            cameraActive || !showStillWithoutActivity || liveReady
-          }
-          useWebGL={useWebGL}
-          setStats={setStats}
-          containerRef={containerRef ?? internalContainerRef}
-          onPlaying={playerIsPlaying}
-        />
-      );
-    } else {
-      player = null;
-    }
-  } else {
-    player = <ActivityIndicator />;
-  }
-
   const handlePointerDown = useCallback((x: number, y: number) => {
     pointerDownPositionRef.current = { x, y };
     hasDraggedRef.current = false;
@@ -397,6 +321,82 @@ export default function LivePlayer({
     },
     [onClick],
   );
+
+  if (!cameraConfig) {
+    return <ActivityIndicator />;
+  }
+
+  let player;
+  if (!autoLive || !streamName || !cameraEnabled) {
+    player = null;
+  } else if (preferredLiveMode == "webrtc") {
+    player = (
+      <WebRtcPlayer
+        key={"webrtc_" + key}
+        className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
+        camera={streamName}
+        playbackEnabled={cameraActive || liveReady}
+        getStats={showStats}
+        setStats={setStats}
+        audioEnabled={playAudio}
+        volume={volume}
+        microphoneEnabled={micEnabled}
+        iOSCompatFullScreen={iOSCompatFullScreen}
+        onPlaying={playerIsPlaying}
+        pip={pip}
+        onError={onError}
+      />
+    );
+  } else if (preferredLiveMode == "mse") {
+    if ("MediaSource" in window || "ManagedMediaSource" in window) {
+      player = (
+        <MSEPlayer
+          key={"mse_" + key}
+          className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
+          camera={streamName}
+          playbackEnabled={cameraActive || liveReady}
+          audioEnabled={playAudio}
+          volume={volume}
+          playInBackground={playInBackground}
+          getStats={showStats}
+          setStats={setStats}
+          onPlaying={playerIsPlaying}
+          pip={pip}
+          setFullResolution={setFullResolution}
+          onError={onError}
+        />
+      );
+    } else {
+      player = (
+        <div className="w-5xl text-center text-sm">
+          {t("livePlayerRequiredIOSVersion")}
+        </div>
+      );
+    }
+  } else if (preferredLiveMode == "jsmpeg") {
+    if (cameraActive || !showStillWithoutActivity || liveReady) {
+      player = (
+        <JSMpegPlayer
+          key={"jsmpeg_" + key}
+          className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
+          camera={cameraConfig.name}
+          width={cameraConfig.detect.width}
+          height={cameraConfig.detect.height}
+          playbackEnabled={
+            cameraActive || !showStillWithoutActivity || liveReady
+          }
+          useWebGL={useWebGL}
+          setStats={setStats}
+          containerRef={containerRef ?? internalContainerRef}
+          onPlaying={playerIsPlaying}
+        />
+      );
+    } else {
+      player = null;
+    }
+  } else {
+    player = <ActivityIndicator />;
+  }
 
   return (
     <div
