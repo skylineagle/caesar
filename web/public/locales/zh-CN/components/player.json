@@ -47,18 +47,5 @@
     "error": {
       "submitFrigatePlusFailed": "提交帧到 Frigate+ 失败"
     }
-  },
-  "screenshot": {
-    "button": {
-      "aria": "Take screenshot",
-      "tooltip": "Take screenshot"
-    },
-    "success": {
-      "captured": "Screenshot captured successfully"
-    },
-    "error": {
-      "noVideoElement": "No video element found",
-      "failed": "Failed to capture screenshot"
-    }
   }
 }

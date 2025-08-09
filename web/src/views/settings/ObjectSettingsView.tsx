@@ -1,35 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
 import AutoUpdatingCameraImage from "@/components/camera/AutoUpdatingCameraImage";
-import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
-import { Toaster } from "@/components/ui/sonner";
-import { Label } from "@/components/ui/label";
-import useSWR from "swr";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import { Card } from "@/components/ui/card";
 import Heading from "@/components/ui/heading";
-import { Switch } from "@/components/ui/switch";
-import { usePersistence } from "@/hooks/use-persistence";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useCameraActivity } from "@/hooks/use-camera-activity";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ObjectType } from "@/types/ws";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCameraActivity } from "@/hooks/use-camera-activity";
 import useDeepMemo from "@/hooks/use-deep-memo";
-import { Card } from "@/components/ui/card";
+import { usePersistence } from "@/hooks/use-persistence";
+import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
+import { ObjectType } from "@/types/ws";
 import { getIconForLabel } from "@/utils/iconUtil";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuExternalLink, LuInfo } from "react-icons/lu";
 import { Link } from "react-router-dom";
+import useSWR from "swr";
 
 import DebugDrawingLayer from "@/components/overlay/DebugDrawingLayer";
 import { Separator } from "@/components/ui/separator";
-import { isDesktop } from "react-device-detect";
-import { Trans, useTranslation } from "react-i18next";
 import { useDocDomain } from "@/hooks/use-doc-domain";
 import { getTranslatedLabel } from "@/utils/i18n";
+import { isDesktop } from "react-device-detect";
+import { Trans, useTranslation } from "react-i18next";
 
 type ObjectSettingsViewProps = {
   selectedCamera?: string;
@@ -149,7 +148,6 @@ export default function ObjectSettingsView({
 
   return (
     <div className="flex size-full flex-col md:flex-row">
-      <Toaster position="top-center" closeButton={true} />
       <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0 md:w-3/12">
         <Heading as="h3" className="my-2">
           {t("debug.title")}

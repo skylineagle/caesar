@@ -3,6 +3,7 @@ import useApiFilter from "@/hooks/use-api-filter";
 import { useCameraPreviews } from "@/hooks/use-camera-previews";
 import { useTimezone } from "@/hooks/use-date-utils";
 import {
+  useDateFilter,
   useRecording,
   useSeverity,
   useShowReviewed,
@@ -19,6 +20,7 @@ import EventView from "@/views/events/EventView";
 import { RecordingView } from "@/views/recording/RecordingView";
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 
@@ -35,7 +37,15 @@ export default function Events() {
   const { severity, setSeverity } = useSeverity();
   const { showReviewed, setShowReviewed } = useShowReviewed();
   const { recording, setRecording } = useRecording();
+  const { date, setDate, after, setAfter, before, setBefore } = useDateFilter();
   const [startTime, setStartTime] = useState<number>();
+  const [rawParams] = useSearchParams();
+  const urlCurrentTime = useMemo(() => {
+    const v = rawParams.get("currentTime");
+    if (!v) return undefined;
+    const num = parseFloat(v);
+    return Number.isFinite(num) ? num : undefined;
+  }, [rawParams]);
 
   useEffect(() => {
     if (recording) {
@@ -61,6 +71,18 @@ export default function Events() {
         return { ...prevRecording, startTime: newFilter.after! };
       });
     }
+
+    // Update URL state with the new filter values
+    if (newFilter.after !== undefined) {
+      setAfter(newFilter.after);
+    } else {
+      setAfter(null);
+    }
+    if (newFilter.before !== undefined) {
+      setBefore(newFilter.before);
+    } else {
+      setBefore(null);
+    }
   };
 
   // review paging
@@ -70,20 +92,38 @@ export default function Events() {
     return { before: beforeTs, after: getHoursAgo(24) };
   }, [beforeTs]);
   const selectedTimeRange = useMemo(() => {
-    // If we have filter parameters in the URL, use them
-    if (
-      reviewSearchParams["after"] != undefined &&
-      reviewSearchParams["before"] != undefined
-    ) {
+    // If we have explicit after/before parameters in URL state, use them
+    if (after !== null && before !== null) {
       return {
-        before: Math.ceil(reviewSearchParams["before"]),
-        after: Math.floor(reviewSearchParams["after"]),
+        before: before,
+        after: after,
+      };
+    }
+
+    // If we have a date parameter from a shared recording, use that date
+    if (date && recording) {
+      const recordingDate = new Date(date);
+      const startOfDay = new Date(recordingDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(recordingDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const newAfter = Math.floor(startOfDay.getTime() / 1000);
+      const newBefore = Math.ceil(endOfDay.getTime() / 1000);
+
+      // Update the URL state with the calculated time range
+      setAfter(newAfter);
+      setBefore(newBefore);
+
+      return {
+        before: newBefore,
+        after: newAfter,
       };
     }
 
     // Otherwise use the default last 24 hours
     return last24Hours;
-  }, [last24Hours, reviewSearchParams]);
+  }, [last24Hours, after, before, date, recording, setAfter, setBefore]);
 
   // we want to update the items whenever the severity changes
   useEffect(() => {
@@ -112,11 +152,11 @@ export default function Events() {
       labels: reviewSearchParams["labels"],
       zones: reviewSearchParams["zones"],
       reviewed: 1,
-      before: reviewSearchParams["before"] || last24Hours.before,
-      after: reviewSearchParams["after"] || last24Hours.after,
+      before: before || last24Hours.before,
+      after: after || last24Hours.after,
     };
     return ["review", params];
-  }, [reviewSearchParams, last24Hours]);
+  }, [reviewSearchParams, before, after, last24Hours]);
 
   const { data: reviews, mutate: updateSegments } = useSWR<ReviewSegment[]>(
     getKey,
@@ -366,27 +406,102 @@ export default function Events() {
       return undefined;
     }
 
-    if (!reviews) {
-      return undefined;
-    }
+    const allCameras = reviewFilter?.cameras ?? [recording.camera];
 
-    const allCameras = reviewFilter?.cameras ?? Object.keys(config.cameras);
+    // Check if the stored timestamps are still valid
+    let startTime =
+      urlCurrentTime ?? recording.currentTime ?? recording.startTime;
+
+    // If the stored timestamp is too old (more than 30 days), use the start of the day from the date parameter
+    if (date) {
+      const recordingDate = new Date(date);
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      if (recordingDate < thirtyDaysAgo) {
+        // Use the start of the day from the date parameter
+        const startOfDay = new Date(recordingDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        startTime = Math.floor(startOfDay.getTime() / 1000);
+      }
+    }
 
     return {
       camera: recording.camera,
-      start_time: recording.currentTime ?? recording.startTime,
+      start_time: startTime,
       allCameras: allCameras,
     };
 
     // previews will not update after item is selected
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, reviews]);
+  }, [recording, date, reviewFilter?.cameras, urlCurrentTime, config]);
+
+  // keep the review filter's day in sync with URL after/before so UI shows the right day
+  useEffect(() => {
+    if (after !== null && before !== null) {
+      if (reviewFilter?.after !== after || reviewFilter?.before !== before) {
+        setReviewFilter({
+          ...(reviewFilter ?? ({} as ReviewFilter)),
+          after,
+          before,
+        });
+      }
+    }
+  }, [after, before, reviewFilter, setReviewFilter]);
 
   useEffect(() => {
     if (recording) {
-      setStartTime(recording.startTime);
+      if (
+        !reviewFilter?.cameras ||
+        reviewFilter.cameras[0] !== recording.camera ||
+        reviewFilter.cameras.length !== 1
+      ) {
+        const next: ReviewFilter = {
+          ...(reviewFilter ?? ({} as ReviewFilter)),
+          cameras: [recording.camera],
+        } as ReviewFilter;
+        setReviewFilter(next);
+      }
     }
-  }, [recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording?.camera]);
+
+  useEffect(() => {
+    if (recording) {
+      // Check if the recording data is too old and clear it if necessary
+      const now = Date.now() / 1000;
+      const recordingAge = now - recording.startTime;
+      const maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
+
+      if (recordingAge > maxAge && !date) {
+        // Recording is too old and we don't have a date parameter, clear it
+        setRecording(null);
+        return;
+      }
+
+      setStartTime(recording.startTime);
+    } else {
+      // Clear date filter when no recording is active
+      setDate(null);
+      setAfter(null);
+      setBefore(null);
+    }
+  }, [recording, date, setRecording, setDate, setAfter, setBefore]);
+
+  // Handle URL state changes when date parameters are manually set
+  useEffect(() => {
+    if (date && !after && !before) {
+      // If we have a date but no time range, calculate the full day
+      const recordingDate = new Date(date);
+      const startOfDay = new Date(recordingDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(recordingDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      setAfter(Math.floor(startOfDay.getTime() / 1000));
+      setBefore(Math.ceil(endOfDay.getTime() / 1000));
+    }
+  }, [date, after, before, setAfter, setBefore]);
 
   if (!timezone) {
     return <ActivityIndicator />;
@@ -426,7 +541,15 @@ export default function Events() {
         setSeverity={setSeverity}
         markItemAsReviewed={markItemAsReviewed}
         markAllItemsAsReviewed={markAllItemsAsReviewed}
-        onOpenRecording={setRecording}
+        onOpenRecording={(recordingInfo) => {
+          // Set the recording and also set the date parameter for better time range handling
+          setRecording(recordingInfo);
+
+          // Calculate the date from the start time
+          const recordingDate = new Date(recordingInfo.startTime * 1000);
+          const dateString = recordingDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+          setDate(dateString);
+        }}
         pullLatestData={reloadData}
         updateFilter={onUpdateFilter}
       />

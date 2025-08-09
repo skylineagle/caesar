@@ -24,6 +24,11 @@ type VirtualizedMotionSegmentsProps = {
   dense: boolean;
   motionOnly: boolean;
   getMotionSegmentValue: (timestamp: number) => number;
+  isTimestampRecorded?: (timestamp: number) => boolean;
+  timelineStartAligned?: number;
+  timelineEnd?: number;
+  showNowIndicator?: boolean;
+  recordingIntervals?: { start: number; end: number }[];
 };
 
 export interface VirtualizedMotionSegmentsRef {
@@ -55,6 +60,11 @@ export const VirtualizedMotionSegments = forwardRef<
       dense,
       motionOnly,
       getMotionSegmentValue,
+      isTimestampRecorded,
+      timelineStartAligned,
+      timelineEnd,
+      showNowIndicator = true,
+      recordingIntervals = [],
     },
     ref,
   ) => {
@@ -133,6 +143,16 @@ export const VirtualizedMotionSegments = forwardRef<
       scrollToSegment,
     }));
 
+    const nowIndicatorTop = (() => {
+      if (!showNowIndicator || !timelineStartAligned || !timelineEnd) {
+        return undefined;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      if (now > timelineStartAligned || now < timelineEnd) return undefined;
+      const index = Math.floor((timelineStartAligned - now) / segmentDuration);
+      return index * SEGMENT_HEIGHT;
+    })();
+
     const renderSegment = useCallback(
       (segmentTime: number, index: number) => {
         const motionStart = segmentTime;
@@ -156,6 +176,17 @@ export const VirtualizedMotionSegments = forwardRef<
 
         if ((!segmentMotion || overlappingReviewItems) && motionOnly) {
           return null; // Skip rendering this segment in motion only mode
+        }
+
+        let recorded = true;
+        if (recordingIntervals.length > 0) {
+          recorded = recordingIntervals.some((r) => {
+            const segStart = segmentTime;
+            const segEnd = segmentTime + segmentDuration;
+            return segStart < r.end && segEnd > r.start;
+          });
+        } else if (isTimestampRecorded) {
+          recorded = isTimestampRecorded(segmentTime);
         }
 
         return (
@@ -182,23 +213,26 @@ export const VirtualizedMotionSegments = forwardRef<
               setHandlebarTime={setHandlebarTime}
               scrollToSegment={scrollToSegment}
               dense={dense}
+              recorded={recorded}
             />
           </div>
         );
       },
       [
-        events,
-        getMotionSegmentValue,
-        motionOnly,
         segmentDuration,
+        getMotionSegmentValue,
+        events,
+        motionOnly,
+        recordingIntervals,
+        isTimestampRecorded,
+        visibleRange.start,
+        timestampSpread,
         showMinimap,
         minimapStartTime,
         minimapEndTime,
         setHandlebarTime,
         scrollToSegment,
         dense,
-        timestampSpread,
-        visibleRange.start,
       ],
     );
 
@@ -215,6 +249,19 @@ export const VirtualizedMotionSegments = forwardRef<
         style={{ position: "relative", willChange: "transform" }}
       >
         <div style={{ height: `${totalHeight}px`, position: "relative" }}>
+          {typeof nowIndicatorTop === "number" && (
+            <div
+              className="pointer-events-none absolute right-0 z-20 h-[2px] w-full"
+              style={{ top: `${nowIndicatorTop + SEGMENT_HEIGHT / 2}px` }}
+            >
+              <div className="mx-1 flex items-center gap-1">
+                <div className="h-[2px] w-full bg-emerald-500/80" />
+                <div className="shrink-0 rounded-sm bg-emerald-500/90 px-1 text-[9px] font-medium uppercase text-white">
+                  Now
+                </div>
+              </div>
+            </div>
+          )}
           {visibleRange.start > 0 && (
             <div
               style={{

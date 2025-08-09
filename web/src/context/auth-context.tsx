@@ -8,7 +8,7 @@ import {
 } from "react";
 import useSWR from "swr";
 
-export interface AuthState {
+interface AuthState {
   user: { username: string; role: "admin" | "viewer" | null } | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -33,12 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
   });
 
-  const {
-    data: profile,
-    error,
-    mutate,
-    isValidating,
-  } = useSWR("/profile", {
+  const { data: profile, error } = useSWR("/profile", {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
     errorRetryCount: 3,
@@ -83,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (profile) {
-      if (profile.username) {
+      if (profile.username && profile.username !== "anonymous") {
         const newUser = {
           username: profile.username,
           role: profile.role || "viewer",
@@ -106,23 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { user: null, isLoading: false, isAuthenticated: false };
         });
       }
-    } else if (!isValidating && !error) {
-      setAuth((prevAuth) => {
-        if (!prevAuth.isLoading) {
-          return prevAuth;
-        }
-        return { user: null, isLoading: false, isAuthenticated: false };
-      });
     }
-  }, [profile, error, isValidating]);
+  }, [profile, error]);
 
-  const login = useCallback(
-    (user: AuthState["user"]) => {
-      setAuth({ user, isLoading: false, isAuthenticated: true });
-      mutate();
-    },
-    [mutate],
-  );
+  const login = useCallback((user: AuthState["user"]) => {
+    setAuth({ user, isLoading: false, isAuthenticated: true });
+  }, []);
 
   const logout = () => {
     setAuth({ user: null, isLoading: false, isAuthenticated: true });

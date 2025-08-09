@@ -2,14 +2,29 @@ import Logo from "@/components/Logo";
 import NewReviewData from "@/components/dynamic/NewReviewData";
 import ReviewActionGroup from "@/components/filter/ReviewActionGroup";
 import ReviewFilterGroup from "@/components/filter/ReviewFilterGroup";
-import PreviewThumbnailPlayer from "@/components/player/PreviewThumbnailPlayer";
-import EventReviewTimeline from "@/components/timeline/EventReviewTimeline";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
+import ReviewDetailDialog from "@/components/overlay/detail/ReviewDetailDialog";
+import PreviewPlayer, {
+  PreviewController,
+} from "@/components/player/PreviewPlayer";
+import PreviewThumbnailPlayer from "@/components/player/PreviewThumbnailPlayer";
+import VideoControls from "@/components/player/VideoControls";
+import EventReviewTimeline from "@/components/timeline/EventReviewTimeline";
+import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
+import SummaryTimeline from "@/components/timeline/SummaryTimeline";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useTimelineUtils } from "@/hooks/use-timeline-utils";
+import { useCameraMotionNextTimestamp } from "@/hooks/use-camera-activity";
+import useKeyboardListener from "@/hooks/use-keyboard-listener";
 import { useScrollLockout } from "@/hooks/use-mouse-listener";
+import useOptimisticState from "@/hooks/use-optimistic-state";
+import { useTimelineUtils } from "@/hooks/use-timeline-utils";
+import { cn } from "@/lib/utils";
+import { FilterList, LAST_24_HOURS_KEY } from "@/types/filter";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { Preview } from "@/types/preview";
+import { RecordingStartingPoint } from "@/types/record";
 import {
   MotionData,
   RecordingsSummary,
@@ -20,6 +35,7 @@ import {
   ReviewSummary,
   SegmentedReviewData,
 } from "@/types/review";
+import { TimeRange } from "@/types/timeline";
 import { getChunkedTimeRange } from "@/utils/timelineUtil";
 import axios from "axios";
 import {
@@ -31,32 +47,16 @@ import {
   useState,
 } from "react";
 import { isDesktop, isMobile, isMobileOnly } from "react-device-detect";
+import { GiSoundWaves } from "react-icons/gi";
 import { LuFolderCheck, LuFolderX } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
-import useSWR from "swr";
-import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
-import { Button } from "@/components/ui/button";
-import PreviewPlayer, {
-  PreviewController,
-} from "@/components/player/PreviewPlayer";
-import SummaryTimeline from "@/components/timeline/SummaryTimeline";
-import { RecordingStartingPoint } from "@/types/record";
-import VideoControls from "@/components/player/VideoControls";
-import { TimeRange } from "@/types/timeline";
-import { useCameraMotionNextTimestamp } from "@/hooks/use-camera-activity";
-import useOptimisticState from "@/hooks/use-optimistic-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import scrollIntoView from "scroll-into-view-if-needed";
-import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { FilterList, LAST_24_HOURS_KEY } from "@/types/filter";
-import { GiSoundWaves } from "react-icons/gi";
-import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import ReviewDetailDialog from "@/components/overlay/detail/ReviewDetailDialog";
+import useSWR from "swr";
 
 import { useTimelineZoom } from "@/hooks/use-timeline-zoom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 type EventViewProps = {
   reviewItems?: SegmentedReviewData;
@@ -99,6 +99,7 @@ export default function EventView({
   const { t } = useTranslation(["views/events"]);
   const { data: config } = useSWR<FrigateConfig>("config");
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
 
   // review counts
 
@@ -157,17 +158,29 @@ export default function EventView({
           setSelectedReviews(copy);
         }
       } else {
-        onOpenRecording({
-          camera: review.camera,
-          startTime: review.start_time - REVIEW_PADDING,
-          severity: review.severity,
-        });
+        const params = new URLSearchParams();
+        params.set(
+          "recording",
+          JSON.stringify({
+            camera: review.camera,
+            startTime: review.start_time - REVIEW_PADDING,
+            severity: review.severity,
+          }),
+        );
+        const day = new Date(review.start_time * 1000);
+        const startOfDay = new Date(day);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(day);
+        endOfDay.setHours(23, 59, 59, 999);
+        params.set("after", Math.floor(startOfDay.getTime() / 1000).toString());
+        params.set("before", Math.ceil(endOfDay.getTime() / 1000).toString());
+        navigate(`/review?${params.toString()}`);
 
         review.has_been_reviewed = true;
         markItemAsReviewed(review);
       }
     },
-    [selectedReviews, setSelectedReviews, onOpenRecording, markItemAsReviewed],
+    [selectedReviews, setSelectedReviews, navigate, markItemAsReviewed],
   );
   const onSelectAllReviews = useCallback(() => {
     if (!currentReviewItems || currentReviewItems.length == 0) {
@@ -260,7 +273,6 @@ export default function EventView({
 
   return (
     <div className="flex size-full flex-col pt-2 md:py-2">
-      <Toaster closeButton={true} />
       <div className="relative mb-2 flex h-11 items-center justify-between pl-2 pr-2 md:pl-3">
         {isMobile && (
           <Logo className="absolute inset-x-1/2 h-8 -translate-x-1/2" />

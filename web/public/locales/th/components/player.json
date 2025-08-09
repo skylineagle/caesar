@@ -47,18 +47,5 @@
     }
   },
   "noRecordingsFoundForThisTime": "ไม่เจอการบันทึกในช่วงเวลานี้",
-  "noPreviewFoundFor": "ไม่พบตัวอย่างสำหรับ {{cameraName}}",
-  "screenshot": {
-    "button": {
-      "aria": "Take screenshot",
-      "tooltip": "Take screenshot"
-    },
-    "success": {
-      "captured": "Screenshot captured successfully"
-    },
-    "error": {
-      "noVideoElement": "No video element found",
-      "failed": "Failed to capture screenshot"
-    }
-  }
+  "noPreviewFoundFor": "ไม่พบตัวอย่างสำหรับ {{cameraName}}"
 }

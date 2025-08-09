@@ -11,7 +11,9 @@ function Live() {
   const { t } = useTranslation(["views/live"]);
   const { data: config } = useSWR<FrigateConfig>("config");
   const navigate = useNavigate();
+
   const mainRef = useRef<HTMLDivElement | null>(null);
+
   const { fullscreen, toggleFullscreen } = useFullscreen(mainRef);
 
   useKeyboardListener(["f"], (key, modifiers) => {

@@ -3,9 +3,7 @@ import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
 
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Toaster } from "@/components/ui/sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -13,7 +11,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import { usePersistence } from "@/hooks/use-persistence";
-import { useGroup } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import {
   BirdseyeConfig,
@@ -21,6 +18,7 @@ import {
   CameraStreamingSettings,
   FrigateConfig,
 } from "@/types/frigateConfig";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 import {
   AudioState,
@@ -52,6 +50,7 @@ import { FaCompress, FaExpand } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { LuLayoutDashboard, LuPencil } from "react-icons/lu";
 import "react-resizable/css/styles.css";
+import { useParams } from "react-router-dom";
 
 type DraggableGridLayoutProps = {
   cameras: CameraConfig[];
@@ -126,7 +125,7 @@ export default function DraggableGridLayout({
     Layout[]
   >(`${cameraGroup}-draggable-layout`);
 
-  const { group } = useGroup();
+  const { group } = useParams<{ group: string }>();
 
   const groups = useMemo(() => {
     if (!config) {
@@ -385,7 +384,6 @@ export default function DraggableGridLayout({
 
   return (
     <>
-      <Toaster position="top-center" closeButton={true} />
       {!isGridLayoutLoaded ||
       !currentGridLayout ||
       !isEqual(cameras, currentCameras) ||

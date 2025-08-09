@@ -6,19 +6,21 @@ import {
 } from "@/api/ws";
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import { MotionData, ReviewSegment } from "@/types/review";
-import { ObjectType } from "@/types/ws";
-import { getAttributeLabels } from "@/utils/iconUtil";
-import { isEqual } from "lodash";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
-import useDeepMemo from "./use-deep-memo";
 import { useTimelineUtils } from "./use-timeline-utils";
+import { ObjectType } from "@/types/ws";
+import useDeepMemo from "./use-deep-memo";
+import { isEqual } from "lodash";
+import { useAutoFrigateStats } from "./use-stats";
+import useSWR from "swr";
+import { getAttributeLabels } from "@/utils/iconUtil";
 
 type useCameraActivityReturn = {
   enabled?: boolean;
   activeTracking: boolean;
   activeMotion: boolean;
   objects: ObjectType[];
+  offline: boolean;
 };
 
 export function useCameraActivity(
@@ -127,6 +129,24 @@ export function useCameraActivity(
     handleSetObjects(newObjects);
   }, [attributeLabels, camera, updatedEvent, objects, handleSetObjects]);
 
+  // determine if camera is offline
+
+  const stats = useAutoFrigateStats();
+
+  const offline = useMemo(() => {
+    if (!stats) {
+      return false;
+    }
+
+    const cameras = stats["cameras"];
+
+    if (!cameras) {
+      return false;
+    }
+
+    return cameras[camera.name].camera_fps == 0 && stats["service"].uptime > 60;
+  }, [camera, stats]);
+
   const isCameraEnabled = cameraEnabled ? cameraEnabled === "ON" : true;
 
   return {
@@ -138,6 +158,7 @@ export function useCameraActivity(
         : updatedCameraState?.motion === true
       : false,
     objects: isCameraEnabled ? (objects ?? []) : [],
+    offline,
   };
 }
 

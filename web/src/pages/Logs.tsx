@@ -1,5 +1,18 @@
+import EnhancedScrollFollow from "@/components/dynamic/EnhancedScrollFollow";
+import { LogSettingsButton } from "@/components/filter/LogSettingsButton";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import { LogChip } from "@/components/indicators/Chip";
+import LogInfoDialog from "@/components/overlay/LogInfoDialog";
 import { Button } from "@/components/ui/button";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import useKeyboardListener from "@/hooks/use-keyboard-listener";
+import { cn } from "@/lib/utils";
 import {
   LogLine,
   LogSettingsType,
@@ -7,34 +20,20 @@ import {
   LogType,
   logTypes,
 } from "@/types/log";
-import copy from "copy-to-clipboard";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
-import LogInfoDialog from "@/components/overlay/LogInfoDialog";
-import { LogChip } from "@/components/indicators/Chip";
-import { LogSettingsButton } from "@/components/filter/LogSettingsButton";
-import { FaCopy, FaDownload } from "react-icons/fa";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { cn } from "@/lib/utils";
-import { parseLogLines } from "@/utils/logUtil";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import scrollIntoView from "scroll-into-view-if-needed";
-import { LazyLog } from "@melloware/react-logviewer";
-import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import EnhancedScrollFollow from "@/components/dynamic/EnhancedScrollFollow";
-import { MdCircle } from "react-icons/md";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { debounce } from "lodash";
-import { isIOS, isMobile } from "react-device-detect";
-import { isPWA } from "@/utils/isPWA";
 import { isInIframe } from "@/utils/isIFrame";
+import { isPWA } from "@/utils/isPWA";
+import { parseLogLines } from "@/utils/logUtil";
+import { LazyLog } from "@melloware/react-logviewer";
+import axios from "axios";
+import copy from "copy-to-clipboard";
+import { debounce } from "lodash";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isIOS, isMobile } from "react-device-detect";
 import { useTranslation } from "react-i18next";
+import { FaCopy, FaDownload } from "react-icons/fa";
+import { MdCircle } from "react-icons/md";
+import scrollIntoView from "scroll-into-view-if-needed";
+import { toast } from "sonner";
 
 function Logs() {
   const { t } = useTranslation(["views/system"]);
@@ -467,7 +466,6 @@ function Logs() {
 
   return (
     <div className="flex size-full flex-col p-2">
-      <Toaster position="top-center" closeButton={true} />
       <LogInfoDialog logLine={selectedLog} setLogLine={setSelectedLog} />
 
       <div className="relative flex h-11 w-full items-center justify-between">

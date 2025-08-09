@@ -1,21 +1,20 @@
-import useSWR from "swr";
-import { FrigateStats } from "@/types/stats";
-import { useEffect, useMemo, useState } from "react";
 import TimeAgo from "@/components/dynamic/TimeAgo";
+import Logo from "@/components/Logo";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { isDesktop, isMobile } from "react-device-detect";
+import useOptimisticState from "@/hooks/use-optimistic-state";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { FrigateStats } from "@/types/stats";
+import CameraMetrics from "@/views/system/CameraMetrics";
+import EnrichmentMetrics from "@/views/system/EnrichmentMetrics";
 import GeneralMetrics from "@/views/system/GeneralMetrics";
 import StorageMetrics from "@/views/system/StorageMetrics";
-import { LuActivity, LuHardDrive, LuSearchCode } from "react-icons/lu";
-import { FaVideo } from "react-icons/fa";
-import Logo from "@/components/Logo";
-import useOptimisticState from "@/hooks/use-optimistic-state";
-import CameraMetrics from "@/views/system/CameraMetrics";
-import { Toaster } from "@/components/ui/sonner";
-import { FrigateConfig } from "@/types/frigateConfig";
-import EnrichmentMetrics from "@/views/system/EnrichmentMetrics";
-import { useTranslation } from "react-i18next";
 import { parseAsStringEnum, useQueryState } from "nuqs";
+import { useEffect, useMemo, useState } from "react";
+import { isDesktop, isMobile } from "react-device-detect";
+import { useTranslation } from "react-i18next";
+import { FaVideo } from "react-icons/fa";
+import { LuActivity, LuHardDrive, LuSearchCode } from "react-icons/lu";
+import useSWR from "swr";
 
 const allMetrics = ["general", "enrichments", "storage", "cameras"] as const;
 type SystemMetric = (typeof allMetrics)[number];
@@ -67,7 +66,6 @@ function System() {
 
   return (
     <div className="flex size-full flex-col p-2">
-      <Toaster position="top-center" />
       <div className="relative flex h-11 w-full items-center justify-between">
         {isMobile && (
           <Logo className="absolute inset-x-1/2 h-8 -translate-x-1/2" />

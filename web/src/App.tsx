@@ -6,7 +6,13 @@ import Sidebar from "@/components/navigation/Sidebar";
 import Providers from "@/context/providers";
 import { Suspense, lazy, useEffect } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+  useNavigate,
+  Outlet,
+} from "react-router-dom";
 import Statusbar from "./components/Statusbar";
 import Bottombar from "./components/navigation/Bottombar";
 import { Redirect } from "./components/navigation/Redirect";
@@ -29,13 +35,7 @@ const Logs = lazy(() => import("@/pages/Logs"));
 const AccessDenied = lazy(() => import("@/pages/AccessDenied"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 
-function AppRoutes() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    setNavigateFunction(navigate);
-  }, [navigate]);
-
+function MainLayout() {
   return (
     <Wrapper>
       <div className="size-full overflow-hidden">
@@ -52,34 +52,50 @@ function AppRoutes() {
           )}
         >
           <Suspense>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                element={<ProtectedRoute requiredRoles={["viewer", "admin"]} />}
-              >
-                <Route index element={<Live />} />
-                <Route path="/group/:group" element={<GroupView />} />
-                <Route path="/camera/:camera" element={<LiveCameraPage />} />
-                <Route path="/review" element={<Events />} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/export" element={<Exports />} />
-                <Route path="/settings" element={<Settings />} />
-              </Route>
-              <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
-                <Route path="/system" element={<System />} />
-                <Route path="/config" element={<ConfigEditor />} />
-                <Route path="/logs" element={<Logs />} />
-                <Route path="/faces" element={<FaceLibrary />} />
-                <Route path="/playground" element={<UIPlayground />} />
-              </Route>
-              <Route path="/unauthorized" element={<AccessDenied />} />
-              <Route path="*" element={<Redirect to="/" />} />
-            </Routes>
+            <Outlet />
           </Suspense>
         </div>
       </div>
     </Wrapper>
   );
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<AccessDenied />} />
+      <Route element={<MainLayout />}>
+        <Route element={<ProtectedRoute requiredRoles={["viewer", "admin"]} />}>
+          <Route index element={<Live />} />
+          <Route path="/group/:group" element={<GroupView />} />
+          <Route path="/camera/:camera" element={<LiveCameraPage />} />
+          <Route path="/review" element={<Events />} />
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/export" element={<Exports />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+          <Route path="/system" element={<System />} />
+          <Route path="/config" element={<ConfigEditor />} />
+          <Route path="/logs" element={<Logs />} />
+          <Route path="/faces" element={<FaceLibrary />} />
+          <Route path="/playground" element={<UIPlayground />} />
+        </Route>
+      </Route>
+      <Route path="*" element={<Redirect to="/" />} />
+    </Routes>
+  );
+}
+
+function NavigationSetup() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setNavigateFunction(navigate);
+  }, [navigate]);
+
+  return null;
 }
 
 function App() {
@@ -88,8 +104,9 @@ function App() {
   return (
     <Providers>
       <BrowserRouter basename={basePath}>
+        <NavigationSetup />
         <AppRoutes />
-        <Toaster position="top-center" />
+        <Toaster position="top-center" closeButton />
       </BrowserRouter>
     </Providers>
   );

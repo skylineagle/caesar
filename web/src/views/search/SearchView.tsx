@@ -1,37 +1,36 @@
 import SearchThumbnail from "@/components/card/SearchThumbnail";
+import SearchThumbnailFooter from "@/components/card/SearchThumbnailFooter";
+import SearchActionGroup from "@/components/filter/SearchActionGroup";
 import SearchFilterGroup from "@/components/filter/SearchFilterGroup";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
+import Chip from "@/components/indicators/Chip";
+import InputWithTags from "@/components/input/InputWithTags";
 import SearchDetailDialog, {
   SearchTab,
 } from "@/components/overlay/detail/SearchDetailDialog";
-import { Toaster } from "@/components/ui/sonner";
-import { cn } from "@/lib/utils";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { SearchFilter, SearchResult, SearchSource } from "@/types/search";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isMobileOnly } from "react-device-detect";
-import { LuImage, LuSearchX, LuText } from "react-icons/lu";
-import useSWR from "swr";
-import ExploreView from "../explore/ExploreView";
-import useKeyboardListener, {
-  KeyModifiers,
-} from "@/hooks/use-keyboard-listener";
-import scrollIntoView from "scroll-into-view-if-needed";
-import InputWithTags from "@/components/input/InputWithTags";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { isEqual } from "lodash";
-import { formatDateToLocaleString } from "@/utils/dateUtil";
-import SearchThumbnailFooter from "@/components/card/SearchThumbnailFooter";
 import ExploreSettings from "@/components/settings/SearchSettings";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import Chip from "@/components/indicators/Chip";
+import useKeyboardListener, {
+  KeyModifiers,
+} from "@/hooks/use-keyboard-listener";
+import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { SearchFilter, SearchResult, SearchSource } from "@/types/search";
+import { formatDateToLocaleString } from "@/utils/dateUtil";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
-import SearchActionGroup from "@/components/filter/SearchActionGroup";
+import { isEqual } from "lodash";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isMobileOnly } from "react-device-detect";
 import { Trans, useTranslation } from "react-i18next";
+import { LuImage, LuSearchX, LuText } from "react-icons/lu";
+import scrollIntoView from "scroll-into-view-if-needed";
+import useSWR from "swr";
+import ExploreView from "../explore/ExploreView";
 
 type SearchViewProps = {
   search: string;
@@ -462,7 +461,6 @@ export default function SearchView({
 
   return (
     <div className="flex size-full flex-col pt-2 md:py-2">
-      <Toaster closeButton={true} />
       <SearchDetailDialog
         search={searchDetail}
         page={page}

@@ -1,7 +1,6 @@
-import Heading from "@/components/ui/heading";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
+import { useAlertsState, useDetectionsState, useEnabledState } from "@/api/ws";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -11,28 +10,28 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Separator } from "../../components/ui/separator";
-import { Button } from "../../components/ui/button";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { Checkbox } from "@/components/ui/checkbox";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { StatusBarMessagesContext } from "@/context/statusbar-provider";
-import axios from "axios";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
-import { capitalizeFirstLetter } from "@/utils/stringUtil";
-import { MdCircle } from "react-icons/md";
-import { cn } from "@/lib/utils";
-import { Trans, useTranslation } from "react-i18next";
-import { Switch } from "@/components/ui/switch";
+import Heading from "@/components/ui/heading";
 import { Label } from "@/components/ui/label";
-import { useAlertsState, useDetectionsState, useEnabledState } from "@/api/ws";
+import { Switch } from "@/components/ui/switch";
+import { StatusBarMessagesContext } from "@/context/statusbar-provider";
 import { useDocDomain } from "@/hooks/use-doc-domain";
+import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
 import { getTranslatedLabel } from "@/utils/i18n";
+import { capitalizeFirstLetter } from "@/utils/stringUtil";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Trans, useTranslation } from "react-i18next";
+import { LuExternalLink } from "react-icons/lu";
+import { MdCircle } from "react-icons/md";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
+import { Button } from "../../components/ui/button";
+import { Separator } from "../../components/ui/separator";
 
 type CameraSettingsViewProps = {
   selectedCamera: string;
@@ -266,7 +265,6 @@ export default function CameraSettingsView({
   return (
     <>
       <div className="flex size-full flex-col md:flex-row">
-        <Toaster position="top-center" closeButton={true} />
         <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
           <Heading as="h3" className="my-2">
             <Trans ns="views/settings">camera.title</Trans>

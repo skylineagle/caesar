@@ -9,7 +9,7 @@
   "livePlayerRequiredIOSVersion": "iOS 17.1 or greater is required for this live stream type.",
   "streamOffline": {
     "title": "Stream Offline",
-    "desc": "No frames have been received on the {{cameraName}}"
+    "desc": "No frames have been received on the {{cameraName}} <code>detect</code> stream, check error logs"
   },
   "cameraDisabled": "Camera is disabled",
   "stats": {

@@ -329,7 +329,7 @@ function FrigatePlusUploadButton({
   onUploadFrame,
   containerRef,
 }: FrigatePlusUploadButtonProps) {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
 
   const [videoImg, setVideoImg] = useState<string>();
 

@@ -50,7 +50,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
-        login: resolve(__dirname, "login.html"),
       },
     },
   },
@@ -58,7 +57,7 @@ export default defineConfig({
     react(),
     monacoEditorPlugin.default({
       customWorkers: [{ label: "yaml", entry: "monaco-yaml/yaml.worker" }],
-      languageWorkers: ["editorWorkerService"], // we don't use any of the default languages
+      languageWorkers: ["editorWorkerService"],
     }),
   ],
   resolve: {
