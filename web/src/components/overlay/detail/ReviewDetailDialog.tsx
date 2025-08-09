@@ -1,35 +1,8 @@
-import { isDesktop, isIOS, isMobile } from "react-device-detect";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "../../ui/sheet";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { useFormattedTimestamp } from "@/hooks/use-date-utils";
-import { getIconForLabel } from "@/utils/iconUtil";
 import { useApiHost } from "@/api";
-import { ReviewDetailPaneType, ReviewSegment } from "@/types/review";
-import { Event } from "@/types/event";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { FrigatePlusDialog } from "../dialog/FrigatePlusDialog";
-import ObjectLifecycle from "./ObjectLifecycle";
-import Chip from "@/components/indicators/Chip";
-import { FaDownload, FaImages, FaShareAlt } from "react-icons/fa";
-import FrigatePlusIcon from "@/components/icons/FrigatePlusIcon";
-import { FaArrowsRotate } from "react-icons/fa6";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { baseUrl } from "@/api/baseUrl";
-import { shareOrCopy } from "@/utils/browserUtil";
+import { DownloadVideoButton } from "@/components/button/DownloadVideoButton";
+import FrigatePlusIcon from "@/components/icons/FrigatePlusIcon";
+import Chip from "@/components/indicators/Chip";
 import {
   MobilePage,
   MobilePageContent,
@@ -37,12 +10,43 @@ import {
   MobilePageHeader,
   MobilePageTitle,
 } from "@/components/mobile/MobilePage";
-import { DownloadVideoButton } from "@/components/button/DownloadVideoButton";
-import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { LuSearch } from "react-icons/lu";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useFormattedTimestamp } from "@/hooks/use-date-utils";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import { Trans, useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import { Event } from "@/types/event";
+import { FrigateConfig } from "@/types/frigateConfig";
+import {
+  REVIEW_PADDING,
+  ReviewDetailPaneType,
+  ReviewSegment,
+} from "@/types/review";
+import { shareOrCopy } from "@/utils/browserUtil";
 import { getTranslatedLabel } from "@/utils/i18n";
+import { getIconForLabel } from "@/utils/iconUtil";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isDesktop, isIOS, isMobile } from "react-device-detect";
+import { Trans, useTranslation } from "react-i18next";
+import { FaDownload, FaImages, FaShareAlt } from "react-icons/fa";
+import { FaArrowsRotate } from "react-icons/fa6";
+import { LuSearch } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
+import useSWR from "swr";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../../ui/sheet";
+import { FrigatePlusDialog } from "../dialog/FrigatePlusDialog";
+import ObjectLifecycle from "./ObjectLifecycle";
 
 type ReviewDetailDialogProps = {
   review?: ReviewSegment;
