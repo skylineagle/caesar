@@ -59,6 +59,8 @@ import { useTranslation } from "react-i18next";
 import { FaShareAlt, FaVideo } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
+import RecordingDraggableGridLayout from "./RecordingDraggableGridLayout";
+import { LuLayoutDashboard } from "react-icons/lu";
 
 type RecordingViewProps = {
   startCamera: string;
@@ -107,6 +109,9 @@ export function RecordingView({
   const cameraLayoutRef = useRef<HTMLDivElement | null>(null);
   const previewRowRef = useRef<HTMLDivElement | null>(null);
   const previewRefs = useRef<{ [camera: string]: PreviewController }>({});
+  const gridControllersRef = useRef<{
+    [camera: string]: DynamicVideoController;
+  }>({});
 
   const [playbackStart, setPlaybackStart] = useState(startTime);
 
@@ -188,6 +193,7 @@ export function RecordingView({
     }),
   );
   const [playerTime, setPlayerTime] = useState(startTime);
+  const [dashboardMode, setDashboardMode] = useState(false);
 
   const updateSelectedSegment = useCallback(
     (currentTime: number, updateStartTime: boolean) => {
@@ -219,6 +225,9 @@ export function RecordingView({
       mainControllerRef.current?.scrubToTimestamp(currentTime);
 
       Object.values(previewRefs.current).forEach((controller) => {
+        controller.scrubToTimestamp(currentTime);
+      });
+      Object.values(gridControllersRef.current).forEach((controller) => {
         controller.scrubToTimestamp(currentTime);
       });
     }
@@ -504,6 +513,19 @@ export function RecordingView({
               {t("button.copy", { ns: "common" })}
             </TooltipContent>
           </Tooltip>
+          {isDesktop && allCameras.length > 1 && (
+            <Button
+              className="flex items-center gap-2.5 rounded-lg"
+              aria-label="Toggle dashboard"
+              size="sm"
+              onClick={() => setDashboardMode((v) => !v)}
+            >
+              <LuLayoutDashboard className="size-5 text-secondary-foreground" />
+              <div className="text-primary">
+                {dashboardMode ? "Close" : "Dashboard"}
+              </div>
+            </Button>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2">
           <MobileCameraDrawer
@@ -623,126 +645,142 @@ export function RecordingView({
           ref={cameraLayoutRef}
           className={cn("flex flex-1 flex-wrap", isDesktop ? "w-[80%]" : "")}
         >
-          <div
-            className={cn(
-              "flex size-full items-center",
-              mainCameraAspect == "tall"
-                ? "flex-row justify-evenly"
-                : "flex-col justify-center gap-2",
-            )}
-          >
+          {!dashboardMode || !isDesktop || allCameras.length <= 1 ? (
             <div
-              key={mainCamera}
               className={cn(
-                "relative",
-                isDesktop
-                  ? cn(
-                      "flex justify-center px-4",
-                      mainCameraAspect == "tall"
-                        ? "h-[50%] md:h-[60%] lg:h-[75%] xl:h-[90%]"
-                        : mainCameraAspect == "wide"
-                          ? "w-full"
-                          : "",
-                    )
-                  : cn(
-                      "pt-2 portrait:w-full",
-                      mainCameraAspect == "wide"
-                        ? "aspect-wide landscape:w-full"
-                        : "aspect-video landscape:h-[94%] landscape:xl:h-[65%]",
-                    ),
+                "flex size-full items-center",
+                mainCameraAspect == "tall"
+                  ? "flex-row justify-evenly"
+                  : "flex-col justify-center gap-2",
               )}
-              style={{
-                width: mainCameraStyle ? mainCameraStyle.width : undefined,
-                aspectRatio: isDesktop
-                  ? mainCameraAspect == "tall"
-                    ? getCameraAspect(mainCamera)
-                    : undefined
-                  : Math.max(1, getCameraAspect(mainCamera) ?? 0),
-              }}
             >
-              <DynamicVideoPlayer
-                className={grow}
-                camera={mainCamera}
-                timeRange={currentTimeRange}
-                cameraPreviews={allPreviews ?? []}
-                startTimestamp={playbackStart}
-                hotKeys={exportMode != "select"}
-                fullscreen={fullscreen}
-                onTimestampUpdate={(timestamp) => {
-                  setPlayerTime(timestamp);
-                  setCurrentTime(timestamp);
-                  Object.values(previewRefs.current ?? {}).forEach((prev) =>
-                    prev.scrubToTimestamp(Math.floor(timestamp)),
-                  );
-                }}
-                onClipEnded={onClipEnded}
-                onControllerReady={(controller) => {
-                  mainControllerRef.current = controller;
-                  controller.seekToTimestamp(playbackStart, true);
-                }}
-                isScrubbing={scrubbing || exportMode == "timeline"}
-                supportsFullscreen={supportsFullScreen}
-                setFullResolution={setFullResolution}
-                toggleFullscreen={toggleFullscreen}
-                containerRef={mainLayoutRef}
-                enableScreenshot={true}
-              />
-            </div>
-            {isDesktop && (
               <div
-                ref={previewRowRef}
+                key={mainCamera}
                 className={cn(
-                  "scrollbar-container flex gap-2 overflow-auto",
-                  mainCameraAspect == "tall"
-                    ? "h-full w-72 flex-col"
-                    : `h-28 w-full`,
-                  previewRowOverflows ? "" : "items-center justify-center",
+                  "relative",
+                  isDesktop
+                    ? cn(
+                        "flex justify-center px-4",
+                        mainCameraAspect == "tall"
+                          ? "h-[50%] md:h-[60%] lg:h-[75%] xl:h-[90%]"
+                          : mainCameraAspect == "wide"
+                            ? "w-full"
+                            : "",
+                      )
+                    : cn(
+                        "pt-2 portrait:w-full",
+                        mainCameraAspect == "wide"
+                          ? "aspect-wide landscape:w-full"
+                          : "aspect-video landscape:h-[94%] landscape:xl:h-[65%]",
+                      ),
                 )}
+                style={{
+                  width: mainCameraStyle ? mainCameraStyle.width : undefined,
+                  aspectRatio: isDesktop
+                    ? mainCameraAspect == "tall"
+                      ? getCameraAspect(mainCamera)
+                      : undefined
+                    : Math.max(1, getCameraAspect(mainCamera) ?? 0),
+                }}
               >
-                <div className="w-2" />
-                {allCameras.map((cam) => {
-                  if (cam == mainCamera || cam == "birdseye") {
-                    return;
-                  }
-
-                  return (
-                    <Tooltip key={cam}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={
-                            mainCameraAspect == "tall" ? "w-full" : "h-full"
-                          }
-                          style={{
-                            aspectRatio: getCameraAspect(cam),
-                          }}
-                        >
-                          <PreviewPlayer
-                            previewRef={previewRef}
-                            className="size-full"
-                            camera={cam}
-                            timeRange={currentTimeRange}
-                            cameraPreviews={allPreviews ?? []}
-                            startTime={startTime}
-                            isScrubbing={scrubbing}
-                            isVisible={visiblePreviews.includes(cam)}
-                            onControllerReady={(controller) => {
-                              previewRefs.current[cam] = controller;
-                              controller.scrubToTimestamp(startTime);
-                            }}
-                            onClick={() => onSelectCamera(cam)}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="smart-capitalize">
-                        {cam.replaceAll("_", " ")}
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-                <div className="w-2" />
+                <DynamicVideoPlayer
+                  className={grow}
+                  camera={mainCamera}
+                  timeRange={currentTimeRange}
+                  cameraPreviews={allPreviews ?? []}
+                  startTimestamp={playbackStart}
+                  hotKeys={exportMode != "select"}
+                  fullscreen={fullscreen}
+                  onTimestampUpdate={(timestamp) => {
+                    setPlayerTime(timestamp);
+                    setCurrentTime(timestamp);
+                    Object.values(previewRefs.current ?? {}).forEach((prev) =>
+                      prev.scrubToTimestamp(Math.floor(timestamp)),
+                    );
+                  }}
+                  onClipEnded={onClipEnded}
+                  onControllerReady={(controller) => {
+                    mainControllerRef.current = controller;
+                    controller.seekToTimestamp(playbackStart, true);
+                  }}
+                  isScrubbing={scrubbing || exportMode == "timeline"}
+                  supportsFullscreen={supportsFullScreen}
+                  setFullResolution={setFullResolution}
+                  toggleFullscreen={toggleFullscreen}
+                  containerRef={mainLayoutRef}
+                  enableScreenshot={true}
+                />
               </div>
-            )}
-          </div>
+              {isDesktop && (
+                <div
+                  ref={previewRowRef}
+                  className={cn(
+                    "scrollbar-container flex gap-2 overflow-auto",
+                    mainCameraAspect == "tall"
+                      ? "h-full w-72 flex-col"
+                      : `h-28 w-full`,
+                    previewRowOverflows ? "" : "items-center justify-center",
+                  )}
+                >
+                  <div className="w-2" />
+                  {allCameras.map((cam) => {
+                    if (cam == mainCamera || cam == "birdseye") {
+                      return;
+                    }
+
+                    return (
+                      <Tooltip key={cam}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={
+                              mainCameraAspect == "tall" ? "w-full" : "h-full"
+                            }
+                            style={{
+                              aspectRatio: getCameraAspect(cam),
+                            }}
+                          >
+                            <PreviewPlayer
+                              previewRef={previewRef}
+                              className="size-full"
+                              camera={cam}
+                              timeRange={currentTimeRange}
+                              cameraPreviews={allPreviews ?? []}
+                              startTime={startTime}
+                              isScrubbing={scrubbing}
+                              isVisible={visiblePreviews.includes(cam)}
+                              onControllerReady={(controller) => {
+                                previewRefs.current[cam] = controller;
+                                controller.scrubToTimestamp(startTime);
+                              }}
+                              onClick={() => onSelectCamera(cam)}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="smart-capitalize">
+                          {cam.replaceAll("_", " ")}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                  <div className="w-2" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <RecordingDraggableGridLayout
+              cameras={allCameras.filter((c) => c !== "birdseye")}
+              mainCamera={mainCamera}
+              timeRange={currentTimeRange}
+              startTimestamp={playbackStart}
+              isScrubbing={scrubbing || exportMode == "timeline"}
+              cameraPreviews={allPreviews ?? []}
+              onSelectCamera={onSelectCamera}
+              setControllerForCamera={(cameraName, controller) => {
+                gridControllersRef.current[cameraName] = controller;
+                controller.seekToTimestamp(playbackStart, true);
+              }}
+            />
+          )}
         </div>
         <Timeline
           contentRef={contentRef}

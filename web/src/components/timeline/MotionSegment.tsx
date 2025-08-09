@@ -219,7 +219,7 @@ export function MotionSegment({
             </>
           )}
 
-          <div className="absolute left-1/2 z-10 h-[8px] w-[20px] -translate-x-1/2 transform cursor-pointer md:w-[40px]">
+          <div className="absolute left-1/2 z-20 h-[8px] w-[20px] -translate-x-1/2 transform cursor-pointer md:w-[40px]">
             <div className="mb-[1px] flex w-[20px] flex-row justify-center pt-[1px] md:w-[40px]">
               <div className="mb-[1px] flex justify-center">
                 <div
