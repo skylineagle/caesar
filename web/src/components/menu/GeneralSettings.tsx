@@ -17,9 +17,7 @@ import { CgDarkMode } from "react-icons/cg";
 import { IoColorPalette } from "react-icons/io5";
 import {
   LuActivity,
-  LuGithub,
   LuLanguages,
-  LuLifeBuoy,
   LuList,
   LuLogOut,
   LuMoon,
@@ -64,15 +62,12 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import SetPasswordDialog from "../overlay/SetPasswordDialog";
 
-import { useDocDomain } from "@/hooks/use-doc-domain";
-
 type GeneralSettingsProps = {
   className?: string;
 };
 
 export default function GeneralSettings({ className }: GeneralSettingsProps) {
   const { t } = useTranslation(["common", "views/settings"]);
-  const { getLocaleDocUrl } = useDocDomain();
   const { data: profile } = useSWR("profile");
   const { data: config } = useSWR<FrigateConfig>("config");
   const logoutUrl = config?.proxy?.logout_url || "/api/logout";
