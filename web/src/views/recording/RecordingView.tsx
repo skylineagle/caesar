@@ -294,10 +294,33 @@ export function RecordingView({
   }, [mainCamera, severity, setRecording]);
 
   const handleShare = useCallback(() => {
+    const shareData = {
+      camera: mainCamera,
+      startTime: startTime,
+      currentTime: currentTime,
+      severity: severity ?? "alert",
+    };
+
     const url = new URL(window.location.href);
-    url.searchParams.set("currentTime", Math.floor(currentTime).toString());
+    url.pathname = `${new URL(baseUrl).pathname}review`;
+    url.searchParams.set("recording", JSON.stringify(shareData));
+    url.searchParams.set("severity", severity ?? "alert");
+
+    const startOfDay = new Date(startTime * 1000);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startTime * 1000);
+    endOfDay.setHours(23, 59, 59, 999);
+    url.searchParams.set(
+      "after",
+      Math.floor(startOfDay.getTime() / 1000).toString(),
+    );
+    url.searchParams.set(
+      "before",
+      Math.ceil(endOfDay.getTime() / 1000).toString(),
+    );
+
     copyToClipboard(url.toString());
-  }, [currentTime]);
+  }, [mainCamera, startTime, currentTime, severity]);
 
   // fullscreen
 

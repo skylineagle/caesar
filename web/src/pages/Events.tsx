@@ -75,13 +75,9 @@ export default function Events() {
     // Update URL state with the new filter values
     if (newFilter.after !== undefined) {
       setAfter(newFilter.after);
-    } else {
-      setAfter(null);
     }
     if (newFilter.before !== undefined) {
       setBefore(newFilter.before);
-    } else {
-      setBefore(null);
     }
   };
 
@@ -435,19 +431,6 @@ export default function Events() {
     // previews will not update after item is selected
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, date, reviewFilter?.cameras, urlCurrentTime, config]);
-
-  // keep the review filter's day in sync with URL after/before so UI shows the right day
-  useEffect(() => {
-    if (after !== null && before !== null) {
-      if (reviewFilter?.after !== after || reviewFilter?.before !== before) {
-        setReviewFilter({
-          ...(reviewFilter ?? ({} as ReviewFilter)),
-          after,
-          before,
-        });
-      }
-    }
-  }, [after, before, reviewFilter, setReviewFilter]);
 
   useEffect(() => {
     if (recording) {
