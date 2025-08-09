@@ -1,4 +1,7 @@
+import datetime
+
 from peewee import (
+    AutoField,
     BooleanField,
     CharField,
     DateTimeField,
@@ -132,3 +135,14 @@ class User(Model):  # type: ignore[misc]
     )
     password_hash = CharField(null=False, max_length=120)
     notification_tokens = JSONField()
+
+
+class CameraPermission(Model):  # type: ignore[misc]
+    id = AutoField()
+    username = CharField(null=False, max_length=30, index=True)
+    camera_name = CharField(null=False, max_length=20, index=True)
+    created_at = DateTimeField(default=datetime.datetime.now)
+
+    class Meta:
+        table_name = "camera_permission"
+        indexes = ((("username", "camera_name"), True),)
