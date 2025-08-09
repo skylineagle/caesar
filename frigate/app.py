@@ -47,7 +47,6 @@ from frigate.events.cleanup import EventCleanup
 from frigate.events.maintainer import EventProcessor
 from frigate.log import _stop_logging
 from frigate.models import (
-    CameraPermission,
     Event,
     Export,
     Previews,
@@ -293,7 +292,6 @@ class FrigateApp:
             ReviewSegment,
             Timeline,
             User,
-            CameraPermission,
         ]
         self.db.bind(models)
 

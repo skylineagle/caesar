@@ -1,5 +1,3 @@
-import Heading from "../ui/heading";
-import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -11,29 +9,30 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FrigateConfig } from "@/types/frigateConfig";
-import useSWR from "swr";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { ZoneFormValuesType, Polygon } from "@/types/canvas";
-import { reviewQueries } from "@/utils/zoneEdutUtil";
-import { Switch } from "../ui/switch";
-import { Label } from "../ui/label";
-import PolygonEditControls from "./PolygonEditControls";
-import { FaCheckCircle } from "react-icons/fa";
-import axios from "axios";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
-import { flattenPoints, interpolatePoints } from "@/utils/canvasUtil";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { getAttributeLabels } from "@/utils/iconUtil";
-import { Trans, useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
 import { useDocDomain } from "@/hooks/use-doc-domain";
+import { Polygon, ZoneFormValuesType } from "@/types/canvas";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { flattenPoints, interpolatePoints } from "@/utils/canvasUtil";
 import { getTranslatedLabel } from "@/utils/i18n";
+import { getAttributeLabels } from "@/utils/iconUtil";
+import { reviewQueries } from "@/utils/zoneEdutUtil";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { Trans, useTranslation } from "react-i18next";
+import { FaCheckCircle } from "react-icons/fa";
+import { LuExternalLink } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
+import ActivityIndicator from "../indicators/activity-indicator";
+import Heading from "../ui/heading";
+import { Label } from "../ui/label";
+import { Separator } from "../ui/separator";
+import { Switch } from "../ui/switch";
+import PolygonEditControls from "./PolygonEditControls";
 
 type ZoneEditPaneProps = {
   polygons?: Polygon[];
@@ -494,7 +493,6 @@ export default function ZoneEditPane({
 
   return (
     <>
-      <Toaster position="top-center" closeButton={true} />
       <Heading as="h3" className="my-2">
         {polygon.name.length
           ? t("masksAndZones.zones.edit")

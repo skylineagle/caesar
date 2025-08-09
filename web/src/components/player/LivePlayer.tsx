@@ -17,9 +17,10 @@ import { getIconForLabel } from "@/utils/iconUtil";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { LuVideoOff } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
+import { TbExclamationCircle } from "react-icons/tb";
 import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
 import ActivityIndicator from "../indicators/activity-indicator";
 import Chip from "../indicators/Chip";
@@ -108,6 +109,7 @@ export default function LivePlayer({
     activeMotion,
     activeTracking,
     objects,
+    offline,
   } = useCameraActivity(cameraConfig);
 
   const cameraActive = useMemo(
@@ -149,7 +151,7 @@ export default function LivePlayer({
   // camera still state
 
   const stillReloadInterval = useMemo(() => {
-    if (!windowVisible || !showStillWithoutActivity) {
+    if (!windowVisible || offline || !showStillWithoutActivity) {
       return -1; // no reason to update the image when the window is not visible
     }
 
@@ -176,6 +178,7 @@ export default function LivePlayer({
     liveReady,
     activeMotion,
     activeTracking,
+    offline,
     windowVisible,
     cameraActive,
   ]);
@@ -337,6 +340,7 @@ export default function LivePlayer({
         )}
       {player}
       {cameraEnabled &&
+        !offline &&
         (!showStillWithoutActivity || isReEnabling) &&
         !liveReady && <ActivityIndicator />}
 
@@ -406,6 +410,24 @@ export default function LivePlayer({
         />
       </div>
 
+      {offline && !showStillWithoutActivity && cameraEnabled && (
+        <div className="absolute inset-0 left-1/2 top-1/2 flex h-96 w-96 -translate-x-1/2 -translate-y-1/2">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-background/50 p-5">
+            <p className="my-5 text-lg">{t("streamOffline.title")}</p>
+            <TbExclamationCircle className="mb-3 size-10" />
+            <p className="max-w-96 text-center">
+              <Trans
+                ns="components/player"
+                values={{
+                  cameraName: capitalizeFirstLetter(cameraConfig.name),
+                }}
+              >
+                streamOffline.desc
+              </Trans>
+            </p>
+          </div>
+        </div>
+      )}
       {!cameraEnabled && (
         <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-secondary-foreground bg-background_alt">
           <div className="flex h-32 flex-col items-center justify-center rounded-lg p-4 md:h-48 md:w-48">
@@ -419,20 +441,14 @@ export default function LivePlayer({
 
       <div className="absolute right-2 top-2">
         {autoLive &&
-          liveReady &&
+          !offline &&
           activeMotion &&
           ((showStillWithoutActivity && !liveReady) || liveReady) && (
             <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
           )}
-        {((!liveReady && showStillWithoutActivity) ||
-          !cameraEnabled ||
-          (liveReady && cameraEnabled)) && (
+        {((offline && showStillWithoutActivity) || !cameraEnabled) && (
           <Chip
-            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize transition-opacity duration-200 ${
-              liveReady && cameraEnabled
-                ? "opacity-0 group-hover:opacity-100"
-                : "opacity-100"
-            }`}
+            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
           >
             {cameraConfig.name.replaceAll("_", " ")}
           </Chip>

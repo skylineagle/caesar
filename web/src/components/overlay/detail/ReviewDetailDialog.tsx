@@ -200,9 +200,31 @@ export default function ReviewDetailDialog({
                     <Button
                       aria-label={t("details.item.button.share")}
                       size="sm"
-                      onClick={() =>
-                        shareOrCopy(`${baseUrl}review?id=${review.id}`)
-                      }
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        params.set(
+                          "recording",
+                          JSON.stringify({
+                            camera: review.camera,
+                            startTime: review.start_time - REVIEW_PADDING,
+                            severity: review.severity,
+                          }),
+                        );
+                        const day = new Date(review.start_time * 1000);
+                        const startOfDay = new Date(day);
+                        startOfDay.setHours(0, 0, 0, 0);
+                        const endOfDay = new Date(day);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        params.set(
+                          "after",
+                          Math.floor(startOfDay.getTime() / 1000).toString(),
+                        );
+                        params.set(
+                          "before",
+                          Math.ceil(endOfDay.getTime() / 1000).toString(),
+                        );
+                        shareOrCopy(`${baseUrl}review?${params.toString()}`);
+                      }}
                     >
                       <FaShareAlt className="size-4 text-secondary-foreground" />
                     </Button>

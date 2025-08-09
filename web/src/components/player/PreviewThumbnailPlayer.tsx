@@ -42,7 +42,7 @@ export default function PreviewThumbnailPlayer({
   onClick,
   onTimeUpdate,
 }: PreviewPlayerProps) {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
   const apiHost = useApiHost();
   const { data: config } = useSWR<FrigateConfig>("config");
   const [imgRef, imgLoaded, onImgLoad] = useImageLoaded();
@@ -183,7 +183,28 @@ export default function PreviewThumbnailPlayer({
       onClick={handleOnClick}
       onAuxClick={(e) => {
         if (e.button === 1) {
-          window.open(`${baseUrl}review?id=${review.id}`, "_blank")?.focus();
+          const params = new URLSearchParams();
+          params.set(
+            "recording",
+            JSON.stringify({
+              camera: review.camera,
+              startTime: review.start_time - REVIEW_PADDING,
+              severity: review.severity,
+            }),
+          );
+          const day = new Date(review.start_time * 1000);
+          const startOfDay = new Date(day);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(day);
+          endOfDay.setHours(23, 59, 59, 999);
+          params.set(
+            "after",
+            Math.floor(startOfDay.getTime() / 1000).toString(),
+          );
+          params.set("before", Math.ceil(endOfDay.getTime() / 1000).toString());
+          window
+            .open(`${baseUrl}review?${params.toString()}`, "_blank")
+            ?.focus();
         }
       }}
       {...swipeHandlers}

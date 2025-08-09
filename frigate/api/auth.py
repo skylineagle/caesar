@@ -230,27 +230,6 @@ def require_role(required_roles: List[str]):
     return role_checker
 
 
-def require_default_admin():
-    async def default_admin_checker(request: Request):
-        username = request.headers.get("remote-user")
-        role = request.headers.get("remote-role")
-
-        # Allow the default admin user (username: admin, role: admin)
-        # OR the development anonymous admin (username: anonymous, role: admin)
-        is_default_admin = username == "admin" and role == "admin"
-        is_dev_admin = username == "anonymous" and role == "admin"
-
-        if not (is_default_admin or is_dev_admin):
-            raise HTTPException(
-                status_code=403,
-                detail="Access denied. Only the default admin user can manage camera permissions.",
-            )
-
-        return {"username": username, "role": role}
-
-    return default_admin_checker
-
-
 # Endpoints
 @router.get("/auth")
 def auth(request: Request):
@@ -262,13 +241,8 @@ def auth(request: Request):
     # dont require auth if the request is on the internal port
     # this header is set by Frigate's nginx proxy, so it cant be spoofed
     if int(request.headers.get("x-server-port", default=0)) == 5000:
-        # In development, if we have explicit user headers, use them
-        if request.headers.get("remote-user") and request.headers.get("remote-role"):
-            success_response.headers["remote-user"] = request.headers.get("remote-user")
-            success_response.headers["remote-role"] = request.headers.get("remote-role")
-        else:
-            success_response.headers["remote-user"] = "anonymous"
-            success_response.headers["remote-role"] = "admin"
+        success_response.headers["remote-user"] = "anonymous"
+        success_response.headers["remote-role"] = "admin"
         return success_response
 
     fail_response = Response("", status_code=401)
@@ -396,16 +370,10 @@ def auth(request: Request):
 
 @router.get("/profile")
 def profile(request: Request):
-    # Always check for explicit headers first
-    username = request.headers.get("remote-user")
-    role = request.headers.get("remote-role")
+    username = request.headers.get("remote-user", "anonymous")
+    role = request.headers.get("remote-role", "viewer")
 
-    if username and role:
-        # Use the explicit headers
-        return JSONResponse(content={"username": username, "role": role})
-    else:
-        # Fall back to anonymous admin for internal access
-        return JSONResponse(content={"username": "anonymous", "role": "admin"})
+    return JSONResponse(content={"username": username, "role": role})
 
 
 @router.get("/logout")
@@ -479,7 +447,7 @@ def create_user(
     return JSONResponse(content={"username": body.username})
 
 
-@router.delete("/users/{username}")
+@router.delete("/users/{username}", dependencies=[Depends(require_role(["admin"]))])
 def delete_user(username: str):
     User.delete_by_id(username)
     return JSONResponse(content={"success": True})

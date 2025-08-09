@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { Toaster } from "@/components/ui/sonner";
-import useSWR from "swr";
-import Heading from "@/components/ui/heading";
-import { User } from "@/types/user";
-import { Button } from "@/components/ui/button";
-import SetPasswordDialog from "@/components/overlay/SetPasswordDialog";
-import axios from "axios";
 import CreateUserDialog from "@/components/overlay/CreateUserDialog";
-import { toast } from "sonner";
 import DeleteUserDialog from "@/components/overlay/DeleteUserDialog";
-import { HiTrash } from "react-icons/hi";
+import SetPasswordDialog from "@/components/overlay/SetPasswordDialog";
+import { Button } from "@/components/ui/button";
+import Heading from "@/components/ui/heading";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { User } from "@/types/user";
+import axios from "axios";
+import { useCallback, useEffect, useState } from "react";
 import { FaUserEdit } from "react-icons/fa";
+import { HiTrash } from "react-icons/hi";
+import { toast } from "sonner";
+import useSWR from "swr";
 
-import { LuPlus, LuShield, LuUserCog } from "react-icons/lu";
+import RoleChangeDialog from "@/components/overlay/RoleChangeDialog";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -23,15 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import RoleChangeDialog from "@/components/overlay/RoleChangeDialog";
 import { useTranslation } from "react-i18next";
+import { LuPlus, LuShield, LuUserCog } from "react-icons/lu";
 
 export default function AuthenticationView() {
   const { t } = useTranslation("views/settings");
@@ -194,7 +193,6 @@ export default function AuthenticationView() {
 
   return (
     <div className="flex size-full flex-col md:flex-row">
-      <Toaster position="top-center" closeButton={true} />
       <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
         <div className="mb-5 flex flex-row items-center justify-between gap-2">
           <div className="flex flex-col items-start">

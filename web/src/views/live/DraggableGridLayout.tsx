@@ -3,9 +3,7 @@ import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
 
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Toaster } from "@/components/ui/sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +19,7 @@ import {
   CameraStreamingSettings,
   FrigateConfig,
 } from "@/types/frigateConfig";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 import {
   AudioState,
@@ -385,7 +384,6 @@ export default function DraggableGridLayout({
 
   return (
     <>
-      <Toaster position="top-center" closeButton={true} />
       {!isGridLayoutLoaded ||
       !currentGridLayout ||
       !isEqual(cameras, currentCameras) ||

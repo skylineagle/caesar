@@ -81,6 +81,11 @@ export function AnimatedEventCard({
       }),
     );
 
+    // Add date parameter for better time range handling
+    const eventDate = new Date(event.start_time * 1000);
+    const dateString = eventDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+    params.set("date", dateString);
+
     if (selectedGroup && selectedGroup != "default") {
       params.set("group", selectedGroup);
     }
@@ -141,8 +146,30 @@ export function AnimatedEventCard({
               onClick={onOpenReview}
               onAuxClick={(e) => {
                 if (e.button === 1) {
+                  const params = new URLSearchParams();
+                  params.set(
+                    "recording",
+                    JSON.stringify({
+                      camera: event.camera,
+                      startTime: event.start_time - REVIEW_PADDING,
+                      severity: event.severity,
+                    }),
+                  );
+                  const day = new Date(event.start_time * 1000);
+                  const startOfDay = new Date(day);
+                  startOfDay.setHours(0, 0, 0, 0);
+                  const endOfDay = new Date(day);
+                  endOfDay.setHours(23, 59, 59, 999);
+                  params.set(
+                    "after",
+                    Math.floor(startOfDay.getTime() / 1000).toString(),
+                  );
+                  params.set(
+                    "before",
+                    Math.ceil(endOfDay.getTime() / 1000).toString(),
+                  );
                   window
-                    .open(`${baseUrl}review?id=${event.id}`, "_blank")
+                    .open(`${baseUrl}review?${params.toString()}`, "_blank")
                     ?.focus();
                 }
               }}

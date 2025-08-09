@@ -7,7 +7,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Toaster } from "@/components/ui/sonner";
 import { usePersistence } from "@/hooks/use-persistence";
 import { cn } from "@/lib/utils";
 import {
@@ -73,10 +72,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useStreamingSettings } from "@/context/streaming-settings-provider";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Trans, useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { useLocation, useNavigate } from "react-router-dom";
 
 type CameraGroupSelectorProps = {
   className?: string;
@@ -349,11 +348,6 @@ function NewGroupDialog({
 
   return (
     <>
-      <Toaster
-        className="toaster group z-[100]"
-        position="top-center"
-        closeButton={true}
-      />
       <Overlay
         open={open}
         onOpenChange={(open) => {
@@ -475,11 +469,6 @@ export function EditGroupDialog({
 
   return (
     <>
-      <Toaster
-        className="toaster group z-[100]"
-        position="top-center"
-        closeButton={true}
-      />
       <Overlay
         open={open}
         onOpenChange={(open) => {

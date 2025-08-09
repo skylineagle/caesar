@@ -147,6 +147,52 @@ export function useRecording() {
   };
 }
 
+export function useCurrentTime() {
+  const [currentTime, setCurrentTime] = useQueryState(
+    "currentTime",
+    parseAsFloat.withOptions({
+      shallow: true,
+    }),
+  );
+
+  return {
+    currentTime,
+    setCurrentTime,
+  };
+}
+
+export function useDateFilter() {
+  const [date, setDate] = useQueryState(
+    "date",
+    parseAsString.withOptions({
+      shallow: true,
+    }),
+  );
+
+  const [after, setAfter] = useQueryState(
+    "after",
+    parseAsInteger.withOptions({
+      shallow: true,
+    }),
+  );
+
+  const [before, setBefore] = useQueryState(
+    "before",
+    parseAsInteger.withOptions({
+      shallow: true,
+    }),
+  );
+
+  return {
+    date,
+    setDate,
+    after,
+    setAfter,
+    before,
+    setBefore,
+  };
+}
+
 export function useTimelineType() {
   const [timelineType, setTimelineType] = useQueryState(
     "timelineType",

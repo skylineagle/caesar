@@ -6,12 +6,14 @@ import ExportDialog from "@/components/overlay/ExportDialog";
 import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
 import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
 import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
+import PreviewPlayer, {
+  PreviewController,
+} from "@/components/player/PreviewPlayer";
 import { DynamicVideoController } from "@/components/player/dynamic/DynamicVideoController";
 import DynamicVideoPlayer from "@/components/player/dynamic/DynamicVideoPlayer";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Toaster } from "@/components/ui/sonner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Tooltip,
@@ -23,8 +25,8 @@ import { useTimezone } from "@/hooks/use-date-utils";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useTimelineZoom } from "@/hooks/use-timeline-zoom";
 import {
+  useRecording,
   useSeverity,
-  useShowReviewed,
   useTimelineType,
 } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
@@ -104,22 +106,25 @@ export function RecordingView({
   const mainControllerRef = useRef<DynamicVideoController | null>(null);
   const mainLayoutRef = useRef<HTMLDivElement | null>(null);
   const cameraLayoutRef = useRef<HTMLDivElement | null>(null);
+  const previewRowRef = useRef<HTMLDivElement | null>(null);
+  const previewRefs = useRef<{ [camera: string]: PreviewController }>({});
 
-  const [playbackStart, setPlaybackStart] = useState(
-    startTime >= timeRange.after && startTime <= timeRange.before
-      ? startTime
-      : timeRange.before - 60,
-  );
+  const [playbackStart, setPlaybackStart] = useState(startTime);
 
   const mainCameraReviewItems = useMemo(
     () => reviewItems?.filter((cam) => cam.camera == mainCamera) ?? [],
     [reviewItems, mainCamera],
   );
 
+  useEffect(() => {
+    if (startTime && playbackStart !== startTime) {
+      setPlaybackStart(startTime);
+    }
+  }, [startTime, playbackStart]);
+
   // timeline
   const { timelineType, setTimelineType } = useTimelineType();
   const { severity } = useSeverity();
-  const { showReviewed } = useShowReviewed();
 
   const chunkedTimeRange = useMemo(
     () => getChunkedTimeDay(timeRange),
@@ -173,6 +178,8 @@ export function RecordingView({
     }
   }, [selectedRangeIdx, chunkedTimeRange]);
 
+  // scrubbing and timeline state
+
   const [scrubbing, setScrubbing] = useState(false);
   const [currentTime, setCurrentTime] = useQueryState(
     "currentTime",
@@ -211,6 +218,10 @@ export function RecordingView({
       }
 
       mainControllerRef.current?.scrubToTimestamp(currentTime);
+
+      Object.values(previewRefs.current).forEach((controller) => {
+        controller.scrubToTimestamp(currentTime);
+      });
     }
     // we only want to seek when current time updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,6 +274,26 @@ export function RecordingView({
     height: 0,
   });
 
+  const onSelectCamera = useCallback(
+    (newCam: string) => {
+      setMainCamera(newCam);
+      setFullResolution({
+        width: 0,
+        height: 0,
+      });
+      setPlaybackStart(currentTime);
+    },
+    [currentTime],
+  );
+
+  const { setRecording } = useRecording();
+  useEffect(() => {
+    setRecording((prev) => {
+      if (!prev) return prev;
+      return { ...prev, camera: mainCamera, severity: severity ?? "alert" };
+    });
+  }, [mainCamera, severity, setRecording]);
+
   const handleShare = useCallback(() => {
     const shareData = {
       camera: mainCamera,
@@ -271,48 +302,26 @@ export function RecordingView({
       severity: severity ?? "alert",
     };
 
-    const params = new URLSearchParams();
-    params.set("recording", JSON.stringify(shareData));
+    const url = new URL(window.location.href);
+    url.pathname = `${new URL(baseUrl).pathname}review`;
+    url.searchParams.set("recording", JSON.stringify(shareData));
+    url.searchParams.set("severity", severity ?? "alert");
 
-    // Include all current filter state in the share URL
-    if (filter) {
-      if (filter.cameras && filter.cameras.length > 0) {
-        params.set("cameras", filter.cameras.join(","));
-      }
-      if (filter.labels && filter.labels.length > 0) {
-        params.set("labels", filter.labels.join(","));
-      }
-      if (filter.zones && filter.zones.length > 0) {
-        params.set("zones", filter.zones.join(","));
-      }
-      if (filter.before) {
-        params.set("before", filter.before.toString());
-      }
-      if (filter.after) {
-        params.set("after", filter.after.toString());
-      }
-      if (filter.showAll) {
-        params.set("showAll", filter.showAll.toString());
-      }
-    }
+    const startOfDay = new Date(startTime * 1000);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startTime * 1000);
+    endOfDay.setHours(23, 59, 59, 999);
+    url.searchParams.set(
+      "after",
+      Math.floor(startOfDay.getTime() / 1000).toString(),
+    );
+    url.searchParams.set(
+      "before",
+      Math.ceil(endOfDay.getTime() / 1000).toString(),
+    );
 
-    // Include other URL state parameters
-    params.set("severity", severity ?? "alert");
-    params.set("showReviewed", (showReviewed ?? false).toString());
-    params.set("timelineType", timelineType ?? "timeline");
-
-    const shareUrl = `${baseUrl}review?${params.toString()}`;
-
-    copyToClipboard(shareUrl);
-  }, [
-    mainCamera,
-    startTime,
-    currentTime,
-    filter,
-    severity,
-    showReviewed,
-    timelineType,
-  ]);
+    copyToClipboard(url.toString());
+  }, [mainCamera, startTime, currentTime, severity]);
 
   // fullscreen
 
@@ -415,9 +424,70 @@ export function RecordingView({
     getCameraAspect,
   ]);
 
+  const previewRowOverflows = useMemo(() => {
+    if (!previewRowRef.current) {
+      return false;
+    }
+
+    return (
+      previewRowRef.current.scrollWidth > previewRowRef.current.clientWidth ||
+      previewRowRef.current.scrollHeight > previewRowRef.current.clientHeight
+    );
+    // we only want to update when the scroll size changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewRowRef.current?.scrollWidth, previewRowRef.current?.scrollHeight]);
+
+  // visibility listener for lazy loading
+
+  const [visiblePreviews, setVisiblePreviews] = useState<string[]>([]);
+  const visiblePreviewObserver = useRef<IntersectionObserver | null>(null);
+  useEffect(() => {
+    const visibleCameras = new Set<string>();
+    visiblePreviewObserver.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const camera = (entry.target as HTMLElement).dataset.camera;
+
+          if (!camera) {
+            return;
+          }
+
+          if (entry.isIntersecting) {
+            visibleCameras.add(camera);
+          } else {
+            visibleCameras.delete(camera);
+          }
+
+          setVisiblePreviews([...visibleCameras]);
+        });
+      },
+      { threshold: 0.1 },
+    );
+
+    return () => {
+      visiblePreviewObserver.current?.disconnect();
+    };
+  }, []);
+
+  const previewRef = useCallback(
+    (node: HTMLElement | null) => {
+      if (!visiblePreviewObserver.current) {
+        return;
+      }
+
+      try {
+        if (node) visiblePreviewObserver.current.observe(node);
+      } catch (e) {
+        // no op
+      }
+    },
+    // we need to listen on the value of the ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visiblePreviewObserver.current],
+  );
+
   return (
     <div ref={contentRef} className="flex size-full flex-col pt-2">
-      <Toaster closeButton={true} />
       <div className="relative mb-2 flex h-11 w-full items-center justify-between px-2">
         {isMobile && (
           <Logo className="absolute inset-x-1/2 h-8 -translate-x-1/2" />
@@ -428,7 +498,7 @@ export function RecordingView({
             aria-label="Go to the main camera live view"
             size="sm"
             onClick={() => {
-              navigate(`/live/${mainCamera}`);
+              navigate(`/camera/${mainCamera}`);
             }}
           >
             <FaVideo className="size-5 text-secondary-foreground" />
@@ -625,14 +695,14 @@ export function RecordingView({
                 onTimestampUpdate={(timestamp) => {
                   setPlayerTime(timestamp);
                   setCurrentTime(timestamp);
+                  Object.values(previewRefs.current ?? {}).forEach((prev) =>
+                    prev.scrubToTimestamp(Math.floor(timestamp)),
+                  );
                 }}
                 onClipEnded={onClipEnded}
                 onControllerReady={(controller) => {
                   mainControllerRef.current = controller;
-                  // Ensure the video player seeks to the correct position when ready
-                  if (playbackStart !== startTime) {
-                    controller.seekToTimestamp(playbackStart, true);
-                  }
+                  controller.seekToTimestamp(playbackStart, true);
                 }}
                 isScrubbing={scrubbing || exportMode == "timeline"}
                 supportsFullscreen={supportsFullScreen}
@@ -642,6 +712,60 @@ export function RecordingView({
                 enableScreenshot={true}
               />
             </div>
+            {isDesktop && (
+              <div
+                ref={previewRowRef}
+                className={cn(
+                  "scrollbar-container flex gap-2 overflow-auto",
+                  mainCameraAspect == "tall"
+                    ? "h-full w-72 flex-col"
+                    : `h-28 w-full`,
+                  previewRowOverflows ? "" : "items-center justify-center",
+                )}
+              >
+                <div className="w-2" />
+                {allCameras.map((cam) => {
+                  if (cam == mainCamera || cam == "birdseye") {
+                    return;
+                  }
+
+                  return (
+                    <Tooltip key={cam}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={
+                            mainCameraAspect == "tall" ? "w-full" : "h-full"
+                          }
+                          style={{
+                            aspectRatio: getCameraAspect(cam),
+                          }}
+                        >
+                          <PreviewPlayer
+                            previewRef={previewRef}
+                            className="size-full"
+                            camera={cam}
+                            timeRange={currentTimeRange}
+                            cameraPreviews={allPreviews ?? []}
+                            startTime={startTime}
+                            isScrubbing={scrubbing}
+                            isVisible={visiblePreviews.includes(cam)}
+                            onControllerReady={(controller) => {
+                              previewRefs.current[cam] = controller;
+                              controller.scrubToTimestamp(startTime);
+                            }}
+                            onClick={() => onSelectCamera(cam)}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="smart-capitalize">
+                        {cam.replaceAll("_", " ")}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+                <div className="w-2" />
+              </div>
+            )}
           </div>
         </div>
         <Timeline
