@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import { usePersistence } from "@/hooks/use-persistence";
-import { useGroup } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 import {
   BirdseyeConfig,
@@ -51,6 +50,7 @@ import { FaCompress, FaExpand } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { LuLayoutDashboard, LuPencil } from "react-icons/lu";
 import "react-resizable/css/styles.css";
+import { useParams } from "react-router-dom";
 
 type DraggableGridLayoutProps = {
   cameras: CameraConfig[];
@@ -125,7 +125,7 @@ export default function DraggableGridLayout({
     Layout[]
   >(`${cameraGroup}-draggable-layout`);
 
-  const { group } = useGroup();
+  const { group } = useParams<{ group: string }>();
 
   const groups = useMemo(() => {
     if (!config) {

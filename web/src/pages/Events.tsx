@@ -75,9 +75,13 @@ export default function Events() {
     // Update URL state with the new filter values
     if (newFilter.after !== undefined) {
       setAfter(newFilter.after);
+    } else {
+      setAfter(null);
     }
     if (newFilter.before !== undefined) {
       setBefore(newFilter.before);
+    } else {
+      setBefore(null);
     }
   };
 
