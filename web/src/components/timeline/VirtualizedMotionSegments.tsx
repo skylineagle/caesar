@@ -217,18 +217,20 @@ export const VirtualizedMotionSegments = forwardRef<
         );
       },
       [
-        events,
-        getMotionSegmentValue,
-        motionOnly,
         segmentDuration,
+        getMotionSegmentValue,
+        events,
+        motionOnly,
+        recordingIntervals,
+        isTimestampRecorded,
+        visibleRange.start,
+        timestampSpread,
         showMinimap,
         minimapStartTime,
         minimapEndTime,
         setHandlebarTime,
         scrollToSegment,
         dense,
-        timestampSpread,
-        visibleRange.start,
       ],
     );
 
