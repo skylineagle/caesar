@@ -44,6 +44,9 @@ export type MotionReviewTimelineProps = {
   dense?: boolean;
   isZooming: boolean;
   zoomDirection: TimelineZoomDirection;
+  isTimestampRecorded?: (timestamp: number) => boolean;
+  showNowIndicator?: boolean;
+  recordingIntervals?: { start: number; end: number }[];
 };
 
 export function MotionReviewTimeline({
@@ -72,6 +75,9 @@ export function MotionReviewTimeline({
   dense = false,
   isZooming,
   zoomDirection,
+  isTimestampRecorded,
+  showNowIndicator = true,
+  recordingIntervals,
 }: MotionReviewTimelineProps) {
   const internalTimelineRef = useRef<HTMLDivElement>(null);
   const selectedTimelineRef = timelineRef || internalTimelineRef;
@@ -206,6 +212,11 @@ export function MotionReviewTimeline({
         dense={dense}
         motionOnly={motionOnly}
         getMotionSegmentValue={getMotionSegmentValue}
+        recordingIntervals={recordingIntervals}
+        isTimestampRecorded={isTimestampRecorded}
+        timelineStartAligned={timelineStartAligned}
+        timelineEnd={timelineEnd}
+        showNowIndicator={showNowIndicator}
       />
     </ReviewTimeline>
   );

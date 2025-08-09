@@ -842,6 +842,41 @@ function Timeline({
   const [exportStart, setExportStartTime] = useState<number>(0);
   const [exportEnd, setExportEndTime] = useState<number>(0);
 
+  const { data: recordingClips } = useSWR<
+    { start_time: number; end_time: number }[]
+  >([
+    `${mainCamera}/recordings`,
+    {
+      after: timeRange.after,
+      before: timeRange.before,
+    },
+  ]);
+
+  const recordingIntervals = useMemo(() => {
+    if (!recordingClips || recordingClips.length === 0)
+      return [] as {
+        start: number;
+        end: number;
+      }[];
+    const list = recordingClips
+      .map((r) => ({ start: r.start_time, end: r.end_time }))
+      .sort((a, b) => a.start - b.start);
+    const merged: { start: number; end: number }[] = [];
+    for (const interval of list) {
+      if (merged.length === 0) {
+        merged.push(interval);
+        continue;
+      }
+      const last = merged[merged.length - 1];
+      if (interval.start <= last.end) {
+        last.end = Math.max(last.end, interval.end);
+      } else {
+        merged.push(interval);
+      }
+    }
+    return merged;
+  }, [recordingClips]);
+
   useEffect(() => {
     if (exportRange && exportStart != 0 && exportEnd != 0) {
       if (exportRange.after != exportStart) {
@@ -868,27 +903,30 @@ function Timeline({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[30px] w-full bg-gradient-to-t from-secondary to-transparent"></div>
       {timelineType == "timeline" ? (
         !isLoading ? (
-          <MotionReviewTimeline
-            timelineRef={selectedTimelineRef}
-            segmentDuration={zoomSettings.segmentDuration}
-            timestampSpread={zoomSettings.timestampSpread}
-            timelineStart={timeRange.before}
-            timelineEnd={timeRange.after}
-            showHandlebar={exportRange == undefined}
-            showExportHandles={exportRange != undefined}
-            exportStartTime={exportRange?.after}
-            exportEndTime={exportRange?.before}
-            setExportStartTime={setExportStartTime}
-            setExportEndTime={setExportEndTime}
-            handlebarTime={currentTime}
-            setHandlebarTime={setCurrentTime}
-            events={mainCameraReviewItems}
-            motion_events={motionData ?? []}
-            contentRef={contentRef}
-            onHandlebarDraggingChange={(scrubbing) => setScrubbing(scrubbing)}
-            isZooming={isZooming}
-            zoomDirection={zoomDirection}
-          />
+          <>
+            <MotionReviewTimeline
+              timelineRef={selectedTimelineRef}
+              segmentDuration={zoomSettings.segmentDuration}
+              timestampSpread={zoomSettings.timestampSpread}
+              timelineStart={timeRange.before}
+              timelineEnd={timeRange.after}
+              showHandlebar={exportRange == undefined}
+              showExportHandles={exportRange != undefined}
+              exportStartTime={exportRange?.after}
+              exportEndTime={exportRange?.before}
+              setExportStartTime={setExportStartTime}
+              setExportEndTime={setExportEndTime}
+              handlebarTime={currentTime}
+              setHandlebarTime={setCurrentTime}
+              events={mainCameraReviewItems}
+              motion_events={motionData ?? []}
+              contentRef={contentRef}
+              onHandlebarDraggingChange={(scrubbing) => setScrubbing(scrubbing)}
+              isZooming={isZooming}
+              zoomDirection={zoomDirection}
+              recordingIntervals={recordingIntervals}
+            />
+          </>
         ) : (
           <Skeleton className="size-full" />
         )
