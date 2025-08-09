@@ -22,6 +22,7 @@ from pathvalidate import sanitize_filename
 from peewee import DoesNotExist, fn
 from tzlocal import get_localzone_name
 
+from frigate.api.camera_permissions import require_camera_permission
 from frigate.api.defs.query.media_query_parameters import (
     Extension,
     MediaEventsSnapshotQueryParams,
@@ -53,7 +54,7 @@ router = APIRouter(tags=[Tags.media])
 
 
 @router.get("/{camera_name}")
-def mjpeg_feed(
+async def mjpeg_feed(
     request: Request,
     camera_name: str,
     params: MediaMjpegFeedQueryParams = Depends(),
@@ -66,23 +67,26 @@ def mjpeg_feed(
         "motion_boxes": params.motion,
         "regions": params.regions,
     }
-    if camera_name in request.app.frigate_config.cameras:
-        # return a multipart response
-        return StreamingResponse(
-            imagestream(
-                request.app.detected_frames_processor,
-                camera_name,
-                params.fps,
-                params.height,
-                draw_options,
-            ),
-            media_type="multipart/x-mixed-replace;boundary=frame",
-        )
-    else:
+    if camera_name not in request.app.frigate_config.cameras:
         return JSONResponse(
             content={"success": False, "message": "Camera not found"},
             status_code=404,
         )
+
+    # Check camera permission
+    await require_camera_permission(request, camera_name)
+
+    # return a multipart response
+    return StreamingResponse(
+        imagestream(
+            request.app.detected_frames_processor,
+            camera_name,
+            params.fps,
+            params.height,
+            draw_options,
+        ),
+        media_type="multipart/x-mixed-replace;boundary=frame",
+    )
 
 
 def imagestream(
