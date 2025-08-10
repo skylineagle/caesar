@@ -1,18 +1,5 @@
 {
   "noRecordingsFoundForThisTime": "इस समय का कोई रिकॉर्डिंग नहीं मिला",
   "noPreviewFound": "कोई प्रीव्यू नहीं मिला",
-  "noPreviewFoundFor": "{{cameraName}} के लिए कोई पूर्वावलोकन नहीं मिला",
-  "screenshot": {
-    "button": {
-      "aria": "Take screenshot",
-      "tooltip": "Take screenshot"
-    },
-    "success": {
-      "captured": "Screenshot captured successfully"
-    },
-    "error": {
-      "noVideoElement": "No video element found",
-      "failed": "Failed to capture screenshot"
-    }
-  }
+  "noPreviewFoundFor": "{{cameraName}} के लिए कोई पूर्वावलोकन नहीं मिला"
 }

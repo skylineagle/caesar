@@ -8,7 +8,7 @@ type PlayerStatsProps = {
 };
 
 export function PlayerStats({ stats, minimal }: PlayerStatsProps) {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
   const fullStatsContent = (
     <>
       <p>

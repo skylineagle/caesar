@@ -3,10 +3,12 @@ import TimeAgo from "@/components/dynamic/TimeAgo";
 import AddFaceIcon from "@/components/icons/AddFaceIcon";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
 import CreateFaceWizardDialog from "@/components/overlay/detail/FaceCreateWizardDialog";
+import SearchDetailDialog, {
+  SearchTab,
+} from "@/components/overlay/detail/SearchDetailDialog";
 import TextEntryDialog from "@/components/overlay/dialog/TextEntryDialog";
 import UploadImageDialog from "@/components/overlay/dialog/UploadImageDialog";
 import FaceSelectionDialog from "@/components/overlay/FaceSelectionDialog";
-import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +31,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Toaster } from "@/components/ui/sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -44,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { Event } from "@/types/event";
 import { FaceLibraryData, RecognizedFaceData } from "@/types/face";
 import { FaceRecognitionConfig, FrigateConfig } from "@/types/frigateConfig";
+import { SearchResult } from "@/types/search";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -61,10 +64,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useSWR from "swr";
-import SearchDetailDialog, {
-  SearchTab,
-} from "@/components/overlay/detail/SearchDetailDialog";
-import { SearchResult } from "@/types/search";
 
 export default function FaceLibrary() {
   const { t } = useTranslation(["views/faceLibrary"]);
@@ -293,8 +292,6 @@ export default function FaceLibrary() {
 
   return (
     <div className="flex size-full flex-col p-2">
-      <Toaster />
-
       <AlertDialog
         open={!!deleteDialogOpen}
         onOpenChange={() => setDeleteDialogOpen(null)}

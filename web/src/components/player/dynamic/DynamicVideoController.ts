@@ -68,8 +68,12 @@ export class DynamicVideoController {
       return;
     }
 
+    if (this.recordings.length == 0) {
+      this.timeToStart = time;
+      return;
+    }
+
     if (
-      this.recordings.length == 0 ||
       time < this.recordings[0].start_time ||
       time > this.recordings[this.recordings.length - 1].end_time
     ) {

@@ -76,7 +76,7 @@ export function MinimapBounds({
 
 export function Tick({ timestamp, timestampSpread }: TickSegmentProps) {
   return (
-    <div className="absolute">
+    <div className="absolute z-20">
       <div className="flex h-[8px] w-[12px] content-end items-end">
         <div
           className={`pointer-events-none h-0.5 select-none ${
@@ -121,11 +121,11 @@ export function Timestamp({
   }, [timestamp, timestampSpread]);
 
   return (
-    <div className="absolute left-[15px] z-10 h-[8px]">
+    <div className="absolute left-[15px] z-30 h-[8px]">
       {!isFirstSegmentInMinimap && !isLastSegmentInMinimap && shouldDisplay && (
         <div
           key={`${segmentKey}_timestamp`}
-          className="pointer-events-none select-none text-[8px] text-neutral_variant dark:text-neutral"
+          className="pointer-events-none select-none rounded bg-background/70 px-1 text-[8px] text-foreground backdrop-blur-sm"
         >
           {formattedTimestamp}
         </div>

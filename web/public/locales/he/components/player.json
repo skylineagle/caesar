@@ -45,20 +45,7 @@
   "livePlayerRequiredIOSVersion": "נדרשת iOS 17.1 ומעלה עבור סוג השידור החי הזה.",
   "streamOffline": {
     "title": "זרם מצלמה לא זמין",
-    "desc": "לא התקבלו פריימים בזרם {{cameraName}}"
+    "desc": "לא התקבלו פריימים בזרם <code>detect</code> של {{cameraName}}, בדקו את יומני השגיאות"
   },
-  "cameraDisabled": "המצלמה מושבתת",
-  "screenshot": {
-    "button": {
-      "aria": "Take screenshot",
-      "tooltip": "Take screenshot"
-    },
-    "success": {
-      "captured": "Screenshot captured successfully"
-    },
-    "error": {
-      "noVideoElement": "No video element found",
-      "failed": "Failed to capture screenshot"
-    }
-  }
+  "cameraDisabled": "המצלמה מושבתת"
 }

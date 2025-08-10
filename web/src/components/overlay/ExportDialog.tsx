@@ -32,15 +32,7 @@ import { cn } from "@/lib/utils";
 import { GenericVideoPlayer } from "../player/GenericVideoPlayer";
 import { useTranslation } from "react-i18next";
 
-const EXPORT_OPTIONS = [
-  "1",
-  "4",
-  "8",
-  "12",
-  "24",
-  "timeline",
-  "custom",
-] as const;
+const EXPORT_OPTIONS = ["timeline", "1", "4", "8", "12", "custom"] as const;
 type ExportOption = (typeof EXPORT_OPTIONS)[number];
 
 type ExportDialogProps = {
@@ -220,7 +212,8 @@ export function ExportContent({
   onCancel,
 }: ExportContentProps) {
   const { t } = useTranslation(["components/dialog"]);
-  const [selectedOption, setSelectedOption] = useState<ExportOption>("1");
+  const [selectedOption, setSelectedOption] =
+    useState<ExportOption>("timeline");
 
   const onSelectTime = useCallback(
     (option: ExportOption) => {
@@ -243,10 +236,6 @@ export function ExportContent({
           break;
         case "12":
           now.setHours(now.getHours() - 12);
-          start = now.getTime() / 1000;
-          break;
-        case "24":
-          now.setHours(now.getHours() - 24);
           start = now.getTime() / 1000;
           break;
         case "custom":
