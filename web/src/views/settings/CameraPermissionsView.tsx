@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useSWR from "swr";
-import axios from "axios";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { User } from "@/types/user";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Heading from "@/components/ui/heading";
 import {
   Table,
@@ -12,11 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { toast } from "sonner";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { User } from "@/types/user";
+import axios, { AxiosError } from "axios";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 type PermissionsSummaryUser = {
   username: string;
@@ -133,15 +133,14 @@ const CameraPermissionsView = () => {
         if (res.status === 200) {
           mutateSummary();
         }
-      } catch (error: any) {
-        const errorMessage =
-          error?.response?.data?.message ||
-          error?.response?.data?.detail ||
-          "Unknown error";
-        toast.error(
-          t("cameraPermissions.toast.error.saveFailed", { errorMessage }),
-          { position: "top-center", id: "camera-permissions-save-failed" },
-        );
+      } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+          const errorMessage = error.response?.data?.message || "Unknown error";
+          toast.error(
+            t("cameraPermissions.toast.error.saveFailed", { errorMessage }),
+            { position: "top-center", id: "camera-permissions-save-failed" },
+          );
+        }
       }
     }, 400);
     return () => clearTimeout(timeoutId);
