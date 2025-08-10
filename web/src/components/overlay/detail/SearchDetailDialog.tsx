@@ -6,7 +6,7 @@ import { useFormattedTimestamp } from "@/hooks/use-date-utils";
 import { getIconForLabel } from "@/utils/iconUtil";
 import { useApiHost } from "@/api";
 import { Button } from "../../ui/button";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Textarea } from "../../ui/textarea";
@@ -110,6 +110,9 @@ export default function SearchDetailDialog({
     revalidateOnFocus: false,
   });
 
+  const platformIsDesktopRef = useRef<boolean>(isDesktop);
+  const hasAnimatedOpenRef = useRef<boolean>(false);
+
   // tabs
 
   const [pageToggle, setPageToggle] = useOptimisticState(
@@ -172,11 +175,15 @@ export default function SearchDetailDialog({
 
   // content
 
-  const Overlay = isDesktop ? Dialog : MobilePage;
-  const Content = isDesktop ? DialogContent : MobilePageContent;
-  const Header = isDesktop ? DialogHeader : MobilePageHeader;
-  const Title = isDesktop ? DialogTitle : MobilePageTitle;
-  const Description = isDesktop ? DialogDescription : MobilePageDescription;
+  const Overlay = platformIsDesktopRef.current ? Dialog : MobilePage;
+  const Content = platformIsDesktopRef.current
+    ? DialogContent
+    : MobilePageContent;
+  const Header = platformIsDesktopRef.current ? DialogHeader : MobilePageHeader;
+  const Title = platformIsDesktopRef.current ? DialogTitle : MobilePageTitle;
+  const Description = platformIsDesktopRef.current
+    ? DialogDescription
+    : MobilePageDescription;
 
   return (
     <Overlay
@@ -187,10 +194,14 @@ export default function SearchDetailDialog({
       <Content
         className={cn(
           "scrollbar-container overflow-y-auto",
-          isDesktop &&
+          platformIsDesktopRef.current &&
             "max-h-[95dvh] sm:max-w-xl md:max-w-4xl lg:max-w-4xl xl:max-w-7xl",
           isMobile && "px-4",
+          !hasAnimatedOpenRef.current && "duration-0",
         )}
+        onAnimationEnd={() => {
+          hasAnimatedOpenRef.current = true;
+        }}
       >
         <Header>
           <Title>{t("trackedObjectDetails")}</Title>

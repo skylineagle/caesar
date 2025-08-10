@@ -238,7 +238,9 @@ export default function SearchView({
 
     requestAnimationFrame(() => {
       setPage(nextTab);
-      setSearchDetail(found);
+      setTimeout(() => {
+        setSearchDetail(found);
+      }, 0);
       initialOpenDoneRef.current = true;
     });
   }, [urlParams, uniqueResults, searchFilter, searchDetail]);
