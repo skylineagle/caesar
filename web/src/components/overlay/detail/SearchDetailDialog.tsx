@@ -35,6 +35,7 @@ import {
   FaVideo,
 } from "react-icons/fa";
 import { FaRotate } from "react-icons/fa6";
+import { FaShareAlt } from "react-icons/fa";
 import ObjectLifecycle from "./ObjectLifecycle";
 import {
   MobilePage,
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/tooltip";
 import { REVIEW_PADDING, ReviewSegment } from "@/types/review";
 import { useNavigate } from "react-router-dom";
+import { copyToClipboard } from "@/utils/browserUtil";
 import Chip from "@/components/indicators/Chip";
 import { capitalizeAll } from "@/utils/stringUtil";
 import useGlobalMutation from "@/hooks/use-global-mutate";
@@ -116,13 +118,8 @@ export default function SearchDetailDialog({
     100,
   );
 
-  // dialog and mobile page
-
-  const [isOpen, setIsOpen] = useState(search != undefined);
-
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      setIsOpen(open);
       if (!open) {
         // short timeout to allow the mobile page animation
         // to complete before updating the state
@@ -133,12 +130,6 @@ export default function SearchDetailDialog({
     },
     [setSearch],
   );
-
-  useEffect(() => {
-    if (search) {
-      setIsOpen(search != undefined);
-    }
-  }, [search]);
 
   const searchTabs = useMemo(() => {
     if (!config || !search) {
@@ -176,7 +167,7 @@ export default function SearchDetailDialog({
   }, [pageToggle, searchTabs, setSearchPage]);
 
   if (!search) {
-    return;
+    return null;
   }
 
   // content
@@ -189,7 +180,7 @@ export default function SearchDetailDialog({
 
   return (
     <Overlay
-      open={isOpen}
+      open={!!search}
       onOpenChange={handleOpenChange}
       enableHistoryBack={true}
     >
@@ -206,6 +197,20 @@ export default function SearchDetailDialog({
           <Description className="sr-only">
             {t("trackedObjectDetails")}
           </Description>
+          <div className="ml-auto flex items-center gap-2">
+            <Chip
+              className="cursor-pointer rounded-md bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500"
+              onClick={() => {
+                const params = new URLSearchParams();
+                params.set("event_id", search.id);
+                params.set("explore_tab", page);
+                const shareUrl = `${window.location.origin}/explore?${params.toString()}`;
+                copyToClipboard(shareUrl);
+              }}
+            >
+              <FaShareAlt className="size-4 text-white" />
+            </Chip>
+          </div>
         </Header>
         <ScrollArea
           className={cn("w-full whitespace-nowrap", isMobile && "my-2")}
@@ -1247,29 +1252,76 @@ export function VideoTab({ search }: VideoTabProps) {
             isIOS ? "right-8" : "right-2",
           )}
         >
+          <Tooltip>
+            <TooltipTrigger>
+              <Chip
+                className="cursor-pointer rounded-md bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500"
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  params.set(
+                    "recording",
+                    JSON.stringify({
+                      camera: search.camera,
+                      startTime: search.start_time - REVIEW_PADDING,
+                      severity: "alert",
+                    }),
+                  );
+                  const day = new Date(search.start_time * 1000);
+                  const startOfDay = new Date(day);
+                  startOfDay.setHours(0, 0, 0, 0);
+                  const endOfDay = new Date(day);
+                  endOfDay.setHours(23, 59, 59, 999);
+                  params.set(
+                    "after",
+                    Math.floor(startOfDay.getTime() / 1000).toString(),
+                  );
+                  params.set(
+                    "before",
+                    Math.ceil(endOfDay.getTime() / 1000).toString(),
+                  );
+                  navigate(`/review?${params.toString()}`);
+                }}
+              >
+                <FaVideo className="size-4 text-white" />
+              </Chip>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent>
+                {t("itemMenu.viewInHistory.label")}
+              </TooltipContent>
+            </TooltipPortal>
+          </Tooltip>
           {reviewItem && (
-            <Tooltip>
-              <TooltipTrigger>
-                <Chip
-                  className="cursor-pointer rounded-md bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500"
-                  onClick={() => {
-                    if (reviewItem?.id) {
-                      const params = new URLSearchParams({
-                        id: reviewItem.id,
-                      }).toString();
-                      navigate(`/review?${params}`);
-                    }
-                  }}
-                >
-                  <FaHistory className="size-4 text-white" />
-                </Chip>
-              </TooltipTrigger>
-              <TooltipPortal>
-                <TooltipContent>
-                  {t("itemMenu.viewInHistory.label")}
-                </TooltipContent>
-              </TooltipPortal>
-            </Tooltip>
+            <Chip
+              className="cursor-pointer rounded-md bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500"
+              onClick={() => {
+                const params = new URLSearchParams();
+                params.set(
+                  "recording",
+                  JSON.stringify({
+                    camera: reviewItem.camera,
+                    startTime: reviewItem.start_time - REVIEW_PADDING,
+                    severity: reviewItem.severity,
+                  }),
+                );
+                const day = new Date(reviewItem.start_time * 1000);
+                const startOfDay = new Date(day);
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date(day);
+                endOfDay.setHours(23, 59, 59, 999);
+                params.set(
+                  "after",
+                  Math.floor(startOfDay.getTime() / 1000).toString(),
+                );
+                params.set(
+                  "before",
+                  Math.ceil(endOfDay.getTime() / 1000).toString(),
+                );
+                navigate(`/review?${params.toString()}`);
+              }}
+            >
+              <FaHistory className="size-4 text-white" />
+            </Chip>
           )}
           <Tooltip>
             <TooltipTrigger asChild>
