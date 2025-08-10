@@ -54,7 +54,7 @@ export default function DynamicVideoPlayer({
   containerRef,
   enableScreenshot = false,
 }: DynamicVideoPlayerProps) {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
   const apiHost = useApiHost();
   const { data: config } = useSWR<FrigateConfig>("config");
 
@@ -101,7 +101,7 @@ export default function DynamicVideoPlayer({
   const [isBuffering, setIsBuffering] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout>();
   const [source, setSource] = useState(
-    `${apiHost}vod/${camera}/start/${timeRange.after}/end/${timeRange.before}/master.m3u8`,
+    `${apiHost}vod/${camera}/start/${timeRange.after}/end/${timeRange.before}/master.m3u8?ts=${timeRange.after}`,
   );
 
   // start at correct time
@@ -187,7 +187,7 @@ export default function DynamicVideoPlayer({
     }
 
     setSource(
-      `${apiHost}vod/${camera}/start/${recordingParams.after}/end/${recordingParams.before}/master.m3u8`,
+      `${apiHost}vod/${camera}/start/${recordingParams.after}/end/${recordingParams.before}/master.m3u8?ts=${recordingParams.after}`,
     );
     setLoadingTimeout(setTimeout(() => setIsLoading(true), 1000));
 

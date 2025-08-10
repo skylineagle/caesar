@@ -22,6 +22,7 @@ type MotionSegmentProps = {
   setHandlebarTime?: React.Dispatch<React.SetStateAction<number>>;
   scrollToSegment: (segmentTime: number, ifNeeded?: boolean) => void;
   dense: boolean;
+  recorded: boolean;
 };
 
 export function MotionSegment({
@@ -38,6 +39,7 @@ export function MotionSegment({
   setHandlebarTime,
   scrollToSegment,
   dense,
+  recorded,
 }: MotionSegmentProps) {
   const severityType = "all";
   const { getSeverity, getReviewed, displaySeverityType } =
@@ -140,6 +142,10 @@ export function MotionSegment({
       : ""
   }`;
 
+  const noRecordingPatternClasses = !recorded
+    ? "before:absolute before:inset-0 before:bg-[repeating-linear-gradient(135deg,theme(colors.gray.400)/35_0_6px,transparent_6px_10px)] before:content-['']"
+    : "";
+
   const severityColorsBg: { [key: number]: string } = {
     1: reviewed
       ? "from-severity_significant_motion-dimmed/10 to-severity_significant_motion/10"
@@ -174,8 +180,11 @@ export function MotionSegment({
                 firstHalfSegmentWidth > 0 || secondHalfSegmentWidth > 0,
             },
             segmentClasses,
-            severity[0] && "bg-gradient-to-r",
-            severity[0] && severityColorsBg[severity[0]],
+            noRecordingPatternClasses,
+            recorded && severity[0] && "bg-gradient-to-r",
+            recorded && severity[0] && severityColorsBg[severity[0]],
+            !recorded &&
+              "border-l-2 border-dashed border-gray-500/40 bg-gray-200/30",
           )}
           onClick={segmentClick}
           onTouchEnd={(event) => handleTouchStart(event, segmentClick)}
@@ -210,7 +219,7 @@ export function MotionSegment({
             </>
           )}
 
-          <div className="absolute left-1/2 z-10 h-[8px] w-[20px] -translate-x-1/2 transform cursor-pointer md:w-[40px]">
+          <div className="absolute left-1/2 z-20 h-[8px] w-[20px] -translate-x-1/2 transform cursor-pointer md:w-[40px]">
             <div className="mb-[1px] flex w-[20px] flex-row justify-center pt-[1px] md:w-[40px]">
               <div className="mb-[1px] flex justify-center">
                 <div
@@ -221,10 +230,12 @@ export function MotionSegment({
                     "rounded-full",
                     secondHalfSegmentWidth
                       ? "bg-motion_review"
-                      : "bg-muted-foreground",
+                      : recorded
+                        ? "bg-muted-foreground"
+                        : "bg-gray-400",
                   )}
                   style={{
-                    width: secondHalfSegmentWidth || 1,
+                    width: recorded ? secondHalfSegmentWidth || 1 : 0,
                   }}
                 ></div>
               </div>
@@ -240,10 +251,12 @@ export function MotionSegment({
                     "rounded-full",
                     firstHalfSegmentWidth
                       ? "bg-motion_review"
-                      : "bg-muted-foreground",
+                      : recorded
+                        ? "bg-muted-foreground"
+                        : "bg-gray-400",
                   )}
                   style={{
-                    width: firstHalfSegmentWidth || 1,
+                    width: recorded ? firstHalfSegmentWidth || 1 : 0,
                   }}
                 ></div>
               </div>

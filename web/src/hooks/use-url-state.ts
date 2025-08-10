@@ -10,32 +10,6 @@ import {
 } from "nuqs";
 import { z } from "zod";
 
-export function useGroup() {
-  const [group, setGroup] = useQueryState(
-    "group",
-    parseAsString.withDefault("default"),
-  );
-
-  const [persistedValue, setPersistedValue, , deletePersistedValue] =
-    usePersistence<string>("group", group);
-
-  const handleSetGroup = (value: string) => {
-    setGroup(value);
-    setPersistedValue(value);
-  };
-
-  const handleDeleteGroup = () => {
-    deletePersistedValue();
-    setGroup("default");
-  };
-
-  return {
-    group: group ?? persistedValue,
-    setGroup: handleSetGroup,
-    deleteGroup: handleDeleteGroup,
-  };
-}
-
 export function useVolume() {
   const [volume, setVolume] = useQueryState(
     "volume",
@@ -144,6 +118,52 @@ export function useRecording() {
   return {
     recording,
     setRecording,
+  };
+}
+
+export function useCurrentTime() {
+  const [currentTime, setCurrentTime] = useQueryState(
+    "currentTime",
+    parseAsFloat.withOptions({
+      shallow: true,
+    }),
+  );
+
+  return {
+    currentTime,
+    setCurrentTime,
+  };
+}
+
+export function useDateFilter() {
+  const [date, setDate] = useQueryState(
+    "date",
+    parseAsString.withOptions({
+      shallow: true,
+    }),
+  );
+
+  const [after, setAfter] = useQueryState(
+    "after",
+    parseAsInteger.withOptions({
+      shallow: true,
+    }),
+  );
+
+  const [before, setBefore] = useQueryState(
+    "before",
+    parseAsInteger.withOptions({
+      shallow: true,
+    }),
+  );
+
+  return {
+    date,
+    setDate,
+    after,
+    setAfter,
+    before,
+    setBefore,
   };
 }
 

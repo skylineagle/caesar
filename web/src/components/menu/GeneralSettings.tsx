@@ -17,9 +17,7 @@ import { CgDarkMode } from "react-icons/cg";
 import { IoColorPalette } from "react-icons/io5";
 import {
   LuActivity,
-  LuGithub,
   LuLanguages,
-  LuLifeBuoy,
   LuList,
   LuLogOut,
   LuMoon,
@@ -64,15 +62,12 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import SetPasswordDialog from "../overlay/SetPasswordDialog";
 
-import { useDocDomain } from "@/hooks/use-doc-domain";
-
 type GeneralSettingsProps = {
   className?: string;
 };
 
 export default function GeneralSettings({ className }: GeneralSettingsProps) {
   const { t } = useTranslation(["common", "views/settings"]);
-  const { getLocaleDocUrl } = useDocDomain();
   const { data: profile } = useSWR("profile");
   const { data: config } = useSWR<FrigateConfig>("config");
   const logoutUrl = config?.proxy?.logout_url || "/api/logout";
@@ -478,35 +473,7 @@ export default function GeneralSettings({ className }: GeneralSettingsProps) {
                 </SubItemContent>
               </Portal>
             </SubItem>
-            <DropdownMenuLabel className={isDesktop ? "mt-3" : "mt-1"}>
-              {t("menu.help")}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <a href={getLocaleDocUrl("/")} target="_blank">
-              <MenuItem
-                className={
-                  isDesktop ? "cursor-pointer" : "flex items-center p-2 text-sm"
-                }
-                aria-label={t("menu.documentation.label")}
-              >
-                <LuLifeBuoy className="mr-2 size-4" />
-                <span>{t("menu.documentation.title")}</span>
-              </MenuItem>
-            </a>
-            <a
-              href="https://github.com/blakeblackshear/frigate"
-              target="_blank"
-            >
-              <MenuItem
-                className={
-                  isDesktop ? "cursor-pointer" : "flex items-center p-2 text-sm"
-                }
-                aria-label="Frigate Github"
-              >
-                <LuGithub className="mr-2 size-4" />
-                <span>GitHub</span>
-              </MenuItem>
-            </a>
+
             {isAdmin && (
               <>
                 <DropdownMenuSeparator

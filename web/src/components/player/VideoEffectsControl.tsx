@@ -31,6 +31,7 @@ type VideoEffectsControlProps = {
   onEffectsChange: (effects: VideoEffects) => void;
   disabled?: boolean;
   initialEffects?: VideoEffects;
+  floating?: boolean;
 };
 
 export const VideoEffectsControl = ({
@@ -38,6 +39,7 @@ export const VideoEffectsControl = ({
   onEffectsChange,
   disabled = false,
   initialEffects,
+  floating = true,
 }: VideoEffectsControlProps) => {
   const [effects, setEffects] = useState<VideoEffects>(
     initialEffects || defaultEffects,
@@ -119,7 +121,12 @@ export const VideoEffectsControl = ({
   );
 
   return (
-    <div className={cn("absolute bottom-4 right-4 z-50", className)}>
+    <div
+      className={cn(
+        floating ? "absolute bottom-4 right-4 z-50" : undefined,
+        className,
+      )}
+    >
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -127,20 +134,26 @@ export const VideoEffectsControl = ({
             size="sm"
             disabled={disabled}
             className={cn(
-              "h-8 w-8 rounded-full bg-black/40 p-0 text-white/70 backdrop-blur-sm",
-              "opacity-0 transition-all duration-300 ease-in-out",
-              "group-hover:opacity-100 hover:h-9 hover:w-9 hover:bg-black/60 hover:text-white",
-              "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/30",
-              isOpen && "opacity-100",
-              hasActiveEffects && [
-                "bg-primary/40 text-primary-foreground opacity-100",
-                "hover:bg-primary/60 hover:text-primary-foreground",
-              ],
+              floating
+                ? [
+                    "h-8 w-8 rounded-full bg-black/40 p-0 text-white/70 backdrop-blur-sm",
+                    "opacity-0 transition-all duration-300 ease-in-out",
+                    "group-hover:opacity-100 hover:h-9 hover:w-9 hover:bg-black/60 hover:text-white",
+                    "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/30",
+                    isOpen && "opacity-100",
+                    hasActiveEffects &&
+                      "bg-primary/40 text-primary-foreground opacity-100 hover:bg-primary/60 hover:text-primary-foreground",
+                  ]
+                : [
+                    "h-8 px-2",
+                    hasActiveEffects &&
+                      "bg-primary/40 text-primary-foreground opacity-100 hover:bg-primary/60 hover:text-primary-foreground",
+                  ],
             )}
             aria-label="Video effects"
             onClick={(e) => e.stopPropagation()}
           >
-            <LuWand className="h-4 w-4" />
+            <LuWand className={cn("h-4 w-4", !floating && "mr-0")} />
           </Button>
         </PopoverTrigger>
         <PopoverContent

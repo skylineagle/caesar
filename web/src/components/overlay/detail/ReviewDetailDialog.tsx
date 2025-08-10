@@ -1,35 +1,8 @@
-import { isDesktop, isIOS, isMobile } from "react-device-detect";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "../../ui/sheet";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { useFormattedTimestamp } from "@/hooks/use-date-utils";
-import { getIconForLabel } from "@/utils/iconUtil";
 import { useApiHost } from "@/api";
-import { ReviewDetailPaneType, ReviewSegment } from "@/types/review";
-import { Event } from "@/types/event";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { FrigatePlusDialog } from "../dialog/FrigatePlusDialog";
-import ObjectLifecycle from "./ObjectLifecycle";
-import Chip from "@/components/indicators/Chip";
-import { FaDownload, FaImages, FaShareAlt } from "react-icons/fa";
-import FrigatePlusIcon from "@/components/icons/FrigatePlusIcon";
-import { FaArrowsRotate } from "react-icons/fa6";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { baseUrl } from "@/api/baseUrl";
-import { shareOrCopy } from "@/utils/browserUtil";
+import { DownloadVideoButton } from "@/components/button/DownloadVideoButton";
+import FrigatePlusIcon from "@/components/icons/FrigatePlusIcon";
+import Chip from "@/components/indicators/Chip";
 import {
   MobilePage,
   MobilePageContent,
@@ -37,12 +10,43 @@ import {
   MobilePageHeader,
   MobilePageTitle,
 } from "@/components/mobile/MobilePage";
-import { DownloadVideoButton } from "@/components/button/DownloadVideoButton";
-import { TooltipPortal } from "@radix-ui/react-tooltip";
-import { LuSearch } from "react-icons/lu";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useFormattedTimestamp } from "@/hooks/use-date-utils";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import { Trans, useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import { Event } from "@/types/event";
+import { FrigateConfig } from "@/types/frigateConfig";
+import {
+  REVIEW_PADDING,
+  ReviewDetailPaneType,
+  ReviewSegment,
+} from "@/types/review";
+import { shareOrCopy } from "@/utils/browserUtil";
 import { getTranslatedLabel } from "@/utils/i18n";
+import { getIconForLabel } from "@/utils/iconUtil";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isDesktop, isIOS, isMobile } from "react-device-detect";
+import { Trans, useTranslation } from "react-i18next";
+import { FaDownload, FaImages, FaShareAlt } from "react-icons/fa";
+import { FaArrowsRotate } from "react-icons/fa6";
+import { LuSearch } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
+import useSWR from "swr";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../../ui/sheet";
+import { FrigatePlusDialog } from "../dialog/FrigatePlusDialog";
+import ObjectLifecycle from "./ObjectLifecycle";
 
 type ReviewDetailDialogProps = {
   review?: ReviewSegment;
@@ -200,9 +204,31 @@ export default function ReviewDetailDialog({
                     <Button
                       aria-label={t("details.item.button.share")}
                       size="sm"
-                      onClick={() =>
-                        shareOrCopy(`${baseUrl}review?id=${review.id}`)
-                      }
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        params.set(
+                          "recording",
+                          JSON.stringify({
+                            camera: review.camera,
+                            startTime: review.start_time - REVIEW_PADDING,
+                            severity: review.severity,
+                          }),
+                        );
+                        const day = new Date(review.start_time * 1000);
+                        const startOfDay = new Date(day);
+                        startOfDay.setHours(0, 0, 0, 0);
+                        const endOfDay = new Date(day);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        params.set(
+                          "after",
+                          Math.floor(startOfDay.getTime() / 1000).toString(),
+                        );
+                        params.set(
+                          "before",
+                          Math.ceil(endOfDay.getTime() / 1000).toString(),
+                        );
+                        shareOrCopy(`${baseUrl}review?${params.toString()}`);
+                      }}
                     >
                       <FaShareAlt className="size-4 text-secondary-foreground" />
                     </Button>

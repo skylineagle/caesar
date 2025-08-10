@@ -1,16 +1,15 @@
 import Heading from "@/components/ui/heading";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useCallback, useEffect } from "react";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
-import { Separator } from "../../components/ui/separator";
-import { Button } from "../../components/ui/button";
-import useSWR from "swr";
+import { usePersistence } from "@/hooks/use-persistence";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { del as delData } from "idb-keyval";
-import { usePersistence } from "@/hooks/use-persistence";
+import { useCallback, useEffect } from "react";
 import { isSafari } from "react-device-detect";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { Button } from "../../components/ui/button";
 import {
   Select,
   SelectContent,
@@ -18,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "../../components/ui/select";
-import { useTranslation } from "react-i18next";
+import { Separator } from "../../components/ui/separator";
 
 const PLAYBACK_RATE_DEFAULT = isSafari ? [0.5, 1, 2] : [0.5, 1, 2, 4, 8, 16];
 const WEEK_STARTS_ON = ["Sunday", "Monday"];
@@ -99,7 +98,6 @@ export default function UiSettingsView() {
   return (
     <>
       <div className="flex size-full flex-col md:flex-row">
-        <Toaster position="top-center" closeButton={true} />
         <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
           <Heading as="h3" className="my-2">
             {t("general.title")}

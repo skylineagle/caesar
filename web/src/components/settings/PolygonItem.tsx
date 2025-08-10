@@ -4,7 +4,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Toaster } from "@/components/ui/sonner";
 import { Polygon, PolygonType } from "@/types/canvas";
 import { FrigateConfig } from "@/types/frigateConfig";
 import {
@@ -222,8 +221,6 @@ export default function PolygonItem({
 
   return (
     <>
-      <Toaster position="top-center" closeButton={true} />
-
       <div
         key={index}
         className="transition-background my-1.5 flex flex-row items-center justify-between rounded-lg p-1 duration-100"

@@ -19,7 +19,7 @@ export const ScreenshotButton = ({
   timestamp,
   className,
 }: ScreenshotButtonProps) => {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
 
   const handleScreenshot = useCallback(async () => {
     if (!videoElement) {

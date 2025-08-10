@@ -9,18 +9,5 @@
   "livePlayerRequiredIOSVersion": "Za ovaj tip prenosa uživo potreban je iOS 17.1 ili noviji.",
   "streamOffline": {
     "title": "Strim je oflajn"
-  },
-  "screenshot": {
-    "button": {
-      "aria": "Take screenshot",
-      "tooltip": "Take screenshot"
-    },
-    "success": {
-      "captured": "Screenshot captured successfully"
-    },
-    "error": {
-      "noVideoElement": "No video element found",
-      "failed": "Failed to capture screenshot"
-    }
   }
 }
