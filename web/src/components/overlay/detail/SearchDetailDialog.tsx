@@ -182,7 +182,7 @@ export default function SearchDetailDialog({
     <Overlay
       open={!!search}
       onOpenChange={handleOpenChange}
-      enableHistoryBack={true}
+      enableHistoryBack={false}
     >
       <Content
         className={cn(

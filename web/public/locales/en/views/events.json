@@ -18,9 +18,9 @@
     "aria": "Select events",
     "noFoundForTimePeriod": "No events found for this time period."
   },
-  "documentTitle": "Review - Frigate",
+  "documentTitle": "Review - Caesar",
   "recordings": {
-    "documentTitle": "Recordings - Frigate"
+    "documentTitle": "Recordings - Caesar"
   },
   "calendarFilter": {
     "last24Hours": "Last 24 Hours"

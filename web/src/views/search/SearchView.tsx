@@ -208,11 +208,13 @@ export default function SearchView({
   const [page, setPage] = useState<SearchTab>("details");
 
   const [urlParams, setUrlParams] = useSearchParams();
+  const lastEventIdRef = useRef<string | null>(null);
+  const initialOpenDoneRef = useRef(false);
 
   useEffect(() => {
     const eventId = urlParams.get("event_id") || searchFilter?.event_id;
     if (!eventId || !uniqueResults || uniqueResults.length === 0) return;
-    if (searchDetail && searchDetail.id === eventId) return;
+    const isSameEvent = searchDetail && searchDetail.id === eventId;
     const found = uniqueResults.find((r) => r.id === eventId);
     if (!found) return;
     const tabParam = urlParams.get("explore_tab");
@@ -225,8 +227,20 @@ export default function SearchView({
     const nextTab = validTabs.includes(tabParam as SearchTab)
       ? (tabParam as SearchTab)
       : "details";
-    setPage(nextTab);
-    setSearchDetail(found);
+
+    const eventChanged = lastEventIdRef.current !== eventId;
+    if (eventChanged) {
+      initialOpenDoneRef.current = false;
+      lastEventIdRef.current = eventId;
+    }
+
+    if (isSameEvent && initialOpenDoneRef.current) return;
+
+    requestAnimationFrame(() => {
+      setPage(nextTab);
+      setSearchDetail(found);
+      initialOpenDoneRef.current = true;
+    });
   }, [urlParams, uniqueResults, searchFilter, searchDetail]);
 
   useEffect(() => {
@@ -241,11 +255,22 @@ export default function SearchView({
     const next = new URLSearchParams(urlParams);
     next.set("event_id", searchDetail.id);
     next.set("explore_tab", page);
-    setUrlParams(next, { replace: true, preventScrollReset: true });
+    const current = urlParams.toString();
+    const nextStr = next.toString();
+    if (current !== nextStr) {
+      setUrlParams(next, { replace: true, preventScrollReset: true });
+    }
     if (searchFilter?.event_id !== searchDetail.id) {
       setSearchFilter({ ...(searchFilter ?? {}), event_id: searchDetail.id });
     }
-  }, [searchDetail]);
+  }, [
+    searchDetail,
+    page,
+    urlParams,
+    searchFilter,
+    setUrlParams,
+    setSearchFilter,
+  ]);
 
   // search interaction
 
@@ -274,7 +299,7 @@ export default function SearchView({
         }
       } else {
         setPage(page);
-        setSearchDetail(item);
+        requestAnimationFrame(() => setSearchDetail(item));
         const next = new URLSearchParams(urlParams);
         next.set("event_id", item.id);
         next.set("explore_tab", page);
@@ -402,7 +427,14 @@ export default function SearchView({
           break;
       }
     },
-    [uniqueResults, inputFocused, onSelectAllObjects, searchDetail],
+    [
+      uniqueResults,
+      inputFocused,
+      onSelectAllObjects,
+      searchDetail,
+      onSelectSearch,
+      page,
+    ],
   );
 
   useKeyboardListener(
@@ -518,6 +550,7 @@ export default function SearchView({
             next.delete("explore_tab");
             setUrlParams(next, { replace: true, preventScrollReset: true });
             if (searchFilter?.event_id) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const { event_id, ...rest } = searchFilter;
               setSearchFilter(rest);
             }
