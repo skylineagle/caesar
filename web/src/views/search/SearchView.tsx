@@ -27,6 +27,7 @@ import { isEqual } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isMobileOnly } from "react-device-detect";
 import { Trans, useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { LuImage, LuSearchX, LuText } from "react-icons/lu";
 import scrollIntoView from "scroll-into-view-if-needed";
 import useSWR from "swr";
@@ -206,6 +207,73 @@ export default function SearchView({
   const [searchDetail, setSearchDetail] = useState<SearchResult>();
   const [page, setPage] = useState<SearchTab>("details");
 
+  const [urlParams, setUrlParams] = useSearchParams();
+  const lastEventIdRef = useRef<string | null>(null);
+  const initialOpenDoneRef = useRef(false);
+
+  useEffect(() => {
+    const eventId = urlParams.get("event_id") || searchFilter?.event_id;
+    if (!eventId || !uniqueResults || uniqueResults.length === 0) return;
+    const isSameEvent = searchDetail && searchDetail.id === eventId;
+    const found = uniqueResults.find((r) => r.id === eventId);
+    if (!found) return;
+    const tabParam = urlParams.get("explore_tab");
+    const validTabs: SearchTab[] = [
+      "details",
+      "snapshot",
+      "video",
+      "object_lifecycle",
+    ];
+    const nextTab = validTabs.includes(tabParam as SearchTab)
+      ? (tabParam as SearchTab)
+      : "details";
+
+    const eventChanged = lastEventIdRef.current !== eventId;
+    if (eventChanged) {
+      initialOpenDoneRef.current = false;
+      lastEventIdRef.current = eventId;
+    }
+
+    if (isSameEvent && initialOpenDoneRef.current) return;
+
+    requestAnimationFrame(() => {
+      setPage(nextTab);
+      setTimeout(() => {
+        setSearchDetail(found);
+      }, 0);
+      initialOpenDoneRef.current = true;
+    });
+  }, [urlParams, uniqueResults, searchFilter, searchDetail]);
+
+  useEffect(() => {
+    const eventId = urlParams.get("event_id");
+    if (!eventId) return;
+    if (searchFilter?.event_id === eventId) return;
+    setSearchFilter({ ...(searchFilter ?? {}), event_id: eventId });
+  }, [urlParams, searchFilter, setSearchFilter]);
+
+  useEffect(() => {
+    if (!searchDetail) return;
+    const next = new URLSearchParams(urlParams);
+    next.set("event_id", searchDetail.id);
+    next.set("explore_tab", page);
+    const current = urlParams.toString();
+    const nextStr = next.toString();
+    if (current !== nextStr) {
+      setUrlParams(next, { replace: true, preventScrollReset: true });
+    }
+    if (searchFilter?.event_id !== searchDetail.id) {
+      setSearchFilter({ ...(searchFilter ?? {}), event_id: searchDetail.id });
+    }
+  }, [
+    searchDetail,
+    page,
+    urlParams,
+    searchFilter,
+    setUrlParams,
+    setSearchFilter,
+  ]);
+
   // search interaction
 
   const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
@@ -233,10 +301,17 @@ export default function SearchView({
         }
       } else {
         setPage(page);
-        setSearchDetail(item);
+        requestAnimationFrame(() => setSearchDetail(item));
+        const next = new URLSearchParams(urlParams);
+        next.set("event_id", item.id);
+        next.set("explore_tab", page);
+        setUrlParams(next, { replace: true, preventScrollReset: true });
+        if (searchFilter) {
+          setSearchFilter({ ...searchFilter, event_id: item.id });
+        }
       }
     },
-    [selectedObjects],
+    [selectedObjects, urlParams, setUrlParams, searchFilter, setSearchFilter],
   );
 
   const onSelectAllObjects = useCallback(() => {
@@ -321,8 +396,7 @@ export default function SearchView({
                 ? uniqueResults.length - 1
                 : (currentIndex - 1 + uniqueResults.length) %
                   uniqueResults.length;
-
-            setSearchDetail(uniqueResults[newIndex]);
+            onSelectSearch(uniqueResults[newIndex], false, page);
           }
           break;
 
@@ -338,8 +412,7 @@ export default function SearchView({
               currentIndex === -1
                 ? 0
                 : (currentIndex + 1) % uniqueResults.length;
-
-            setSearchDetail(uniqueResults[newIndex]);
+            onSelectSearch(uniqueResults[newIndex], false, page);
           }
           break;
         case "PageDown":
@@ -356,7 +429,14 @@ export default function SearchView({
           break;
       }
     },
-    [uniqueResults, inputFocused, onSelectAllObjects, searchDetail],
+    [
+      uniqueResults,
+      inputFocused,
+      onSelectAllObjects,
+      searchDetail,
+      onSelectSearch,
+      page,
+    ],
   );
 
   useKeyboardListener(
@@ -464,8 +544,29 @@ export default function SearchView({
       <SearchDetailDialog
         search={searchDetail}
         page={page}
-        setSearch={setSearchDetail}
-        setSearchPage={setPage}
+        setSearch={(value) => {
+          setSearchDetail(value);
+          if (!value) {
+            const next = new URLSearchParams(urlParams);
+            next.delete("event_id");
+            next.delete("explore_tab");
+            setUrlParams(next, { replace: true, preventScrollReset: true });
+            if (searchFilter?.event_id) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { event_id, ...rest } = searchFilter;
+              setSearchFilter(rest);
+            }
+          }
+        }}
+        setSearchPage={(p) => {
+          setPage(p);
+          if (searchDetail) {
+            const next = new URLSearchParams(urlParams);
+            next.set("event_id", searchDetail.id);
+            next.set("explore_tab", p);
+            setUrlParams(next, { replace: true, preventScrollReset: true });
+          }
+        }}
         setSimilarity={
           searchDetail && (() => setSimilaritySearch(searchDetail))
         }

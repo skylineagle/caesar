@@ -134,18 +134,13 @@ export function useCameraActivity(
   const stats = useAutoFrigateStats();
 
   const offline = useMemo(() => {
-    if (!stats) {
-      return false;
-    }
-
-    const cameras = stats["cameras"];
-
-    if (!cameras) {
-      return false;
-    }
-
-    return cameras[camera.name].camera_fps == 0 && stats["service"].uptime > 60;
-  }, [camera, stats]);
+    if (!stats || !stats.cameras || !camera?.name) return false;
+    const camStats = stats.cameras[camera.name];
+    if (!camStats) return false;
+    const fps = Number(camStats.camera_fps) || 0;
+    const uptime = Number(stats.service?.uptime) || 0;
+    return fps === 0 && uptime > 60;
+  }, [camera?.name, stats]);
 
   const isCameraEnabled = cameraEnabled ? cameraEnabled === "ON" : true;
 

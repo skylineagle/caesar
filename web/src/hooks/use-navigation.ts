@@ -69,7 +69,7 @@ export default function useNavigation(
           icon: TbFaceId,
           title: "menu.faceLibrary",
           url: "/faces",
-          enabled: isDesktop && config?.face_recognition.enabled,
+          enabled: isDesktop && config?.face_recognition?.enabled,
         },
       ] as NavData[],
     [config?.face_recognition?.enabled, variant],

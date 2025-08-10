@@ -13,7 +13,7 @@
     "timestamp": "Timestamp",
     "unknown": "Unknown"
   },
-  "documentTitle": "Face Library - Frigate",
+  "documentTitle": "Face Library - Caesar",
   "uploadFaceImage": {
     "title": "Upload Face Image",
     "desc": "Upload an image to scan for faces and include for {{pageToggle}}"
