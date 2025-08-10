@@ -80,6 +80,7 @@ export default function GeneralSettings({ className }: GeneralSettingsProps) {
       "nb-NO": "nb",
       "yue-Hant": "yue",
       "zh-CN": "zhCN",
+      "pt-BR": "ptBR",
     };
 
     return supportedLanguageKeys.map((key) => {
