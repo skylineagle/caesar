@@ -1,38 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
+import { useWs } from "@/api/ws";
+import { AudioLevelGraph } from "@/components/audio/AudioLevelGraph";
 import AutoUpdatingCameraImage from "@/components/camera/AutoUpdatingCameraImage";
-import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
-import { Toaster } from "@/components/ui/sonner";
-import { Label } from "@/components/ui/label";
-import useSWR from "swr";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import DebugDrawingLayer from "@/components/overlay/DebugDrawingLayer";
+import { Card } from "@/components/ui/card";
 import Heading from "@/components/ui/heading";
-import { Switch } from "@/components/ui/switch";
-import { usePersistence } from "@/hooks/use-persistence";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useCameraActivity } from "@/hooks/use-camera-activity";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { AudioDetection, ObjectType } from "@/types/ws";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCameraActivity } from "@/hooks/use-camera-activity";
+import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
 import useDeepMemo from "@/hooks/use-deep-memo";
-import { Card } from "@/components/ui/card";
+import { useDocDomain } from "@/hooks/use-doc-domain";
+import { usePersistence } from "@/hooks/use-persistence";
+import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
+import { AudioDetection, ObjectType } from "@/types/ws";
+import { getTranslatedLabel } from "@/utils/i18n";
 import { getIconForLabel } from "@/utils/iconUtil";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
-import { LuExternalLink, LuInfo } from "react-icons/lu";
-import { Link } from "react-router-dom";
-
-import DebugDrawingLayer from "@/components/overlay/DebugDrawingLayer";
-import { Separator } from "@/components/ui/separator";
+import { Switch } from "@radix-ui/react-switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isDesktop } from "react-device-detect";
 import { Trans, useTranslation } from "react-i18next";
-import { useDocDomain } from "@/hooks/use-doc-domain";
-import { getTranslatedLabel } from "@/utils/i18n";
-import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
-import { AudioLevelGraph } from "@/components/audio/AudioLevelGraph";
-import { useWs } from "@/api/ws";
+import { LuExternalLink, LuInfo } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import useSWR from "swr";
 
 type ObjectSettingsViewProps = {
   selectedCamera?: string;
@@ -163,7 +161,6 @@ export default function ObjectSettingsView({
 
   return (
     <div className="flex size-full flex-col md:flex-row">
-      <Toaster position="top-center" closeButton={true} />
       <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0 md:w-3/12">
         <Heading as="h3" className="my-2">
           {t("debug.title")}

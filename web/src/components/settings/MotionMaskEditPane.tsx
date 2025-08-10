@@ -1,29 +1,28 @@
-import Heading from "../ui/heading";
-import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { useCallback, useEffect, useMemo } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import PolygonEditControls from "./PolygonEditControls";
-import { FaCheckCircle } from "react-icons/fa";
+import { useDocDomain } from "@/hooks/use-doc-domain";
 import { Polygon } from "@/types/canvas";
-import useSWR from "swr";
 import { FrigateConfig } from "@/types/frigateConfig";
 import {
   flattenPoints,
   interpolatePoints,
   parseCoordinates,
 } from "@/utils/canvasUtil";
+import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { toast } from "sonner";
-import { Toaster } from "../ui/sonner";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
+import { useCallback, useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
-import { useDocDomain } from "@/hooks/use-doc-domain";
+import { FaCheckCircle } from "react-icons/fa";
+import { LuExternalLink } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
+import ActivityIndicator from "../indicators/activity-indicator";
+import Heading from "../ui/heading";
+import { Separator } from "../ui/separator";
+import PolygonEditControls from "./PolygonEditControls";
 
 type MotionMaskEditPaneProps = {
   polygons?: Polygon[];
@@ -237,7 +236,6 @@ export default function MotionMaskEditPane({
 
   return (
     <>
-      <Toaster position="top-center" closeButton={true} />
       <Heading as="h3" className="my-2">
         {polygon.name.length
           ? t("masksAndZones.motionMasks.edit")

@@ -1,28 +1,27 @@
-import Heading from "@/components/ui/heading";
-import { FrigateConfig } from "@/types/frigateConfig";
-import useSWR from "swr";
-import axios from "axios";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import AutoUpdatingCameraImage from "@/components/camera/AutoUpdatingCameraImage";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import {
   useImproveContrast,
   useMotionContourArea,
   useMotionThreshold,
 } from "@/api/ws";
-import { Skeleton } from "@/components/ui/skeleton";
+import AutoUpdatingCameraImage from "@/components/camera/AutoUpdatingCameraImage";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
+import Heading from "@/components/ui/heading";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { StatusBarMessagesContext } from "@/context/statusbar-provider";
-import { Trans, useTranslation } from "react-i18next";
 import { useDocDomain } from "@/hooks/use-doc-domain";
+import { FrigateConfig } from "@/types/frigateConfig";
+import axios from "axios";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import { LuExternalLink } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 type MotionTunerViewProps = {
   selectedCamera: string;
@@ -190,7 +189,6 @@ export default function MotionTunerView({
 
   return (
     <div className="flex size-full flex-col md:flex-row">
-      <Toaster position="top-center" closeButton={true} />
       <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0 md:w-3/12">
         <Heading as="h3" className="my-2">
           {t("motionDetectionTuner.title")}

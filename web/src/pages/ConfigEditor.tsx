@@ -1,23 +1,22 @@
-import useSWR from "swr";
+import { useApiHost } from "@/api";
+import { useRestart } from "@/api/ws";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import RestartDialog from "@/components/overlay/dialog/RestartDialog";
+import { Button } from "@/components/ui/button";
+import Heading from "@/components/ui/heading";
+import { useTheme } from "@/context/theme-provider";
+import { useResizeObserver } from "@/hooks/resize-observer";
+import { FrigateConfig } from "@/types/frigateConfig";
+import axios, { AxiosError } from "axios";
+import copy from "copy-to-clipboard";
 import * as monaco from "monaco-editor";
 import { configureMonacoYaml } from "monaco-yaml";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useApiHost } from "@/api";
-import Heading from "@/components/ui/heading";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { Button } from "@/components/ui/button";
-import axios, { AxiosError } from "axios";
-import copy from "copy-to-clipboard";
-import { useTheme } from "@/context/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { LuCopy, LuSave } from "react-icons/lu";
 import { MdOutlineRestartAlt } from "react-icons/md";
-import RestartDialog from "@/components/overlay/dialog/RestartDialog";
-import { useTranslation } from "react-i18next";
-import { useRestart } from "@/api/ws";
-import { useResizeObserver } from "@/hooks/resize-observer";
-import { FrigateConfig } from "@/types/frigateConfig";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 type SaveOptions = "saveonly" | "restart";
 
@@ -290,7 +289,6 @@ function ConfigEditor() {
           <div ref={configRef} className="flex-1 overflow-hidden" />
         </div>
       </div>
-      <Toaster closeButton={true} />
       <RestartDialog
         isOpen={restartDialogOpen}
         onClose={() => setRestartDialogOpen(false)}

@@ -47,18 +47,5 @@
     "error": {
       "submitFrigatePlusFailed": "Het is niet gelukt om een frame naar Frigate+ te sturen"
     }
-  },
-  "screenshot": {
-    "button": {
-      "aria": "Take screenshot",
-      "tooltip": "Take screenshot"
-    },
-    "success": {
-      "captured": "Screenshot captured successfully"
-    },
-    "error": {
-      "noVideoElement": "No video element found",
-      "failed": "Failed to capture screenshot"
-    }
   }
 }

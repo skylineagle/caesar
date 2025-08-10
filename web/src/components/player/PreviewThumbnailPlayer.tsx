@@ -1,29 +1,29 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useApiHost } from "@/api";
-import { isCurrentHour } from "@/utils/dateUtil";
-import { ReviewSegment } from "@/types/review";
-import { getIconForLabel } from "@/utils/iconUtil";
-import TimeAgo from "../dynamic/TimeAgo";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { isIOS, isMobile, isSafari } from "react-device-detect";
+import { baseUrl } from "@/api/baseUrl";
 import Chip from "@/components/indicators/Chip";
+import useContextMenu from "@/hooks/use-contextmenu";
 import { useFormattedTimestamp } from "@/hooks/use-date-utils";
 import useImageLoaded from "@/hooks/use-image-loaded";
-import { useSwipeable } from "react-swipeable";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import ImageLoadingIndicator from "../indicators/ImageLoadingIndicator";
-import useContextMenu from "@/hooks/use-contextmenu";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { TimeRange } from "@/types/timeline";
-import { capitalizeFirstLetter } from "@/utils/stringUtil";
 import { cn } from "@/lib/utils";
-import { InProgressPreview, VideoPreview } from "../preview/ScrubbablePreview";
+import { FrigateConfig } from "@/types/frigateConfig";
 import { Preview } from "@/types/preview";
-import { baseUrl } from "@/api/baseUrl";
+import { REVIEW_PADDING, ReviewSegment } from "@/types/review";
+import { TimeRange } from "@/types/timeline";
+import { isCurrentHour } from "@/utils/dateUtil";
+import { getIconForLabel } from "@/utils/iconUtil";
+import { capitalizeFirstLetter } from "@/utils/stringUtil";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { isIOS, isMobile, isSafari } from "react-device-detect";
 import { useTranslation } from "react-i18next";
 import { FaExclamationTriangle } from "react-icons/fa";
 import { MdOutlinePersonSearch } from "react-icons/md";
+import { useSwipeable } from "react-swipeable";
+import useSWR from "swr";
+import TimeAgo from "../dynamic/TimeAgo";
+import ActivityIndicator from "../indicators/activity-indicator";
+import ImageLoadingIndicator from "../indicators/ImageLoadingIndicator";
+import { InProgressPreview, VideoPreview } from "../preview/ScrubbablePreview";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type PreviewPlayerProps = {
   review: ReviewSegment;
@@ -44,7 +44,7 @@ export default function PreviewThumbnailPlayer({
   onClick,
   onTimeUpdate,
 }: PreviewPlayerProps) {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
   const apiHost = useApiHost();
   const { data: config } = useSWR<FrigateConfig>("config");
   const [imgRef, imgLoaded, onImgLoad] = useImageLoaded();
@@ -185,7 +185,28 @@ export default function PreviewThumbnailPlayer({
       onClick={handleOnClick}
       onAuxClick={(e) => {
         if (e.button === 1) {
-          window.open(`${baseUrl}review?id=${review.id}`, "_blank")?.focus();
+          const params = new URLSearchParams();
+          params.set(
+            "recording",
+            JSON.stringify({
+              camera: review.camera,
+              startTime: review.start_time - REVIEW_PADDING,
+              severity: review.severity,
+            }),
+          );
+          const day = new Date(review.start_time * 1000);
+          const startOfDay = new Date(day);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(day);
+          endOfDay.setHours(23, 59, 59, 999);
+          params.set(
+            "after",
+            Math.floor(startOfDay.getTime() / 1000).toString(),
+          );
+          params.set("before", Math.ceil(endOfDay.getTime() / 1000).toString());
+          window
+            .open(`${baseUrl}review?${params.toString()}`, "_blank")
+            ?.focus();
         }
       }}
       {...swipeHandlers}

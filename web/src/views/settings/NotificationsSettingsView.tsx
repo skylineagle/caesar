@@ -12,7 +12,6 @@ import {
 import Heading from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Toaster } from "@/components/ui/sonner";
 import { StatusBarMessagesContext } from "@/context/statusbar-provider";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,31 +20,31 @@ import axios from "axios";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { LuCheck, LuExternalLink, LuX } from "react-icons/lu";
-import { CiCircleAlert } from "react-icons/ci";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import useSWR from "swr";
-import { z } from "zod";
 import {
   useNotifications,
   useNotificationSuspend,
   useNotificationTest,
 } from "@/api/ws";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { formatUnixTimestampToDateTime } from "@/utils/dateUtil";
+import { CameraNameLabel } from "@/components/camera/CameraNameLabel";
 import FilterSwitch from "@/components/filter/FilterSwitch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Trans, useTranslation } from "react-i18next";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDateLocale } from "@/hooks/use-date-locale";
 import { useDocDomain } from "@/hooks/use-doc-domain";
-import { CameraNameLabel } from "@/components/camera/CameraNameLabel";
+import { formatUnixTimestampToDateTime } from "@/utils/dateUtil";
+import { Trans, useTranslation } from "react-i18next";
+import { CiCircleAlert } from "react-icons/ci";
+import { LuCheck, LuExternalLink, LuX } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
 
 const NOTIFICATION_SERVICE_WORKER = "notifications-worker.js";
 
@@ -378,7 +377,7 @@ export default function NotificationView({
   return (
     <>
       <div className="flex size-full flex-col md:flex-row">
-        <Toaster position="top-center" closeButton={true} />
+        {" "}
         <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
           <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <div className="col-span-1">

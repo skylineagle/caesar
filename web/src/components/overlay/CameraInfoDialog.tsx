@@ -1,3 +1,12 @@
+import { CameraConfig } from "@/types/frigateConfig";
+import { Ffprobe } from "@/types/stats";
+import axios from "axios";
+import copy from "copy-to-clipboard";
+import { useEffect, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import ActivityIndicator from "../indicators/activity-indicator";
+import { Button } from "../ui/button";
 import {
   Dialog,
   DialogContent,
@@ -6,16 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { Ffprobe } from "@/types/stats";
-import { Button } from "../ui/button";
-import copy from "copy-to-clipboard";
-import { CameraConfig } from "@/types/frigateConfig";
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { toast } from "sonner";
-import { Toaster } from "../ui/sonner";
-import { Trans, useTranslation } from "react-i18next";
 import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
 
 type CameraInfoDialogProps = {
@@ -79,7 +78,6 @@ export default function CameraInfoDialog({
 
   return (
     <>
-      <Toaster position="top-center" />
       <Dialog
         open={showCameraInfoDialog}
         onOpenChange={setShowCameraInfoDialog}

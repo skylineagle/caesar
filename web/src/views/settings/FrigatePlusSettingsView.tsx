@@ -1,20 +1,7 @@
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import { Button } from "@/components/ui/button";
 import Heading from "@/components/ui/heading";
 import { Label } from "@/components/ui/label";
-import { useCallback, useContext, useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/sonner";
-import { Separator } from "../../components/ui/separator";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { toast } from "sonner";
-import useSWR from "swr";
-import axios from "axios";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { CheckCircle2, XCircle } from "lucide-react";
-import { Trans, useTranslation } from "react-i18next";
-import { IoIosWarning } from "react-icons/io";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
-import { StatusBarMessagesContext } from "@/context/statusbar-provider";
 import {
   Select,
   SelectContent,
@@ -22,8 +9,20 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { StatusBarMessagesContext } from "@/context/statusbar-provider";
 import { useDocDomain } from "@/hooks/use-doc-domain";
 import { CameraNameLabel } from "@/components/camera/CameraNameLabel";
+import { FrigateConfig } from "@/types/frigateConfig";
+import axios from "axios";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import { IoIosWarning } from "react-icons/io";
+import { LuExternalLink } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { Separator } from "../../components/ui/separator";
 
 type FrigatePlusModel = {
   id: string;
@@ -210,7 +209,6 @@ export default function FrigatePlusSettingsView({
   return (
     <>
       <div className="flex size-full flex-col md:flex-row">
-        <Toaster position="top-center" closeButton={true} />
         <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
           <Heading as="h3" className="my-2">
             {t("frigatePlus.title")}

@@ -1,15 +1,4 @@
-import Heading from "../ui/heading";
-import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -19,26 +8,36 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useCallback, useEffect, useMemo } from "react";
-import { FrigateConfig } from "@/types/frigateConfig";
-import useSWR from "swr";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ObjectMaskFormValuesType, Polygon } from "@/types/canvas";
-import PolygonEditControls from "./PolygonEditControls";
-import { FaCheckCircle } from "react-icons/fa";
+import { FrigateConfig } from "@/types/frigateConfig";
 import {
   flattenPoints,
   interpolatePoints,
   parseCoordinates,
 } from "@/utils/canvasUtil";
-import axios from "axios";
-import { toast } from "sonner";
-import { Toaster } from "../ui/sonner";
-import ActivityIndicator from "../indicators/activity-indicator";
-import { useTranslation } from "react-i18next";
 import { getTranslatedLabel } from "@/utils/i18n";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useCallback, useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { FaCheckCircle } from "react-icons/fa";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
+import ActivityIndicator from "../indicators/activity-indicator";
+import Heading from "../ui/heading";
+import { Separator } from "../ui/separator";
+import PolygonEditControls from "./PolygonEditControls";
 
 type ObjectMaskEditPaneProps = {
   polygons?: Polygon[];
@@ -275,7 +274,6 @@ export default function ObjectMaskEditPane({
 
   return (
     <>
-      <Toaster position="top-center" closeButton={true} />
       <Heading as="h3" className="my-2">
         {polygon.name.length
           ? t("masksAndZones.objectMasks.edit")

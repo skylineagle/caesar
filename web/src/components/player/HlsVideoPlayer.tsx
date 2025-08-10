@@ -1,5 +1,8 @@
 import { useMuted, usePlaybackRate, useVolume } from "@/hooks/use-url-state";
-import { useVideoEffects } from "@/hooks/use-video-effects";
+import {
+  usePersistedVideoEffects,
+  useVideoEffects,
+} from "@/hooks/use-video-effects";
 import { cn } from "@/lib/utils";
 import { FrigateConfig } from "@/types/frigateConfig";
 import { VideoResolutionType } from "@/types/live";
@@ -19,7 +22,6 @@ import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { toast } from "sonner";
 import useSWR from "swr";
 import VideoControls from "./VideoControls";
-import { VideoEffects } from "./VideoEffectsControl";
 
 // Android native hls does not seek correctly
 const USE_NATIVE_HLS = !isAndroid;
@@ -85,14 +87,9 @@ export default function HlsVideoPlayer({
   const [useHlsCompat, setUseHlsCompat] = useState(false);
   const [loadedMetadata, setLoadedMetadata] = useState(false);
   const [bufferTimeout, setBufferTimeout] = useState<NodeJS.Timeout>();
-  const [videoEffects] = useState<VideoEffects>({
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    hue: 0,
-    blur: 0,
-  });
-
+  const { effects: videoEffects, updateEffects } = usePersistedVideoEffects(
+    cameraName ?? "unknown",
+  );
   useVideoEffects(videoRef, videoEffects);
   const handleLoadedMetadata = useCallback(() => {
     setLoadedMetadata(true);
@@ -182,6 +179,7 @@ export default function HlsVideoPlayer({
   const [controls, setControls] = useState(isMobile);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [zoomScale, setZoomScale] = useState(1.0);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -189,11 +187,12 @@ export default function HlsVideoPlayer({
     }
 
     const callback = (e: MouseEvent) => {
-      if (!videoRef.current) {
+      const targetElement = wrapperRef.current ?? videoRef.current;
+      if (!targetElement) {
         return;
       }
 
-      const rect = videoRef.current.getBoundingClientRect();
+      const rect = targetElement.getBoundingClientRect();
 
       if (
         e.clientX > rect.left &&
@@ -229,171 +228,169 @@ export default function HlsVideoPlayer({
       onZoom={(zoom) => setZoomScale(zoom.state.scale)}
       disabled={!frigateControls}
     >
-      {frigateControls && (
-        <VideoControls
-          className={cn(
-            "absolute left-1/2 z-50 -translate-x-1/2",
-            tallCamera ? "bottom-12" : "bottom-5",
-          )}
-          video={videoRef.current}
-          isPlaying={isPlaying}
-          show={visible && (controls || controlsOpen)}
-          muted={muted}
-          volume={volume}
-          features={{
-            volume: true,
-            seek: true,
-            playbackRate: true,
-            plusUpload: config?.plus?.enabled == true,
-            fullscreen: supportsFullscreen,
-            screenshot: enableScreenshot,
-          }}
-          setControlsOpen={setControlsOpen}
-          setMuted={(muted) => setMuted(muted)}
-          playbackRate={playbackRate ?? 1}
-          hotKeys={hotKeys}
-          onPlayPause={onPlayPause}
-          onSeek={(diff) => {
-            const currentTime = videoRef.current?.currentTime;
-
-            if (!videoRef.current || !currentTime) {
-              return;
-            }
-
-            videoRef.current.currentTime = Math.max(0, currentTime + diff);
-          }}
-          onSetPlaybackRate={(rate) => {
-            setPlaybackRate(rate);
-
-            if (videoRef.current) {
-              videoRef.current.playbackRate = rate;
-            }
-          }}
-          onUploadFrame={async () => {
-            const frameTime = getVideoTime();
-
-            if (frameTime && onUploadFrame) {
-              const resp = await onUploadFrame(frameTime);
-
-              if (resp && resp.status == 200) {
-                toast.success(t("toast.success.submittedFrigatePlus"), {
-                  position: "top-center",
-                });
-              } else {
-                toast.success(t("toast.error.submitFrigatePlusFailed"), {
-                  position: "top-center",
-                });
-              }
-            }
-          }}
-          fullscreen={fullscreen}
-          toggleFullscreen={toggleFullscreen}
-          containerRef={containerRef}
-          cameraName={cameraName}
-          timestamp={getVideoTime()}
-        />
-      )}
-      <TransformComponent
-        wrapperStyle={{
-          display: visible ? undefined : "none",
-          width: "100%",
-          height: "100%",
-        }}
-        wrapperProps={{
-          onClick: isDesktop ? undefined : () => setControls(!controls),
-        }}
-        contentStyle={{
-          width: "100%",
-          height: isMobile ? "100%" : undefined,
-        }}
+      <div
+        ref={wrapperRef}
+        className="group relative size-full"
+        onMouseEnter={() => setControls(true)}
+        onMouseLeave={() => setControls(controlsOpen)}
       >
-        <video
-          ref={videoRef}
-          className={`size-full rounded-lg bg-black md:rounded-2xl ${loadedMetadata ? "" : "invisible"} cursor-pointer`}
-          preload="auto"
-          autoPlay
-          controls={!frigateControls}
-          playsInline
-          muted={muted}
-          onClick={
-            isDesktop
-              ? () => {
-                  if (zoomScale == 1.0) onPlayPause(!isPlaying);
+        {frigateControls && (
+          <VideoControls
+            className={cn(
+              "absolute left-1/2 z-50 -translate-x-1/2",
+              tallCamera ? "bottom-12" : "bottom-5",
+            )}
+            video={videoRef.current}
+            isPlaying={isPlaying}
+            show={visible && (controls || controlsOpen)}
+            muted={muted}
+            volume={volume}
+            features={{
+              volume: true,
+              seek: true,
+              playbackRate: true,
+              plusUpload: config?.plus?.enabled == true,
+              fullscreen: supportsFullscreen,
+              screenshot: enableScreenshot,
+              effects: true,
+            }}
+            setControlsOpen={setControlsOpen}
+            setMuted={(muted) => setMuted(muted)}
+            playbackRate={playbackRate ?? 1}
+            hotKeys={hotKeys}
+            onPlayPause={onPlayPause}
+            onSeek={(diff) => {
+              const currentTime = videoRef.current?.currentTime;
+
+              if (!videoRef.current || !currentTime) {
+                return;
+              }
+
+              videoRef.current.currentTime = Math.max(0, currentTime + diff);
+            }}
+            onSetPlaybackRate={(rate) => {
+              setPlaybackRate(rate);
+
+              if (videoRef.current) {
+                videoRef.current.playbackRate = rate;
+              }
+            }}
+            onUploadFrame={async () => {
+              const frameTime = getVideoTime();
+
+              if (frameTime && onUploadFrame) {
+                const resp = await onUploadFrame(frameTime);
+
+                if (resp && resp.status == 200) {
+                  toast.success(t("toast.success.submittedFrigatePlus"), {
+                    position: "top-center",
+                  });
+                } else {
+                  toast.success(t("toast.error.submitFrigatePlusFailed"), {
+                    position: "top-center",
+                  });
                 }
-              : undefined
-          }
-          onVolumeChange={() => {
-            setVolume(videoRef.current?.volume ?? 1.0);
-            if (!frigateControls) {
-              setMuted(videoRef.current?.muted ?? false);
-            }
-          }}
-          onPlay={() => {
-            setIsPlaying(true);
-
-            if (isMobile) {
-              setControls(true);
-              setMobileCtrlTimeout(setTimeout(() => setControls(false), 4000));
-            }
-          }}
-          onPlaying={onPlaying}
-          onPause={() => {
-            setIsPlaying(false);
-            clearTimeout(bufferTimeout);
-
-            if (isMobile && mobileCtrlTimeout) {
-              clearTimeout(mobileCtrlTimeout);
-            }
-          }}
-          onWaiting={() => {
-            if (onError != undefined) {
-              if (videoRef.current?.paused) {
-                return;
               }
-
-              setBufferTimeout(
-                setTimeout(() => {
-                  if (
-                    document.visibilityState === "visible" &&
-                    videoRef.current
-                  ) {
-                    onError("stalled");
-                  }
-                }, 3000),
-              );
-            }
-          }}
-          onProgress={() => {
-            if (onError != undefined) {
-              if (videoRef.current?.paused) {
-                return;
+            }}
+            fullscreen={fullscreen}
+            toggleFullscreen={toggleFullscreen}
+            containerRef={containerRef}
+            cameraName={cameraName}
+            timestamp={getVideoTime()}
+            initialVideoEffects={videoEffects}
+            onEffectsChange={updateEffects}
+            effectsDisabled={!visible}
+          />
+        )}
+        <div className="relative z-0 size-full">
+          <TransformComponent
+            wrapperStyle={{
+              display: visible ? undefined : "none",
+              width: "100%",
+              height: "100%",
+            }}
+            wrapperProps={{
+              onClick: isDesktop ? undefined : () => setControls(!controls),
+            }}
+            contentStyle={{
+              width: "100%",
+              height: isMobile ? "100%" : undefined,
+            }}
+          >
+            <video
+              ref={videoRef}
+              className={`size-full rounded-lg bg-black object-contain md:rounded-2xl ${loadedMetadata ? "" : "invisible"} cursor-pointer`}
+              preload="auto"
+              autoPlay
+              controls={!frigateControls}
+              playsInline
+              muted={muted}
+              onClick={
+                isDesktop
+                  ? () => {
+                      if (zoomScale == 1.0) onPlayPause(!isPlaying);
+                    }
+                  : undefined
               }
+              onVolumeChange={() => {
+                setVolume(videoRef.current?.volume ?? 1.0);
+                if (!frigateControls) {
+                  setMuted(videoRef.current?.muted ?? false);
+                }
+              }}
+              onPlay={() => {
+                setIsPlaying(true);
 
-              if (bufferTimeout) {
+                if (isMobile) {
+                  setControls(true);
+                  setMobileCtrlTimeout(
+                    setTimeout(() => setControls(false), 4000),
+                  );
+                }
+              }}
+              onPlaying={onPlaying}
+              onPause={() => {
+                setIsPlaying(false);
                 clearTimeout(bufferTimeout);
-                setBufferTimeout(undefined);
-              }
-            }
-          }}
-          onTimeUpdate={() => {
-            if (!onTimeUpdate) {
-              return;
-            }
 
-            const frameTime = getVideoTime();
+                if (isMobile && mobileCtrlTimeout) {
+                  clearTimeout(mobileCtrlTimeout);
+                }
+              }}
+              onWaiting={() => {
+                if (onError != undefined) {
+                  if (videoRef.current?.paused) {
+                    return;
+                  }
 
-            if (frameTime) {
-              onTimeUpdate(frameTime);
-            }
-          }}
-          onLoadedData={() => {
-            onPlayerLoaded?.();
-            handleLoadedMetadata();
+                  setBufferTimeout(
+                    setTimeout(() => {
+                      if (
+                        document.visibilityState === "visible" &&
+                        videoRef.current
+                      ) {
+                        onError("stalled");
+                      }
+                    }, 3000),
+                  );
+                }
+              }}
+              onProgress={() => {
+                if (onError != undefined) {
+                  if (videoRef.current?.paused) {
+                    return;
+                  }
 
-            if (videoRef.current) {
-              if (playbackRate) {
-                videoRef.current.playbackRate = playbackRate;
-              }
+                  if (bufferTimeout) {
+                    clearTimeout(bufferTimeout);
+                    setBufferTimeout(undefined);
+                  }
+                }
+              }}
+              onTimeUpdate={() => {
+                if (!onTimeUpdate) {
+                  return;
+                }
 
               if (volume) {
                 videoRef.current.volume = volume;

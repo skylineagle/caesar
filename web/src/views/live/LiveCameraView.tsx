@@ -462,13 +462,27 @@ export default function LiveCameraView({
                 size="sm"
                 onClick={() => {
                   const params = new URLSearchParams();
+                  const now = Date.now() / 1000;
                   params.set(
                     "recording",
                     JSON.stringify({
                       camera: camera.name,
-                      startTime: Date.now() / 1000 - 30,
+                      startTime: now - 30,
                       severity: "alert",
                     }),
+                  );
+                  const day = new Date(now * 1000);
+                  const startOfDay = new Date(day);
+                  startOfDay.setHours(0, 0, 0, 0);
+                  const endOfDay = new Date(day);
+                  endOfDay.setHours(23, 59, 59, 999);
+                  params.set(
+                    "after",
+                    Math.floor(startOfDay.getTime() / 1000).toString(),
+                  );
+                  params.set(
+                    "before",
+                    Math.ceil(endOfDay.getTime() / 1000).toString(),
                   );
                   navigate(`/review?${params.toString()}`);
                 }}

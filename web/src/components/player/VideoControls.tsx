@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { FaCompress, FaExpand } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import { ScreenshotButton } from "./ScreenshotButton";
+import { VideoEffects, VideoEffectsControl } from "./VideoEffectsControl";
 
 type VideoControls = {
   volume?: boolean;
@@ -43,6 +44,7 @@ type VideoControls = {
   plusUpload?: boolean;
   fullscreen?: boolean;
   screenshot?: boolean;
+  effects?: boolean;
 };
 
 const CONTROLS_DEFAULT: VideoControls = {
@@ -52,6 +54,7 @@ const CONTROLS_DEFAULT: VideoControls = {
   plusUpload: false,
   fullscreen: false,
   screenshot: false,
+  effects: false,
 };
 const PLAYBACK_RATE_DEFAULT = isSafari ? [0.5, 1, 2] : [0.5, 1, 2, 4, 8, 16];
 const MIN_ITEMS_WRAP = 6;
@@ -78,6 +81,9 @@ type VideoControlsProps = {
   containerRef?: React.MutableRefObject<HTMLDivElement | null>;
   cameraName?: string;
   timestamp?: number;
+  initialVideoEffects?: VideoEffects;
+  onEffectsChange?: (effects: VideoEffects) => void;
+  effectsDisabled?: boolean;
 };
 export default function VideoControls({
   className,
@@ -101,6 +107,9 @@ export default function VideoControls({
   containerRef,
   cameraName,
   timestamp,
+  initialVideoEffects,
+  onEffectsChange,
+  effectsDisabled,
 }: VideoControlsProps) {
   // layout
 
@@ -280,6 +289,14 @@ export default function VideoControls({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      {features.effects && onEffectsChange && (
+        <VideoEffectsControl
+          onEffectsChange={onEffectsChange}
+          disabled={effectsDisabled ?? false}
+          initialEffects={initialVideoEffects}
+          floating={false}
+        />
+      )}
       {features.plusUpload && onUploadFrame && (
         <FrigatePlusUploadButton
           video={video}
@@ -329,7 +346,7 @@ function FrigatePlusUploadButton({
   onUploadFrame,
   containerRef,
 }: FrigatePlusUploadButtonProps) {
-  const { t } = useTranslation("components/player");
+  const { t } = useTranslation(["components/player"]);
 
   const [videoImg, setVideoImg] = useState<string>();
 

@@ -1,6 +1,15 @@
-import Heading from "@/components/ui/heading";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Toaster, toast } from "sonner";
+import {
+  useAlertsState,
+  useDetectionsState,
+  useEnabledState,
+  useObjectDescriptionState,
+  useReviewDescriptionState,
+} from "@/api/ws";
+import { CameraNameLabel } from "@/components/camera/CameraNameLabel";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
+import CameraEditForm from "@/components/settings/CameraEditForm";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -10,36 +19,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
-import { Checkbox } from "@/components/ui/checkbox";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
-import { StatusBarMessagesContext } from "@/context/statusbar-provider";
-import axios from "axios";
-import { Link } from "react-router-dom";
-import { LuExternalLink } from "react-icons/lu";
-import { capitalizeFirstLetter } from "@/utils/stringUtil";
-import { MdCircle } from "react-icons/md";
-import { cn } from "@/lib/utils";
-import { Trans, useTranslation } from "react-i18next";
-import { Switch } from "@/components/ui/switch";
+import Heading from "@/components/ui/heading";
 import { Label } from "@/components/ui/label";
-import { useDocDomain } from "@/hooks/use-doc-domain";
-import { getTranslatedLabel } from "@/utils/i18n";
-import {
-  useAlertsState,
-  useDetectionsState,
-  useEnabledState,
-  useObjectDescriptionState,
-  useReviewDescriptionState,
-} from "@/api/ws";
-import CameraEditForm from "@/components/settings/CameraEditForm";
-import { LuPlus } from "react-icons/lu";
 import {
   Select,
   SelectContent,
@@ -47,10 +28,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IoMdArrowRoundBack } from "react-icons/io";
-import { isDesktop } from "react-device-detect";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { StatusBarMessagesContext } from "@/context/statusbar-provider";
 import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
-import { CameraNameLabel } from "@/components/camera/CameraNameLabel";
+import { useDocDomain } from "@/hooks/use-doc-domain";
+import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { getTranslatedLabel } from "@/utils/i18n";
+import { capitalizeFirstLetter } from "@/utils/stringUtil";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { isDesktop } from "react-device-detect";
+import { useForm } from "react-hook-form";
+import { Trans, useTranslation } from "react-i18next";
+import { IoMdArrowRoundBack } from "react-icons/io";
+import { LuExternalLink, LuPlus } from "react-icons/lu";
+import { MdCircle } from "react-icons/md";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import useSWR from "swr";
+import { z } from "zod";
 
 type CameraSettingsViewProps = {
   selectedCamera: string;
@@ -312,7 +311,6 @@ export default function CameraSettingsView({
   return (
     <>
       <div className="flex size-full flex-col md:flex-row">
-        <Toaster position="top-center" closeButton={true} />
         <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
           {viewMode === "settings" ? (
             <>

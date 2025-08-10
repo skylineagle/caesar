@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { LuVideoOff } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
+import { TbExclamationCircle } from "react-icons/tb";
 import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
 import ActivityIndicator from "../indicators/activity-indicator";
 import Chip from "../indicators/Chip";
@@ -84,6 +85,9 @@ export default function LivePlayer({
   const { t } = useTranslation(["common", "components/player"]);
 
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
+  const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const hasDraggedRef = useRef(false);
+  const clickSuppressDistancePx = 8;
 
   const cameraName = useCameraFriendlyName(cameraConfig);
   // stats
@@ -114,6 +118,7 @@ export default function LivePlayer({
     activeMotion,
     activeTracking,
     objects,
+    offline,
   } = useCameraActivity(cameraConfig);
 
   const cameraActive = useMemo(
@@ -155,7 +160,7 @@ export default function LivePlayer({
   // camera still state
 
   const stillReloadInterval = useMemo(() => {
-    if (!windowVisible || !showStillWithoutActivity) {
+    if (!windowVisible || offline || !showStillWithoutActivity) {
       return -1; // no reason to update the image when the window is not visible
     }
 
@@ -182,6 +187,7 @@ export default function LivePlayer({
     liveReady,
     activeMotion,
     activeTracking,
+    offline,
     windowVisible,
     cameraActive,
   ]);
@@ -236,6 +242,91 @@ export default function LivePlayer({
       setIsReEnabling(false);
     }
   }, [liveReady, isReEnabling]);
+
+  const handlePointerDown = useCallback((x: number, y: number) => {
+    pointerDownPositionRef.current = { x, y };
+    hasDraggedRef.current = false;
+  }, []);
+
+  const handlePointerMove = useCallback((x: number, y: number) => {
+    if (!pointerDownPositionRef.current) {
+      return;
+    }
+    const dx = x - pointerDownPositionRef.current.x;
+    const dy = y - pointerDownPositionRef.current.y;
+    if (Math.hypot(dx, dy) > clickSuppressDistancePx) {
+      hasDraggedRef.current = true;
+    }
+  }, []);
+
+  const handlePointerUp = useCallback(() => {}, []);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      handlePointerDown(e.clientX, e.clientY);
+    },
+    [handlePointerDown],
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      handlePointerMove(e.clientX, e.clientY);
+    },
+    [handlePointerMove],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    handlePointerUp();
+  }, [handlePointerUp]);
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      const t = e.touches[0] ?? e.changedTouches[0];
+      if (!t) {
+        return;
+      }
+      handlePointerDown(t.clientX, t.clientY);
+    },
+    [handlePointerDown],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      const t = e.touches[0] ?? e.changedTouches[0];
+      if (!t) {
+        return;
+      }
+      handlePointerMove(t.clientX, t.clientY);
+    },
+    [handlePointerMove],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    handlePointerUp();
+  }, [handlePointerUp]);
+
+  const handleTileClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const down = pointerDownPositionRef.current;
+      if (down) {
+        const dx = e.clientX - down.x;
+        const dy = e.clientY - down.y;
+        if (Math.hypot(dx, dy) > clickSuppressDistancePx) {
+          hasDraggedRef.current = true;
+        }
+      }
+      if (hasDraggedRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        hasDraggedRef.current = false;
+        pointerDownPositionRef.current = null;
+        return;
+      }
+      pointerDownPositionRef.current = null;
+      onClick?.();
+    },
+    [onClick],
+  );
 
   if (!cameraConfig) {
     return <ActivityIndicator />;
@@ -325,7 +416,13 @@ export default function LivePlayer({
           : "outline-0",
         className,
       )}
-      onClick={onClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onClick={handleTileClick}
       onAuxClick={(e) => {
         if (e.button === 1) {
           window
@@ -343,6 +440,7 @@ export default function LivePlayer({
         )}
       {player}
       {cameraEnabled &&
+        !offline &&
         (!showStillWithoutActivity || isReEnabling) &&
         !liveReady && <ActivityIndicator />}
 
@@ -412,16 +510,16 @@ export default function LivePlayer({
         />
       </div>
 
-      {!liveReady && !showStillWithoutActivity && cameraEnabled && (
-        <div className="absolute inset-0 flex h-full w-full items-center justify-center">
-          <div className="flex max-w-sm flex-col items-center justify-center rounded-lg bg-background/50 p-5">
+      {offline && !showStillWithoutActivity && cameraEnabled && (
+        <div className="absolute inset-0 left-1/2 top-1/2 flex h-96 w-96 -translate-x-1/2 -translate-y-1/2">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-background/50 p-5">
             <p className="my-5 text-lg">{t("streamOffline.title")}</p>
             <TbExclamationCircle className="mb-3 size-10" />
-            <p className="text-center">
+            <p className="max-w-96 text-center">
               <Trans
                 ns="components/player"
                 values={{
-                  cameraName: cameraName,
+                  cameraName: capitalizeFirstLetter(cameraConfig.name),
                 }}
               >
                 streamOffline.desc
@@ -430,7 +528,6 @@ export default function LivePlayer({
           </div>
         </div>
       )}
-
       {!cameraEnabled && (
         <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-secondary-foreground bg-background_alt">
           <div className="flex h-32 flex-col items-center justify-center rounded-lg p-4 md:h-48 md:w-48">
@@ -444,20 +541,14 @@ export default function LivePlayer({
 
       <div className="absolute right-2 top-2">
         {autoLive &&
-          liveReady &&
+          !offline &&
           activeMotion &&
           ((showStillWithoutActivity && !liveReady) || liveReady) && (
             <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
           )}
-        {((!liveReady && showStillWithoutActivity) ||
-          !cameraEnabled ||
-          (liveReady && cameraEnabled)) && (
+        {((offline && showStillWithoutActivity) || !cameraEnabled) && (
           <Chip
-            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize transition-opacity duration-200 ${
-              liveReady && cameraEnabled
-                ? "opacity-0 group-hover:opacity-100"
-                : "opacity-100"
-            }`}
+            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
           >
             {cameraName}
           </Chip>
