@@ -8,7 +8,7 @@ import {
 } from "react";
 import useSWR from "swr";
 
-interface AuthState {
+export interface AuthState {
   user: { username: string; role: "admin" | "viewer" | null } | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = () => {
-    setAuth({ user: null, isLoading: false, isAuthenticated: true });
+    setAuth({ user: null, isLoading: false, isAuthenticated: false });
     axios.get("/logout", { withCredentials: true });
   };
 

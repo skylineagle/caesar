@@ -1,13 +1,13 @@
 {
   "documentTitle": {
-    "cameras": "Cameras Stats - Frigate",
-    "storage": "Storage Stats - Frigate",
-    "general": "General Stats - Frigate",
-    "enrichments": "Enrichments Stats - Frigate",
+    "cameras": "Cameras Stats - Caesar",
+    "storage": "Storage Stats - Caesar",
+    "general": "General Stats - Caesar",
+    "enrichments": "Enrichments Stats - Caesar",
     "logs": {
-      "frigate": "Frigate Logs - Frigate",
-      "go2rtc": "Go2RTC Logs - Frigate",
-      "nginx": "Nginx Logs - Frigate"
+      "frigate": "Caesar Logs - Caesar",
+      "go2rtc": "Go2RTC Logs - Caesar",
+      "nginx": "Nginx Logs - Caesar"
     }
   },
   "title": "System",

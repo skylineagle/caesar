@@ -194,21 +194,28 @@ export default function HlsVideoPlayer({
 
       const rect = targetElement.getBoundingClientRect();
 
-      if (
+      const inside =
         e.clientX > rect.left &&
         e.clientX < rect.right &&
         e.clientY > rect.top &&
-        e.clientY < rect.bottom
-      ) {
-        setControls(true);
-      } else {
-        setControls(controlsOpen);
-      }
+        e.clientY < rect.bottom;
+      setControls(inside ? true : controlsOpen);
     };
-    window.addEventListener("mousemove", callback);
-    return () => {
-      window.removeEventListener("mousemove", callback);
-    };
+
+    const throttled = (() => {
+      let ticking = false;
+      return (e: MouseEvent) => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          callback(e);
+          ticking = false;
+        });
+      };
+    })();
+
+    window.addEventListener("mousemove", throttled);
+    return () => window.removeEventListener("mousemove", throttled);
   }, [videoRef, controlsOpen]);
 
   const getVideoTime = useCallback(() => {
