@@ -903,7 +903,11 @@ function MotionReview({
 
   // motion data
 
-  const { data: motionData } = useSWR<MotionData[]>([
+  const {
+    data: motionData,
+    isLoading: isLoadingMotion,
+    isValidating: isValidatingMotion,
+  } = useSWR<MotionData[]>([
     "review/activity/motion",
     {
       before: timeRange.before,
@@ -1143,33 +1147,35 @@ function MotionReview({
           })}
         </div>
       </div>
-      <div className="no-scrollbar w-[55px] overflow-y-auto md:w-[100px]">
-        {motionData ? (
-          <MotionReviewTimeline
-            segmentDuration={segmentDuration}
-            timestampSpread={15}
-            timelineStart={timeRangeSegments.end}
-            timelineEnd={timeRangeSegments.start}
-            motionOnly={motionOnly}
-            showHandlebar
-            handlebarTime={currentTime}
-            setHandlebarTime={setCurrentTime}
-            events={reviewItems?.all ?? []}
-            motion_events={motionData ?? []}
-            contentRef={contentRef}
-            onHandlebarDraggingChange={(scrubbing) => {
-              if (playing && scrubbing) {
-                setPlaying(false);
-              }
+      <div className="no-scrollbar relative w-[55px] overflow-y-auto md:w-[100px]">
+        <MotionReviewTimeline
+          segmentDuration={segmentDuration}
+          timestampSpread={15}
+          timelineStart={timeRangeSegments.end}
+          timelineEnd={timeRangeSegments.start}
+          motionOnly={motionOnly}
+          showHandlebar
+          handlebarTime={currentTime}
+          setHandlebarTime={setCurrentTime}
+          events={reviewItems?.all ?? []}
+          motion_events={motionData ?? []}
+          contentRef={contentRef}
+          onHandlebarDraggingChange={(scrubbing) => {
+            if (playing && scrubbing) {
+              setPlaying(false);
+            }
 
-              setScrubbing(scrubbing);
-            }}
-            dense={isMobileOnly}
-            isZooming={false}
-            zoomDirection={null}
+            setScrubbing(scrubbing);
+          }}
+          dense={isMobileOnly}
+          isZooming={false}
+          zoomDirection={null}
+        />
+        {(isLoadingMotion || isValidatingMotion) && (
+          <ActivityIndicator
+            className="pointer-events-none absolute inset-0 z-30 rounded-md bg-background/40"
+            size={20}
           />
-        ) : (
-          <Skeleton className="size-full" />
         )}
       </div>
 
