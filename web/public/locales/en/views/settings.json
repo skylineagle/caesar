@@ -9,7 +9,8 @@
     "object": "Debug - Caesar",
     "general": "General Settings - Caesar",
     "frigatePlus": "Frigate+ Settings - Caesar",
-    "notifications": "Notification Settings - Caesar"
+    "notifications": "Notification Settings - Caesar",
+    "cameraPermissions": "Camera Permissions - Caesar"
   },
   "menu": {
     "ui": "UI",
@@ -21,7 +22,8 @@
     "debug": "Debug",
     "users": "Users",
     "notifications": "Notifications",
-    "frigateplus": "Frigate+"
+    "frigateplus": "Frigate+",
+    "cameraPermissions": "Camera Permissions"
   },
   "dialog": {
     "unsavedChanges": {
@@ -32,6 +34,32 @@
   "cameraSetting": {
     "camera": "Camera",
     "noCamera": "No Camera"
+  },
+  "cameraPermissions": {
+    "title": "Camera Permissions",
+    "desc": "Grant or revoke access to cameras for each user. Leaving a user with no explicit permissions grants access to all cameras.",
+    "users": {
+      "title": "Users",
+      "select": "Select {{user}}"
+    },
+    "table": {
+      "username": "Username",
+      "role": "Role"
+    },
+    "selectAllCameras": "Select all cameras",
+    "actions": {
+      "selectAll": "Select All",
+      "clearAll": "Clear All"
+    },
+    "toast": {
+      "success": {
+        "saved": "Permissions saved"
+      },
+      "error": {
+        "saveFailed": "Failed to save permissions: {{errorMessage}}",
+        "mustSelectAtLeastOne": "Select at least one camera"
+      }
+    }
   },
   "general": {
     "title": "General Settings",

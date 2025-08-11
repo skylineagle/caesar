@@ -12,8 +12,8 @@ import PreviewPlayer, {
 import { DynamicVideoController } from "@/components/player/dynamic/DynamicVideoController";
 import DynamicVideoPlayer from "@/components/player/dynamic/DynamicVideoPlayer";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Tooltip,
@@ -848,7 +848,11 @@ function Timeline({
 
   // motion data
 
-  const { data: motionData, isLoading } = useSWR<MotionData[]>([
+  const {
+    data: motionData,
+    isLoading,
+    isValidating,
+  } = useSWR<MotionData[]>([
     "review/activity/motion",
     {
       before: timeRange.before,
@@ -931,34 +935,36 @@ function Timeline({
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[30px] w-full bg-gradient-to-b from-secondary to-transparent"></div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[30px] w-full bg-gradient-to-t from-secondary to-transparent"></div>
       {timelineType == "timeline" ? (
-        !isLoading ? (
-          <>
-            <MotionReviewTimeline
-              timelineRef={selectedTimelineRef}
-              segmentDuration={zoomSettings.segmentDuration}
-              timestampSpread={zoomSettings.timestampSpread}
-              timelineStart={timeRange.before}
-              timelineEnd={timeRange.after}
-              showHandlebar={exportRange == undefined}
-              showExportHandles={exportRange != undefined}
-              exportStartTime={exportRange?.after}
-              exportEndTime={exportRange?.before}
-              setExportStartTime={setExportStartTime}
-              setExportEndTime={setExportEndTime}
-              handlebarTime={currentTime}
-              setHandlebarTime={setCurrentTime}
-              events={mainCameraReviewItems}
-              motion_events={motionData ?? []}
-              contentRef={contentRef}
-              onHandlebarDraggingChange={(scrubbing) => setScrubbing(scrubbing)}
-              isZooming={isZooming}
-              zoomDirection={zoomDirection}
-              recordingIntervals={recordingIntervals}
+        <>
+          <MotionReviewTimeline
+            timelineRef={selectedTimelineRef}
+            segmentDuration={zoomSettings.segmentDuration}
+            timestampSpread={zoomSettings.timestampSpread}
+            timelineStart={timeRange.before}
+            timelineEnd={timeRange.after}
+            showHandlebar={exportRange == undefined}
+            showExportHandles={exportRange != undefined}
+            exportStartTime={exportRange?.after}
+            exportEndTime={exportRange?.before}
+            setExportStartTime={setExportStartTime}
+            setExportEndTime={setExportEndTime}
+            handlebarTime={currentTime}
+            setHandlebarTime={setCurrentTime}
+            events={mainCameraReviewItems}
+            motion_events={motionData ?? []}
+            contentRef={contentRef}
+            onHandlebarDraggingChange={(scrubbing) => setScrubbing(scrubbing)}
+            isZooming={isZooming}
+            zoomDirection={zoomDirection}
+            recordingIntervals={recordingIntervals}
+          />
+          {(isLoading || isValidating) && (
+            <ActivityIndicator
+              className="pointer-events-none absolute inset-0 z-30 rounded-md bg-background/40"
+              size={20}
             />
-          </>
-        ) : (
-          <Skeleton className="size-full" />
-        )
+          )}
+        </>
       ) : (
         <div className="scrollbar-container h-full overflow-auto bg-secondary">
           <div
