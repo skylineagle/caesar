@@ -164,6 +164,7 @@ export default function EventView({
           JSON.stringify({
             camera: review.camera,
             startTime: review.start_time - REVIEW_PADDING,
+            currentTime: review.start_time - REVIEW_PADDING,
             severity: review.severity,
           }),
         );
