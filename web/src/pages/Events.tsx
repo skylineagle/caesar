@@ -19,8 +19,8 @@ import {
 import EventView from "@/views/events/EventView";
 import { RecordingView } from "@/views/recording/RecordingView";
 import axios from "axios";
+import { parseAsFloat, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 
@@ -32,20 +32,12 @@ export default function Events() {
   });
   const timezone = useTimezone(config);
 
-  // recordings viewer
-
   const { severity, setSeverity } = useSeverity();
   const { showReviewed, setShowReviewed } = useShowReviewed();
   const { recording, setRecording } = useRecording();
   const { date, setDate, after, setAfter, before, setBefore } = useDateFilter();
   const [startTime, setStartTime] = useState<number>();
-  const [rawParams] = useSearchParams();
-  const urlCurrentTime = useMemo(() => {
-    const v = rawParams.get("currentTime");
-    if (!v) return undefined;
-    const num = parseFloat(v);
-    return Number.isFinite(num) ? num : undefined;
-  }, [rawParams]);
+  const [urlCurrentTime] = useQueryState("currentTime", parseAsFloat);
 
   useEffect(() => {
     if (recording) {

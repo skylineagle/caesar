@@ -1,6 +1,7 @@
 import Logo from "@/components/Logo";
 import ReviewCard from "@/components/card/ReviewCard";
 import ReviewFilterGroup from "@/components/filter/ReviewFilterGroup";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
 import ExportDialog from "@/components/overlay/ExportDialog";
 import MobileCameraDrawer from "@/components/overlay/MobileCameraDrawer";
 import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
@@ -11,7 +12,6 @@ import PreviewPlayer, {
 import { DynamicVideoController } from "@/components/player/dynamic/DynamicVideoController";
 import DynamicVideoPlayer from "@/components/player/dynamic/DynamicVideoPlayer";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
-import ActivityIndicator from "@/components/indicators/activity-indicator";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -474,7 +474,7 @@ export function RecordingView({
             aria-label="Go to the main camera live view"
             size="sm"
             onClick={() => {
-              navigate(`/camera/${mainCamera}`);
+              navigate(`/camera/${mainCamera}`, { replace: true });
             }}
           >
             <FaVideo className="size-5 text-secondary-foreground" />
