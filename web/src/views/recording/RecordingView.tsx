@@ -239,7 +239,6 @@ export function RecordingView({
       }
 
       setCurrentTime(time);
-      mainControllerRef.current?.seekToTimestamp(time, true);
 
       if (currentTimeRange.after <= time && currentTimeRange.before >= time) {
         mainControllerRef.current?.seekToTimestamp(time, true);
