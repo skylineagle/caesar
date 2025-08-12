@@ -86,9 +86,6 @@ export default function ReviewDetailDialog({
 
     let concerns = "";
     switch (aiAnalysis.potential_threat_level) {
-      case ThreatLevel.UNUSUAL:
-        concerns = "• Unusual Activity\n";
-        break;
       case ThreatLevel.SUSPICIOUS:
         concerns = "• Suspicious Activity\n";
         break;
