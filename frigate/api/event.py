@@ -351,31 +351,50 @@ async def events_explore(request: Request, limit: int = 10):
     if not allowed_cameras:
         return JSONResponse(content=[])
 
-    # get distinct labels for all events from allowed cameras
-    distinct_labels = Event.select(Event.label).where(Event.camera << allowed_cameras).distinct().order_by(Event.label)
+    # Get label counts in a single query using GROUP BY
+    label_counts_query = (
+        Event.select(Event.label, fn.COUNT(Event.id).alias("count"))
+        .where(Event.camera << allowed_cameras)
+        .group_by(Event.label)
+        .order_by(Event.label)
+    )
 
-    label_counts = {}
+    label_counts = {row.label: row.count for row in label_counts_query.iterator()}
 
-    def event_generator():
-        for label_obj in distinct_labels.iterator():
-            label = label_obj.label
+    if not label_counts:
+        return JSONResponse(content=[])
 
-            # get most recent events for this label from allowed cameras
-            label_events = (
-                Event.select()
-                .where((Event.label == label) & (Event.camera << allowed_cameras))
-                .order_by(Event.start_time.desc())
-                .limit(limit)
-                .iterator()
-            )
+    # Get recent events for all labels in a single query using window functions
+    # This uses ROW_NUMBER() to rank events within each label by start_time
+    recent_events_query = (
+        Event.select(
+            Event.id,
+            Event.camera,
+            Event.label,
+            Event.zones,
+            Event.start_time,
+            Event.end_time,
+            Event.has_clip,
+            Event.has_snapshot,
+            Event.plus_id,
+            Event.retain_indefinitely,
+            Event.sub_label,
+            Event.top_score,
+            Event.false_positive,
+            Event.box,
+            Event.data,
+            fn.ROW_NUMBER()
+            .over(partition_by=[Event.label], order_by=[Event.start_time.desc()])
+            .alias("row_num"),
+        )
+        .where(Event.camera << allowed_cameras)
+        .order_by(Event.label, Event.start_time.desc())
+    )
 
-            # count total events for this label from allowed cameras
-            label_counts[label] = Event.select().where((Event.label == label) & (Event.camera << allowed_cameras)).count()
-
-            yield from label_events
-
-    def process_events():
-        for event in event_generator():
+    # Filter to only include the top 'limit' events per label
+    recent_events = []
+    for event in recent_events_query.iterator():
+        if event.row_num <= limit:
             processed_event = {
                 "id": event.id,
                 "camera": event.camera,
@@ -410,11 +429,11 @@ async def events_explore(request: Request, limit: int = 10):
                 },
                 "event_count": label_counts[event.label],
             }
-            yield processed_event
+            recent_events.append(processed_event)
 
-    # convert iterator to list and sort
+    # Sort by event count (descending) and then by start time (descending)
     processed_events = sorted(
-        process_events(),
+        recent_events,
         key=lambda x: (x["event_count"], x["start_time"]),
         reverse=True,
     )
@@ -440,7 +459,12 @@ async def event_ids(request: Request, ids: str):
         return JSONResponse(content=[])
 
     try:
-        events = Event.select().where((Event.id << ids) & (Event.camera << allowed_cameras)).dicts().iterator()
+        events = (
+            Event.select()
+            .where((Event.id << ids) & (Event.camera << allowed_cameras))
+            .dicts()
+            .iterator()
+        )
         return JSONResponse(list(events))
     except Exception:
         return JSONResponse(
@@ -790,7 +814,9 @@ async def events_search(request: Request, params: EventsSearchQueryParams = Depe
 
 
 @router.get("/events/summary")
-async def events_summary(request: Request, params: EventsSummaryQueryParams = Depends()):
+async def events_summary(
+    request: Request, params: EventsSummaryQueryParams = Depends()
+):
     # Filter cameras by user permissions
     all_cameras = list(request.app.frigate_config.cameras.keys())
     allowed_cameras = await filter_cameras_by_permission(request, all_cameras)
@@ -847,14 +873,14 @@ async def events_summary(request: Request, params: EventsSummaryQueryParams = De
 async def event(request: Request, event_id: str):
     try:
         event = Event.get(Event.id == event_id)
-        
+
         # Check if user has permission to access this camera
         all_cameras = list(request.app.frigate_config.cameras.keys())
         allowed_cameras = await filter_cameras_by_permission(request, all_cameras)
-        
+
         if event.camera not in allowed_cameras:
             return JSONResponse(content="Event not found", status_code=404)
-            
+
         return model_to_dict(event)
     except DoesNotExist:
         return JSONResponse(content="Event not found", status_code=404)
