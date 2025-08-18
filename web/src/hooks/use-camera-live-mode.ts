@@ -28,8 +28,8 @@ export default function useCameraLiveMode(
   useEffect(() => {
     if (!cameras) return;
 
-    const mseSupported =
-      "MediaSource" in window || "ManagedMediaSource" in window;
+    // const mseSupported =
+    //   "MediaSource" in window || "ManagedMediaSource" in window;
 
     const newPreferredLiveModes: { [key: string]: LivePlayerMode } = {};
     const newIsRestreamedStates: { [key: string]: boolean } = {};
@@ -46,11 +46,11 @@ export default function useCameraLiveMode(
 
       newIsRestreamedStates[camera.name] = isRestreamed ?? false;
 
-      if (!mseSupported) {
-        newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
-      } else {
-        newPreferredLiveModes[camera.name] = isRestreamed ? "mse" : "jsmpeg";
-      }
+      // if (!mseSupported) {
+      newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
+      // } else {
+      //   newPreferredLiveModes[camera.name] = isRestreamed ? "mse" : "jsmpeg";
+      // }
 
       // check each stream for audio support
       if (isRestreamed) {
@@ -84,19 +84,19 @@ export default function useCameraLiveMode(
 
   const resetPreferredLiveMode = useCallback(
     (cameraName: string) => {
-      const mseSupported =
-        "MediaSource" in window || "ManagedMediaSource" in window;
+      // const mseSupported =
+      //   "MediaSource" in window || "ManagedMediaSource" in window;
       const isRestreamed =
         config && Object.keys(config.go2rtc.streams || {}).includes(cameraName);
 
       setPreferredLiveModes((prevModes) => {
         const newModes = { ...prevModes };
 
-        if (!mseSupported) {
-          newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
-        } else {
-          newModes[cameraName] = isRestreamed ? "mse" : "jsmpeg";
-        }
+        // if (!mseSupported) {
+        newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
+        // } else {
+        //   newModes[cameraName] = isRestreamed ? "mse" : "jsmpeg";
+        // }
 
         return newModes;
       });
