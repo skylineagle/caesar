@@ -2,18 +2,17 @@
 
 set -euxo pipefail
 
-SQLITE3_VERSION="96c92aba00c8375bc32fafcdf12429c58bd8aabfcadab6683e35bbb9cdebf19e" # 3.46.0
+SQLITE3_VERSION="3.46.0"
 PYSQLITE3_VERSION="0.5.3"
 
 # Fetch the source code for the latest release of Sqlite.
 if [[ ! -d "sqlite" ]]; then
-  wget https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=${SQLITE3_VERSION} -O sqlite.tar.gz
-  tar xzf sqlite.tar.gz
+  wget https://www.sqlite.org/2024/sqlite-amalgamation-3460000.zip -O sqlite.zip
+  unzip sqlite.zip
+  mv sqlite-amalgamation-3460000 sqlite
   cd sqlite/
-  LIBS="-lm" ./configure --disable-tcl --enable-tempstore=always
-  make sqlite3.c
   cd ../
-  rm sqlite.tar.gz
+  rm sqlite.zip
 fi
 
 # Grab the pysqlite3 source code.
