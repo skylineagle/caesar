@@ -847,7 +847,13 @@ function Timeline({
   const [exportEnd, setExportEndTime] = useState<number>(0);
 
   const { data: recordingClips } = useSWR<
-    { start_time: number; end_time: number }[]
+    {
+      start_time: number;
+      end_time: number;
+      motion: number;
+      objects: number;
+      dBFS: number;
+    }[]
   >([
     `${mainCamera}/recordings`,
     {
@@ -861,12 +867,22 @@ function Timeline({
       return [] as {
         start: number;
         end: number;
+        isBackfilled: boolean;
       }[];
-    const list = recordingClips
-      .map((r) => ({ start: r.start_time, end: r.end_time }))
-      .sort((a, b) => a.start - b.start);
-    const merged: { start: number; end: number }[] = [];
-    for (const interval of list) {
+
+    // Create individual intervals for each recording with backfill info
+    const intervals = recordingClips.map((r) => {
+      const isBackfilled = r.motion === -1 || r.objects === -1 || r.dBFS === -1;
+      return {
+        start: r.start_time,
+        end: r.end_time,
+        isBackfilled,
+      };
+    });
+
+    // Merge overlapping intervals, preserving backfill info
+    const merged: { start: number; end: number; isBackfilled: boolean }[] = [];
+    for (const interval of intervals) {
       if (merged.length === 0) {
         merged.push(interval);
         continue;
@@ -874,10 +890,13 @@ function Timeline({
       const last = merged[merged.length - 1];
       if (interval.start <= last.end) {
         last.end = Math.max(last.end, interval.end);
+        // If any part is backfilled, mark the whole interval as backfilled
+        last.isBackfilled = last.isBackfilled || interval.isBackfilled;
       } else {
         merged.push(interval);
       }
     }
+
     return merged;
   }, [recordingClips]);
 

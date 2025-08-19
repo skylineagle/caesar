@@ -5,6 +5,7 @@
 @import "/themes/theme-high-contrast.css";
 @import "/themes/theme-nord.css";
 @import "/themes/theme-red.css";
+@import "./styles/recordings.css";
 
 @tailwind base;
 @tailwind components;

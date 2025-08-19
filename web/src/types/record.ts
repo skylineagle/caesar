@@ -8,17 +8,17 @@ export type Recording = {
   path: string;
   segment_size: number;
   duration: number;
-  motion: number;
-  objects: number;
-  dBFS: number;
+  motion: number; // -1 indicates not processed by algorithms
+  objects: number; // -1 indicates not processed by algorithms
+  dBFS: number; // -1 indicates not processed by algorithms
 };
 
 export type RecordingSegment = {
   id: string;
   start_time: number;
   end_time: number;
-  motion: number;
-  objects: number;
+  motion: number; // -1 indicates not processed by algorithms
+  objects: number; // -1 indicates not processed by algorithms
   segment_size: number;
   duration: number;
 };
