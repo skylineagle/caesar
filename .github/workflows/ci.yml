@@ -22,7 +22,7 @@ jobs:
     name: AMD64 Build
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up QEMU and Buildx
@@ -46,7 +46,7 @@ jobs:
     name: ARM Build
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up QEMU and Buildx
@@ -83,7 +83,7 @@ jobs:
       - amd64_build
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up QEMU and Buildx
@@ -125,7 +125,7 @@ jobs:
       - arm64_build
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up QEMU and Buildx
