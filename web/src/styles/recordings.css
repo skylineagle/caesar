@@ -1,0 +1,101 @@
+/* Recording timeline styles */
+
+.recording-backfilled {
+  opacity: 0.7;
+  border-left: 3px solid #2196f3; /* Blue border for backfilled recordings */
+  background-color: rgba(33, 150, 243, 0.1); /* Light blue background */
+}
+
+.recording-backfilled:hover {
+  opacity: 1;
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.recording-live {
+  border-left: 3px solid #4caf50; /* Green border for live recordings */
+}
+
+.recording-live:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+/* Recording item styles */
+.recording-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 2px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recording-item .icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.recording-item .time {
+  flex: 1;
+  font-family: monospace;
+}
+
+.recording-item .badge {
+  background-color: #2196f3;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* Motion/object count display */
+.motion-count,
+.object-count {
+  font-size: 12px;
+  color: #666;
+}
+
+.motion-count.na,
+.object-count.na {
+  color: #2196f3;
+  font-style: italic;
+}
+
+/* Tooltip styles */
+.recording-tooltip {
+  position: relative;
+}
+
+.recording-tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Timeline summary styles */
+.timeline-summary .backfilled-indicator {
+  color: #2196f3;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.timeline-summary .backfilled-count {
+  background-color: #2196f3;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  margin-left: 8px;
+}

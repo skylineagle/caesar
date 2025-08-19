@@ -23,6 +23,7 @@ type MotionSegmentProps = {
   scrollToSegment: (segmentTime: number, ifNeeded?: boolean) => void;
   dense: boolean;
   recorded: boolean;
+  isBackfilled?: boolean;
 };
 
 export function MotionSegment({
@@ -40,6 +41,7 @@ export function MotionSegment({
   scrollToSegment,
   dense,
   recorded,
+  isBackfilled = false,
 }: MotionSegmentProps) {
   const severityType = "all";
   const { getSeverity, getReviewed, displaySeverityType } =
@@ -185,6 +187,7 @@ export function MotionSegment({
             recorded && severity[0] && severityColorsBg[severity[0]],
             !recorded &&
               "border-l-2 border-dashed border-secondary-foreground/70 bg-secondary-foreground/20",
+            isBackfilled && "recording-backfilled",
           )}
           onClick={segmentClick}
           onTouchEnd={(event) => handleTouchStart(event, segmentClick)}

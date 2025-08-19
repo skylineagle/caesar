@@ -168,6 +168,7 @@ class RecordingCleanup(threading.Thread):
                     review_start = idx
 
             # Delete recordings outside of the retention window or based on the retention mode
+            # Note: -1 values indicate backfilled recordings that weren't processed by algorithms
             if (
                 not keep
                 or (mode == RetainModeEnum.motion and recording.motion == 0)
