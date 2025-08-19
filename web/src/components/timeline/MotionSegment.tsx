@@ -189,6 +189,8 @@ export function MotionSegment({
               "border-l-2 border-dashed border-secondary-foreground/70 bg-secondary-foreground/20",
             isBackfilled && "recording-backfilled",
           )}
+          data-backfilled={isBackfilled}
+          data-recorded={recorded}
           onClick={segmentClick}
           onTouchEnd={(event) => handleTouchStart(event, segmentClick)}
         >

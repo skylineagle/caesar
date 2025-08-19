@@ -4,19 +4,78 @@
   opacity: 0.7;
   border-left: 3px solid #2196f3; /* Blue border for backfilled recordings */
   background-color: rgba(33, 150, 243, 0.1); /* Light blue background */
+  transition: all 0.2s ease;
 }
 
 .recording-backfilled:hover {
   opacity: 1;
-  background-color: rgba(33, 150, 243, 0.2);
+  background-color: rgba(33, 150, 243, 0.3);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
 }
 
 .recording-live {
   border-left: 3px solid #4caf50; /* Green border for live recordings */
+  transition: all 0.2s ease;
 }
 
 .recording-live:hover {
-  background-color: rgba(76, 175, 80, 0.1);
+  background-color: rgba(76, 175, 80, 0.2);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+/* Motion detection segments */
+.segment.has-data {
+  transition: all 0.2s ease;
+}
+
+.segment.has-data:hover {
+  background-color: rgba(255, 193, 7, 0.3);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+/* Event segments with different severities */
+.segment.bg-gradient-to-r.bg-severity_alert {
+  transition: all 0.2s ease;
+}
+
+.segment.bg-gradient-to-r.bg-severity_alert:hover {
+  background-color: rgba(244, 67, 54, 0.4) !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
+}
+
+.segment.bg-gradient-to-r.bg-severity_detection {
+  transition: all 0.2s ease;
+}
+
+.segment.bg-gradient-to-r.bg-severity_detection:hover {
+  background-color: rgba(255, 152, 0, 0.4) !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
+}
+
+.segment.bg-gradient-to-r.bg-severity_significant_motion {
+  transition: all 0.2s ease;
+}
+
+.segment.bg-gradient-to-r.bg-severity_significant_motion:hover {
+  background-color: rgba(156, 39, 176, 0.4) !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.4);
+}
+
+/* No recording segments */
+.segment.border-l-2.border-dashed {
+  transition: all 0.2s ease;
+}
+
+.segment.border-l-2.border-dashed:hover {
+  background-color: rgba(158, 158, 158, 0.3);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(158, 158, 158, 0.3);
 }
 
 /* Recording item styles */
@@ -98,4 +157,63 @@
   border-radius: 3px;
   font-size: 10px;
   margin-left: 8px;
+}
+
+/* Summary timeline hover effects */
+.timeline-summary .w-\[10px\].bg-severity_alert {
+  transition: all 0.2s ease;
+}
+
+.timeline-summary .w-\[10px\].bg-severity_alert:hover {
+  background-color: rgba(244, 67, 54, 0.8) !important;
+  transform: scaleY(1.2);
+  box-shadow: 0 2px 4px rgba(244, 67, 54, 0.4);
+}
+
+.timeline-summary .w-\[10px\].bg-severity_detection {
+  transition: all 0.2s ease;
+}
+
+.timeline-summary .w-\[10px\].bg-severity_detection:hover {
+  background-color: rgba(255, 152, 0, 0.8) !important;
+  transform: scaleY(1.2);
+  box-shadow: 0 2px 4px rgba(255, 152, 0, 0.4);
+}
+
+.timeline-summary .w-\[10px\].bg-severity_significant_motion {
+  transition: all 0.2s ease;
+}
+
+.timeline-summary .w-\[10px\].bg-severity_significant_motion:hover {
+  background-color: rgba(156, 39, 176, 0.8) !important;
+  transform: scaleY(1.2);
+  box-shadow: 0 2px 4px rgba(156, 39, 176, 0.4);
+}
+
+.timeline-summary .w-\[10px\].bg-transparent {
+  transition: all 0.2s ease;
+}
+
+.timeline-summary .w-\[10px\].bg-transparent:hover {
+  background-color: rgba(158, 158, 158, 0.3) !important;
+  transform: scaleY(1.2);
+}
+
+/* General timeline hover improvements */
+.segment {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segment:hover {
+  z-index: 10;
+}
+
+/* Timeline container hover effects */
+.timeline-container:hover .segment {
+  opacity: 0.8;
+}
+
+.timeline-container:hover .segment:hover {
+  opacity: 1;
 }

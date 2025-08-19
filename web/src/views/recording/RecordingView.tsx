@@ -872,11 +872,17 @@ function Timeline({
       }[];
 
     // Create individual intervals for each recording with backfill info
-    const intervals = recordingClips.map((r) => ({
-      start: r.start_time,
-      end: r.end_time,
-      isBackfilled: r.motion === -1 || r.objects === -1 || r.dBFS === -1,
-    }));
+    const intervals = recordingClips.map((r) => {
+      const isBackfilled = r.motion === -1 || r.objects === -1 || r.dBFS === -1;
+      console.log(
+        `Recording ${r.start_time}-${r.end_time}: motion=${r.motion}, objects=${r.objects}, dBFS=${r.dBFS}, isBackfilled=${isBackfilled}`,
+      );
+      return {
+        start: r.start_time,
+        end: r.end_time,
+        isBackfilled,
+      };
+    });
 
     // Merge overlapping intervals, preserving backfill info
     const merged: { start: number; end: number; isBackfilled: boolean }[] = [];
@@ -894,6 +900,8 @@ function Timeline({
         merged.push(interval);
       }
     }
+
+    console.log(`Final recording intervals:`, merged);
     return merged;
   }, [recordingClips]);
 

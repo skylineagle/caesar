@@ -98,7 +98,7 @@ class RecordingBackfillService:
             start_time = datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
             start_time = start_time.replace(tzinfo=datetime.timezone.utc)
 
-            # Get video duration using ffprobe
+            # Get video duration using ffprobe (only if we need it)
             duration = self._get_video_duration(file_path)
             if duration is None:
                 logger.debug(f"Could not determine duration for: {file_path}")
@@ -202,6 +202,40 @@ class RecordingBackfillService:
             else:
                 scan_paths = [base_path]
 
+            # If we have specific time range, we can be even more targeted
+            if start_time is not None and end_time is not None:
+                start_dt = datetime.datetime.fromtimestamp(
+                    start_time, tz=datetime.timezone.utc
+                )
+                end_dt = datetime.datetime.fromtimestamp(
+                    end_time, tz=datetime.timezone.utc
+                )
+
+                # Only scan the specific hour directories that could contain our files
+                target_hours = set()
+                current_dt = start_dt
+                while current_dt <= end_dt:
+                    target_hours.add(current_dt.hour)
+                    current_dt += datetime.timedelta(hours=1)
+
+                print(f"DEBUG: Targeting hours: {sorted(target_hours)}")
+
+                # Filter scan paths to only include relevant hour directories
+                filtered_scan_paths = []
+                for scan_path in scan_paths:
+                    for hour_dir in scan_path.iterdir():
+                        if hour_dir.is_dir() and hour_dir.name.isdigit():
+                            hour = int(hour_dir.name)
+                            if hour in target_hours:
+                                filtered_scan_paths.append(hour_dir)
+
+                if filtered_scan_paths:
+                    scan_paths = filtered_scan_paths
+                    print(f"DEBUG: Scanning only {len(scan_paths)} hour directories")
+                else:
+                    print("DEBUG: No matching hour directories found")
+                    return recording_files
+
             for scan_path in scan_paths:
                 for root, dirs, files in os.walk(scan_path):
                     for file in files:
@@ -213,21 +247,58 @@ class RecordingBackfillService:
                             ):  # Only print first 5 files for debugging
                                 print(f"DEBUG: Found file: {file_path}")
 
+                            # Quick filter: check if file is in the right hour directory
+                            if start_time is not None and end_time is not None:
+                                # Extract hour from path for quick filtering
+                                try:
+                                    path_parts = Path(file_path).parts
+                                    recordings_idx = path_parts.index("recordings")
+                                    if len(path_parts) > recordings_idx + 2:
+                                        file_hour_str = path_parts[recordings_idx + 2]
+                                        if file_hour_str.isdigit():
+                                            file_hour = int(file_hour_str)
+                                            start_hour = (
+                                                datetime.datetime.fromtimestamp(
+                                                    start_time, tz=datetime.timezone.utc
+                                                ).hour
+                                            )
+                                            end_hour = datetime.datetime.fromtimestamp(
+                                                end_time, tz=datetime.timezone.utc
+                                            ).hour
+
+                                            # Quick hour check before parsing
+                                            if not (
+                                                start_hour <= file_hour <= end_hour
+                                            ):
+                                                print(
+                                                    f"DEBUG: Skipping file outside hour range: {file_path} (hour {file_hour}, range {start_hour}-{end_hour})"
+                                                )
+                                                continue
+                                except (ValueError, IndexError):
+                                    pass  # Fall back to full parsing
+
                             # Parse the file path to get camera and time info
                             parsed = self.parse_recording_path(file_path)
                             if parsed is None:
+                                print(f"DEBUG: Failed to parse file path: {file_path}")
                                 continue
 
                             file_camera, file_start_time, _ = parsed
 
                             # Check if this file belongs to the target camera
                             if file_camera != camera_name:
+                                print(
+                                    f"DEBUG: Skipping file for different camera: {file_path} (camera: {file_camera}, target: {camera_name})"
+                                )
                                 continue
 
                             # Apply date filter if provided (double-check)
                             if date_filter is not None:
                                 file_date = file_start_time.strftime("%Y-%m-%d")
                                 if file_date != date_filter:
+                                    print(
+                                        f"DEBUG: Skipping file for different date: {file_path} (date: {file_date}, target: {date_filter})"
+                                    )
                                     continue
 
                             # Apply time filters if provided
@@ -235,13 +306,20 @@ class RecordingBackfillService:
                                 start_time is not None
                                 and file_start_time.timestamp() < start_time
                             ):
+                                print(
+                                    f"DEBUG: Skipping file before start time: {file_path} (start: {file_start_time.timestamp()}, target: {start_time})"
+                                )
                                 continue
                             if (
                                 end_time is not None
                                 and file_start_time.timestamp() > end_time
                             ):
+                                print(
+                                    f"DEBUG: Skipping file after end time: {file_path} (start: {file_start_time.timestamp()}, target: {end_time})"
+                                )
                                 continue
 
+                            print(f"DEBUG: Adding file to processing list: {file_path}")
                             recording_files.append(file_path)
 
         except Exception as e:
@@ -289,6 +367,7 @@ class RecordingBackfillService:
             }
 
         # Scan for recording files
+        scan_start = time.time()
         print(f"DEBUG: Starting scan for camera: {camera_name}")
         print(f"DEBUG: Directory: {directory_path}")
         if start_time:
@@ -306,8 +385,13 @@ class RecordingBackfillService:
             camera_name, directory_path, start_time, end_time, date_filter
         )
 
-        print(f"DEBUG: Found {len(recording_files)} files to process")
-        logger.info(f"Found {len(recording_files)} files to process")
+        scan_time = time.time() - scan_start
+        print(
+            f"DEBUG: Found {len(recording_files)} files to process (scan took {scan_time:.2f}s)"
+        )
+        logger.info(
+            f"Found {len(recording_files)} files to process (scan took {scan_time:.2f}s)"
+        )
 
         if not recording_files:
             return {
