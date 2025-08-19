@@ -54,9 +54,11 @@ export function LanguageProvider({
       if (i18next.isInitialized) {
         i18next.changeLanguage(newLanguage);
       } else {
-        i18next.on("initialized", () => {
+        const onInit = () => {
           i18next.changeLanguage(newLanguage);
-        });
+          i18next.off("initialized", onInit);
+        };
+        i18next.on("initialized", onInit);
       }
 
       return newLanguage;
@@ -75,11 +77,18 @@ export function LanguageProvider({
 
     if (i18next.isInitialized) {
       i18next.changeLanguage(language);
-    } else {
-      i18next.on("initialized", () => {
-        i18next.changeLanguage(language);
-      });
+      return;
     }
+
+    const onInit = () => {
+      i18next.changeLanguage(language);
+      i18next.off("initialized", onInit);
+    };
+    i18next.on("initialized", onInit);
+
+    return () => {
+      i18next.off("initialized", onInit);
+    };
   }, [language, systemLanguage]);
 
   const value = {
