@@ -344,7 +344,7 @@ export default function LivePlayer({
         iOSCompatFullScreen={iOSCompatFullScreen}
         onPlaying={playerIsPlaying}
         pip={pip}
-        // onError={onError}
+        onError={onError}
       />
     );
   } else if (preferredLiveMode == "mse") {

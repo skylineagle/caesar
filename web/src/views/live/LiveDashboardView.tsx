@@ -240,8 +240,15 @@ export default function LiveDashboardView({
     (cameraName: string, error: LivePlayerError) => {
       setPreferredLiveModes((prevModes) => {
         const newModes = { ...prevModes };
+        const currentMode = prevModes[cameraName];
+
         if (error === "mse-decode") {
           newModes[cameraName] = "webrtc";
+        } else if (currentMode === "webrtc") {
+          // eslint-disable-next-line no-console
+          console.log(
+            `LiveDashboard: WebRTC failed for ${cameraName}, but keeping WebRTC for retry`,
+          );
         } else {
           newModes[cameraName] = "jsmpeg";
         }
