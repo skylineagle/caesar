@@ -42,7 +42,6 @@ import {
   ReviewSegment,
   ReviewSummary,
 } from "@/types/review";
-import { Recording } from "@/types/record";
 import { TimelineType, TimeRange } from "@/types/timeline";
 import { copyToClipboard } from "@/utils/browserUtil";
 import { getChunkedTimeDay } from "@/utils/timelineUtil";
@@ -874,9 +873,6 @@ function Timeline({
     // Create individual intervals for each recording with backfill info
     const intervals = recordingClips.map((r) => {
       const isBackfilled = r.motion === -1 || r.objects === -1 || r.dBFS === -1;
-      console.log(
-        `Recording ${r.start_time}-${r.end_time}: motion=${r.motion}, objects=${r.objects}, dBFS=${r.dBFS}, isBackfilled=${isBackfilled}`,
-      );
       return {
         start: r.start_time,
         end: r.end_time,
@@ -901,7 +897,6 @@ function Timeline({
       }
     }
 
-    console.log(`Final recording intervals:`, merged);
     return merged;
   }, [recordingClips]);
 
