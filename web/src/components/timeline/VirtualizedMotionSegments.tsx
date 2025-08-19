@@ -29,7 +29,7 @@ type VirtualizedMotionSegmentsProps = {
   timelineStartAligned?: number;
   timelineEnd?: number;
   showNowIndicator?: boolean;
-  recordingIntervals?: { start: number; end: number }[];
+  recordingIntervals?: { start: number; end: number; isBackfilled?: boolean }[];
 };
 
 export interface VirtualizedMotionSegmentsRef {
@@ -183,12 +183,15 @@ export const VirtualizedMotionSegments = forwardRef<
         }
 
         let recorded = true;
+        let isBackfilled = false;
         if (recordingIntervals.length > 0) {
-          recorded = recordingIntervals.some((r) => {
+          const matchingInterval = recordingIntervals.find((r) => {
             const segStart = segmentTime;
             const segEnd = segmentTime + segmentDuration;
             return segStart < r.end && segEnd > r.start;
           });
+          recorded = !!matchingInterval;
+          isBackfilled = matchingInterval?.isBackfilled || false;
         } else if (isTimestampRecorded) {
           recorded = isTimestampRecorded(segmentTime);
         }
@@ -219,6 +222,7 @@ export const VirtualizedMotionSegments = forwardRef<
               scrollToSegment={scrollToSegment}
               dense={dense}
               recorded={recorded}
+              isBackfilled={isBackfilled}
             />
           </div>
         );
