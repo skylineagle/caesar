@@ -50,7 +50,17 @@ export function LanguageProvider({
     try {
       const storedData = localStorage.getItem(storageKey);
       const newLanguage = storedData || systemLanguage;
-      i18next.changeLanguage(newLanguage);
+
+      if (i18next.isInitialized) {
+        i18next.changeLanguage(newLanguage);
+      } else {
+        const onInit = () => {
+          i18next.changeLanguage(newLanguage);
+          i18next.off("initialized", onInit);
+        };
+        i18next.on("initialized", onInit);
+      }
+
       return newLanguage;
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -64,14 +74,28 @@ export function LanguageProvider({
     document.documentElement.lang = language;
 
     if (language === systemLanguage) return;
-    i18next.changeLanguage(language);
+
+    if (i18next.isInitialized) {
+      i18next.changeLanguage(language);
+      return;
+    }
+
+    const onInit = () => {
+      i18next.changeLanguage(language);
+      i18next.off("initialized", onInit);
+    };
+    i18next.on("initialized", onInit);
+
+    return () => {
+      i18next.off("initialized", onInit);
+    };
   }, [language, systemLanguage]);
 
   const value = {
     language,
-    setLanguage: (language: string) => {
-      localStorage.setItem(storageKey, language);
-      setLanguage(language);
+    setLanguage: (newLanguage: string) => {
+      localStorage.setItem(storageKey, newLanguage);
+      setLanguage(newLanguage);
       window.location.reload();
     },
   };

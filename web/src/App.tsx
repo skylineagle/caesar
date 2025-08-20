@@ -14,6 +14,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import useSWR from "swr";
+import { Toaster } from "sonner";
 import Statusbar from "./components/Statusbar";
 import Bottombar from "./components/navigation/Bottombar";
 import { Redirect } from "./components/navigation/Redirect";

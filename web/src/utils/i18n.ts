@@ -33,7 +33,8 @@ i18n
       "views/settings",
       "views/system",
       "views/exports",
-      "views/explore",
+      "views/configEditor",
+      "views/faceLibrary",
     ],
     defaultNS: "common",
 
