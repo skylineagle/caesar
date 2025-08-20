@@ -8,17 +8,17 @@ import { Suspense, lazy, useEffect } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
 import {
   BrowserRouter,
+  Outlet,
   Route,
   Routes,
   useNavigate,
-  Outlet,
 } from "react-router-dom";
+import { Toaster } from "sonner";
 import Statusbar from "./components/Statusbar";
 import Bottombar from "./components/navigation/Bottombar";
 import { Redirect } from "./components/navigation/Redirect";
 import { cn } from "./lib/utils";
 import { isPWA } from "./utils/isPWA";
-import { Toaster } from "sonner";
 
 const Live = lazy(() => import("@/pages/Live"));
 const GroupView = lazy(() => import("@/pages/GroupView"));
