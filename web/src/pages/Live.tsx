@@ -1,6 +1,8 @@
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
+import { usePersistence } from "@/hooks/use-persistence";
 import { FrigateConfig } from "@/types/frigateConfig";
+import { StreamingPriority } from "@/types/live";
 import LiveDashboardView from "@/views/live/LiveDashboardView";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +17,10 @@ function Live() {
   const mainRef = useRef<HTMLDivElement | null>(null);
 
   const { fullscreen, toggleFullscreen } = useFullscreen(mainRef);
+  const [streamingPriority] = usePersistence<StreamingPriority>(
+    "streamingPriority",
+    "ultra-low-latency",
+  );
 
   useKeyboardListener(["f"], (key, modifiers) => {
     if (!modifiers.down) {
@@ -65,6 +71,7 @@ function Live() {
         onSelectCamera={handleSelectCamera}
         fullscreen={fullscreen}
         toggleFullscreen={toggleFullscreen}
+        streamingPriority={streamingPriority}
       />
     </div>
   );

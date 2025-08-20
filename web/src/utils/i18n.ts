@@ -2,6 +2,29 @@ import i18n, { t } from "i18next";
 import { initReactI18next } from "react-i18next";
 import HttpBackend from "i18next-http-backend";
 
+const getBaseUrl = () => {
+  if (typeof window !== "undefined" && window.baseUrl) {
+    return window.baseUrl;
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const pathname = window.location.pathname;
+      const basePathMatch = pathname.match(/^(\/[^/]+)/);
+
+      if (basePathMatch && basePathMatch[1] !== "/") {
+        return basePathMatch[1];
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error parsing base URL from pathname:", error);
+      return "";
+    }
+  }
+
+  return "/";
+};
+
 export const getTranslatedLabel = (label: string) => {
   if (!label) return "";
 
@@ -15,7 +38,7 @@ i18n
     fallbackLng: "en", // use en if detected lng is not available
 
     backend: {
-      loadPath: "locales/{{lng}}/{{ns}}.json",
+      loadPath: `${getBaseUrl()}locales/{{lng}}/{{ns}}.json`,
     },
 
     ns: [
