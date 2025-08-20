@@ -41,5 +41,7 @@
         "share": "Share this recording"
       }
     }
-  }
+  },
+  "suspiciousActivity": "Suspicious Activity",
+  "threateningActivity": "Threatening Activity"
 }

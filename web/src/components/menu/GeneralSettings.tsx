@@ -4,15 +4,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useLanguage } from "@/context/language-provider";
 import {
   colorSchemes,
   friendlyColorSchemeName,
   useTheme,
 } from "@/context/theme-provider";
+import { useIsAdmin } from "@/hooks/use-is-admin";
+import { supportedLanguageKeys } from "@/lib/const";
 import { cn } from "@/lib/utils";
+import { FrigateConfig } from "@/types/frigateConfig";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
+import axios from "axios";
 import { useMemo, useState } from "react";
 import { isDesktop, isMobile } from "react-device-detect";
+import { useTranslation } from "react-i18next";
 import { CgDarkMode } from "react-icons/cg";
 import { IoColorPalette } from "react-icons/io5";
 import {
@@ -28,9 +34,12 @@ import {
   LuSun,
   LuSunMoon,
 } from "react-icons/lu";
+import { MdCategory } from "react-icons/md";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import useSWR from "swr";
 import RestartDialog from "../overlay/dialog/RestartDialog";
+import SetPasswordDialog from "../overlay/SetPasswordDialog";
 import {
   Dialog,
   DialogClose,
@@ -52,15 +61,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-
-import { useLanguage } from "@/context/language-provider";
-import { useIsAdmin } from "@/hooks/use-is-admin";
-import { supportedLanguageKeys } from "@/lib/const";
-import { FrigateConfig } from "@/types/frigateConfig";
-import axios from "axios";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import SetPasswordDialog from "../overlay/SetPasswordDialog";
 
 type GeneralSettingsProps = {
   className?: string;
@@ -306,6 +306,19 @@ export default function GeneralSettings({ className }: GeneralSettingsProps) {
                     >
                       <LuScanFace className="mr-2 size-4" />
                       <span>{t("menu.faceLibrary")}</span>
+                    </MenuItem>
+                  </Link>
+                </>
+              )}
+              {isAdmin && isMobile && (
+                <>
+                  <Link to="/classification">
+                    <MenuItem
+                      className="flex w-full items-center p-2 text-sm"
+                      aria-label={t("menu.classification")}
+                    >
+                      <MdCategory className="mr-2 size-4" />
+                      <span>{t("menu.classification")}</span>
                     </MenuItem>
                   </Link>
                 </>
