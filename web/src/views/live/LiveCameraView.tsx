@@ -297,7 +297,7 @@ export default function LiveCameraView({
       return "webrtc";
     }
 
-    if (isRestreamed) {
+    if (webRTC && isRestreamed) {
       return "webrtc";
     }
 
@@ -432,20 +432,19 @@ export default function LiveCameraView({
   const handleError = useCallback(
     (e: LivePlayerError) => {
       if (e) {
-        if (e === "mse-decode") {
+        if (
+          !webRTC &&
+          config &&
+          config.go2rtc?.webrtc?.candidates?.length > 0
+        ) {
           setWebRTC(true);
-        } else if (isRestreamed) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `LiveCameraView: WebRTC failed for ${camera.name}, but keeping WebRTC for retry`,
-          );
         } else {
           setWebRTC(false);
           setLowBandwidth(true);
         }
       }
     },
-    [isRestreamed, camera.name],
+    [webRTC, config],
   );
 
   return (
