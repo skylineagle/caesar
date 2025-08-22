@@ -356,7 +356,6 @@
       "speedEstimation": {
         "title": "Speed Estimation",
         "desc": "Enable speed estimation for objects in this zone. The zone must have exactly 4 points.",
-        "docs": "Read the documentation",
         "lineADistance": "Line A distance ({{unit}})",
         "lineBDistance": "Line B distance ({{unit}})",
         "lineCDistance": "Line C distance ({{unit}})",
@@ -386,16 +385,14 @@
       "add": "New Motion Mask",
       "edit": "Edit Motion Mask",
       "context": {
-        "title": "Motion masks are used to prevent unwanted types of motion from triggering detection (example: tree branches, camera timestamps). Motion masks should be used <em>very sparingly</em>, over-masking will make it more difficult for objects to be tracked.",
-        "documentation": "Read the documentation"
+        "title": "Motion masks are used to prevent unwanted types of motion from triggering detection (example: tree branches, camera timestamps). Motion masks should be used <em>very sparingly</em>, over-masking will make it more difficult for objects to be tracked."
       },
       "point_one": "{{count}} point",
       "point_other": "{{count}} points",
       "clickDrawPolygon": "Click to draw a polygon on the image.",
       "polygonAreaTooLarge": {
         "title": "The motion mask is covering {{polygonArea}}% of the camera frame. Large motion masks are not recommended.",
-        "tips": "Motion masks do not prevent objects from being detected. You should use a required zone instead.",
-        "documentation": "Read the documentation"
+        "tips": "Motion masks do not prevent objects from being detected. You should use a required zone instead."
       },
       "toast": {
         "success": {
@@ -499,7 +496,6 @@
       "title": "Object Shape Filter Drawing",
       "desc": "Draw a rectangle on the image to view area and ratio details",
       "tips": "Enable this option to draw a rectangle on the camera image to show its area and ratio. These values can then be used to set object shape filter parameters in your config.",
-      "document": "Read the documentation ",
       "score": "Score",
       "ratio": "Ratio",
       "area": "Area"
@@ -606,13 +602,11 @@
     "title": "Notifications",
     "notificationSettings": {
       "title": "Notification Settings",
-      "desc": "Frigate can natively send push notifications to your device when it is running in the browser or installed as a PWA.",
-      "documentation": "Read the Documentation"
+      "desc": "Frigate can natively send push notifications to your device when it is running in the browser or installed as a PWA."
     },
     "notificationUnavailable": {
       "title": "Notifications Unavailable",
-      "desc": "Web push notifications require a secure context (<code>https://…</code>). This is a browser limitation. Access Frigate securely to use notifications.",
-      "documentation": "Read the Documentation"
+      "desc": "Web push notifications require a secure context (<code>https://…</code>). This is a browser limitation. Access Frigate securely to use notifications."
     },
     "globalSettings": {
       "title": "Global Settings",
@@ -669,7 +663,6 @@
     "snapshotConfig": {
       "title": "Snapshot Configuration",
       "desc": "Submitting to Frigate+ requires both snapshots and <code>clean_copy</code> snapshots to be enabled in your config.",
-      "documentation": "Read the documentation",
       "cleanCopyWarning": "Some cameras have snapshots enabled but have the clean copy disabled. You need to enable <code>clean_copy</code> in your snapshot config to be able to submit images from these cameras to Frigate+.",
       "table": {
         "camera": "Camera",

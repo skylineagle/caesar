@@ -260,7 +260,7 @@ export default function EnrichmentsSettingsView({
                 rel="noopener noreferrer"
                 className="inline"
               >
-                {t("enrichments.semanticSearch.readTheDocumentation")}
+                {t("readTheDocumentation", { ns: "common" })}
                 <LuExternalLink className="ml-2 inline-flex size-3" />
               </Link>
             </div>
@@ -406,7 +406,7 @@ export default function EnrichmentsSettingsView({
                   rel="noopener noreferrer"
                   className="inline"
                 >
-                  {t("enrichments.faceRecognition.readTheDocumentation")}
+                  {t("readTheDocumentation", { ns: "common" })}
                   <LuExternalLink className="ml-2 inline-flex size-3" />
                 </Link>
               </div>
@@ -509,9 +509,7 @@ export default function EnrichmentsSettingsView({
                   rel="noopener noreferrer"
                   className="inline"
                 >
-                  {t(
-                    "enrichments.licensePlateRecognition.readTheDocumentation",
-                  )}
+                  {t("readTheDocumentation", { ns: "common" })}
                   <LuExternalLink className="ml-2 inline-flex size-3" />
                 </Link>
               </div>
@@ -555,7 +553,7 @@ export default function EnrichmentsSettingsView({
                   rel="noopener noreferrer"
                   className="inline"
                 >
-                  {t("enrichments.semanticSearch.readTheDocumentation")}
+                  {t("readTheDocumentation", { ns: "common" })}
                   <LuExternalLink className="ml-2 inline-flex size-3" />
                 </Link>
               </div>

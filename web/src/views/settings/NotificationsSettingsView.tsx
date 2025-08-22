@@ -340,7 +340,7 @@ export default function NotificationView({
                     rel="noopener noreferrer"
                     className="inline"
                   >
-                    {t("notification.notificationSettings.documentation")}{" "}
+                    {t("readTheDocumentation", { ns: "common" })}
                     <LuExternalLink className="ml-2 inline-flex size-3" />
                   </Link>
                 </div>
@@ -362,7 +362,7 @@ export default function NotificationView({
                     rel="noopener noreferrer"
                     className="inline"
                   >
-                    {t("notification.notificationUnavailable.documentation")}{" "}
+                    {t("readTheDocumentation", { ns: "common" })}{" "}
                     <LuExternalLink className="ml-2 inline-flex size-3" />
                   </Link>
                 </div>
@@ -395,7 +395,7 @@ export default function NotificationView({
                       rel="noopener noreferrer"
                       className="inline"
                     >
-                      {t("notification.notificationSettings.documentation")}{" "}
+                      {t("readTheDocumentation", { ns: "common" })}{" "}
                       <LuExternalLink className="ml-2 inline-flex size-3" />
                     </Link>
                   </div>

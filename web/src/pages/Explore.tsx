@@ -491,9 +491,7 @@ export default function Explore() {
                     rel="noopener noreferrer"
                     className="inline"
                   >
-                    {t(
-                      "exploreIsUnavailable.downloadingModels.tips.documentation",
-                    )}{" "}
+                    {t("readTheDocumentation", { ns: "common" })}
                     <LuExternalLink className="ml-2 inline-flex size-3" />
                   </Link>
                 </div>
