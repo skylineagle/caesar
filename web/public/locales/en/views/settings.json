@@ -110,6 +110,22 @@
       }
     }
   },
+  "streamingMode": {
+    "title": "Live Streaming Mode",
+    "description": "Configure streaming priority for real-time requirements.",
+    "standard": {
+      "title": "Standard Mode",
+      "description": "Uses MSE/WebRTC with fallback to low bandwidth mode when needed. Optimal for most users."
+    },
+    "ultraLowLatency": {
+      "title": "Ultra Low Latency Mode",
+      "description": "Forces WebRTC streaming with no fallback. Ensures minimum latency for critical monitoring."
+    },
+    "warning": {
+      "title": "Important Notice",
+      "description": "Ultra Low Latency mode prevents automatic fallback to ensure consistent real-time streaming. This may cause some streams to fail loading if your network cannot handle WebRTC connections."
+    }
+  },
   "enrichments": {
     "title": "Enrichments Settings",
     "unsavedChanges": "Unsaved Enrichments settings changes",

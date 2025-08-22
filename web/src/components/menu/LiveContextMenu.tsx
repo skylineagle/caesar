@@ -53,6 +53,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CameraStreamingDialog } from "../settings/CameraStreamingDialog";
+import { StreamingModeDialog } from "../settings/StreamingModeDialog";
+import { usePersistence } from "@/hooks/use-persistence";
+import { StreamingPriority } from "@/types/live";
 
 type LiveContextMenuProps = {
   className?: string;
@@ -94,8 +97,11 @@ export default function LiveContextMenu({
   config,
   children,
 }: LiveContextMenuProps) {
-  const { t } = useTranslation("views/live");
+  const { t } = useTranslation(["views/live", "views/settings"]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showStreamingMode, setShowStreamingMode] = useState(false);
+  const [streamingPriority, setStreamingPriority] =
+    usePersistence<StreamingPriority>("streamingPriority", "ultra-low-latency");
 
   // roles
 
@@ -399,9 +405,19 @@ export default function LiveContextMenu({
               </div>
             </div>
           </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem disabled={!isEnabled}>
+            <div
+              className="flex w-full cursor-pointer items-center justify-start gap-2"
+              onClick={isEnabled ? () => setShowStreamingMode(true) : undefined}
+            >
+              <div className="text-primary">
+                {t("streamingMode.title", { ns: "views/settings" })}
+              </div>
+            </div>
+          </ContextMenuItem>
           {cameraGroup && cameraGroup !== "default" && (
             <>
-              <ContextMenuSeparator />
               <ContextMenuItem disabled={!isEnabled}>
                 <div
                   className="flex w-full cursor-pointer items-center justify-start gap-2"
@@ -594,6 +610,13 @@ export default function LiveContextMenu({
           onSave={onSave}
         />
       </Dialog>
+
+      <StreamingModeDialog
+        open={showStreamingMode}
+        onOpenChange={setShowStreamingMode}
+        currentPriority={streamingPriority ?? "ultra-low-latency"}
+        onSave={setStreamingPriority}
+      />
     </div>
   );
 }
