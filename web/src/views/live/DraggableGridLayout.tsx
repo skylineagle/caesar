@@ -26,6 +26,7 @@ import {
   LivePlayerMode,
   StatsState,
   VolumeState,
+  StreamingPriority,
 } from "@/types/live";
 import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
 import { isEqual } from "lodash";
@@ -83,6 +84,7 @@ type DraggableGridLayoutProps = {
     | Record<string, CameraStreamingSettings>
     | undefined;
   config: FrigateConfig | undefined;
+  streamingPriority: StreamingPriority;
 };
 export default function DraggableGridLayout({
   cameras,
@@ -113,6 +115,7 @@ export default function DraggableGridLayout({
   globalAutoLive,
   currentGroupStreamingSettings,
   config,
+  streamingPriority,
 }: DraggableGridLayoutProps) {
   const { t } = useTranslation(["views/live"]);
   const birdseyeConfig = useMemo(() => config?.birdseye, [config]);
@@ -569,6 +572,10 @@ export default function DraggableGridLayout({
                           playAudio={audioStates[camera.name]}
                           volume={volumeStates[camera.name]}
                           videoEffects={true}
+                          streamingPriority={streamingPriority}
+                          streamIndex={cameras.findIndex(
+                            (c) => c.name === camera.name,
+                          )}
                         />
                       </TransformComponent>
                     </TransformWrapper>

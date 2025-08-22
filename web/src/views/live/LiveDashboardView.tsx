@@ -31,6 +31,7 @@ import {
   LivePlayerError,
   StatsState,
   VolumeState,
+  StreamingPriority,
 } from "@/types/live";
 import { ReviewSegment } from "@/types/review";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -54,6 +55,7 @@ type LiveDashboardViewProps = {
   onSelectCamera: (camera: string) => void;
   fullscreen: boolean;
   toggleFullscreen: () => void;
+  streamingPriority?: StreamingPriority;
 };
 export default function LiveDashboardView({
   cameras,
@@ -62,6 +64,7 @@ export default function LiveDashboardView({
   onSelectCamera,
   fullscreen,
   toggleFullscreen,
+  streamingPriority = "ultra-low-latency",
 }: LiveDashboardViewProps) {
   const { t } = useTranslation(["views/live"]);
 
@@ -204,7 +207,7 @@ export default function LiveDashboardView({
     resetPreferredLiveMode,
     isRestreamedStates,
     supportsAudioOutputStates,
-  } = useCameraLiveMode(cameras, windowVisible);
+  } = useCameraLiveMode(cameras, windowVisible, streamingPriority);
 
   const [globalAutoLive] = usePersistence("autoLiveView", true);
 
@@ -238,6 +241,10 @@ export default function LiveDashboardView({
 
   const handleError = useCallback(
     (cameraName: string, error: LivePlayerError) => {
+      if (streamingPriority === "ultra-low-latency") {
+        return;
+      }
+
       setPreferredLiveModes((prevModes) => {
         const newModes = { ...prevModes };
 
@@ -249,7 +256,7 @@ export default function LiveDashboardView({
         return newModes;
       });
     },
-    [setPreferredLiveModes],
+    [setPreferredLiveModes, streamingPriority],
   );
 
   // audio states
@@ -582,6 +589,10 @@ export default function LiveDashboardView({
                           }
                           playAudio={audioStates[camera.name] ?? false}
                           volume={volumeStates[camera.name]}
+                          streamingPriority={streamingPriority}
+                          streamIndex={cameras.findIndex(
+                            (c) => c.name === camera.name,
+                          )}
                           videoEffects={true}
                         />
                       </TransformComponent>
@@ -653,6 +664,7 @@ export default function LiveDashboardView({
           globalAutoLive={globalAutoLive}
           currentGroupStreamingSettings={currentGroupStreamingSettings}
           config={config}
+          streamingPriority={streamingPriority}
         />
       )}
     </div>

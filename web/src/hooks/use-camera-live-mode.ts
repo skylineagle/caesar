@@ -1,11 +1,16 @@
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import useSWR from "swr";
-import { LivePlayerMode, LiveStreamMetadata } from "@/types/live";
+import {
+  LivePlayerMode,
+  LiveStreamMetadata,
+  StreamingPriority,
+} from "@/types/live";
 
 export default function useCameraLiveMode(
   cameras: CameraConfig[],
   windowVisible: boolean,
+  streamingPriority: StreamingPriority = "ultra-low-latency",
 ) {
   const { data: config } = useSWR<FrigateConfig>("config");
 
@@ -94,7 +99,11 @@ export default function useCameraLiveMode(
       if (!mseSupported) {
         newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
       } else {
-        newPreferredLiveModes[camera.name] = isRestreamed ? "mse" : "jsmpeg";
+        if (streamingPriority === "ultra-low-latency" && isRestreamed) {
+          newPreferredLiveModes[camera.name] = "webrtc";
+        } else {
+          newPreferredLiveModes[camera.name] = isRestreamed ? "mse" : "jsmpeg";
+        }
       }
 
       // check each stream for audio support
@@ -125,7 +134,7 @@ export default function useCameraLiveMode(
     setPreferredLiveModes(newPreferredLiveModes);
     setIsRestreamedStates(newIsRestreamedStates);
     setSupportsAudioOutputStates(newSupportsAudioOutputStates);
-  }, [cameras, config, windowVisible, allStreamMetadata]);
+  }, [cameras, config, windowVisible, allStreamMetadata, streamingPriority]);
 
   const resetPreferredLiveMode = useCallback(
     (cameraName: string) => {
@@ -140,13 +149,17 @@ export default function useCameraLiveMode(
         if (!mseSupported) {
           newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
         } else {
-          newModes[cameraName] = isRestreamed ? "mse" : "jsmpeg";
+          if (streamingPriority === "ultra-low-latency" && isRestreamed) {
+            newModes[cameraName] = "webrtc";
+          } else {
+            newModes[cameraName] = isRestreamed ? "mse" : "jsmpeg";
+          }
         }
 
         return newModes;
       });
     },
-    [config],
+    [config, streamingPriority],
   );
 
   return {

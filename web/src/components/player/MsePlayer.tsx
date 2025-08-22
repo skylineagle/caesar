@@ -3,6 +3,7 @@ import {
   LivePlayerError,
   PlayerStatsType,
   VideoResolutionType,
+  StreamingPriority,
 } from "@/types/live";
 import {
   SetStateAction,
@@ -28,6 +29,7 @@ type MSEPlayerProps = {
   setFullResolution?: React.Dispatch<SetStateAction<VideoResolutionType>>;
   onError?: (error: LivePlayerError) => void;
   videoEffects?: boolean;
+  streamingPriority?: StreamingPriority;
 };
 
 function MSEPlayer({
@@ -43,9 +45,11 @@ function MSEPlayer({
   onPlaying,
   setFullResolution,
   onError,
+  streamingPriority = "ultra-low-latency",
 }: MSEPlayerProps) {
   const RECONNECT_TIMEOUT: number = 10000;
   const BUFFERING_COOLDOWN_TIMEOUT: number = 5000;
+  const ULTRA_LOW_LATENCY_RECONNECT_TIMEOUT: number = 2000; // Faster reconnection for ultra-low-latency
 
   const CODECS: string[] = [
     "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
@@ -187,8 +191,13 @@ function MSEPlayer({
     setWsState(WebSocket.CONNECTING);
     wsRef.current = null;
 
+    const baseTimeout =
+      streamingPriority === "ultra-low-latency"
+        ? ULTRA_LOW_LATENCY_RECONNECT_TIMEOUT
+        : RECONNECT_TIMEOUT;
+
     const delay =
-      timeout ?? Math.max(RECONNECT_TIMEOUT - (Date.now() - connectTS), 0);
+      timeout ?? Math.max(baseTimeout - (Date.now() - connectTS), 0);
 
     reconnectTIDRef.current = window.setTimeout(() => {
       reconnectTIDRef.current = null;
@@ -689,7 +698,10 @@ function MSEPlayer({
             // too many mse errors, try jsmpeg
             onError?.("startup");
           } else {
-            reconnect(5000);
+            // Faster reconnection for ultra-low-latency mode
+            const errorReconnectDelay =
+              streamingPriority === "ultra-low-latency" ? 1000 : 5000;
+            reconnect(errorReconnectDelay);
           }
         }
       }}
