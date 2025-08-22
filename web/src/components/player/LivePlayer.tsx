@@ -14,6 +14,7 @@ import {
   LivePlayerMode,
   PlayerStatsType,
   VideoResolutionType,
+  StreamingPriority,
 } from "@/types/live";
 import { getIconForLabel } from "@/utils/iconUtil";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
@@ -56,6 +57,8 @@ type LivePlayerProps = {
   onError?: (error: LivePlayerError) => void;
   onResetLiveMode?: () => void;
   videoEffects?: boolean;
+  streamingPriority?: StreamingPriority;
+  streamIndex?: number;
 };
 
 export default function LivePlayer({
@@ -81,6 +84,8 @@ export default function LivePlayer({
   onError,
   onResetLiveMode,
   videoEffects,
+  streamingPriority = "ultra-low-latency",
+  streamIndex = 0,
 }: LivePlayerProps) {
   const { t } = useTranslation(["common", "components/player"]);
 
@@ -339,7 +344,7 @@ export default function LivePlayer({
     player = (
       <WebRtcPlayer
         key={"webrtc_" + key}
-        className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
+        className={`size-full rounded-lg md:rounded-lg ${liveReady ? "" : "hidden"}`}
         camera={streamName}
         playbackEnabled={cameraActive || liveReady}
         getStats={showStats}
@@ -351,6 +356,8 @@ export default function LivePlayer({
         onPlaying={playerIsPlaying}
         pip={pip}
         onError={onError}
+        streamingPriority={streamingPriority}
+        streamIndex={streamIndex}
       />
     );
   } else if (preferredLiveMode == "mse") {
@@ -358,7 +365,7 @@ export default function LivePlayer({
       player = (
         <MSEPlayer
           key={"mse_" + key}
-          className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
+          className={`size-full rounded-lg md:rounded-lg ${liveReady ? "" : "hidden"}`}
           camera={streamName}
           playbackEnabled={cameraActive || liveReady}
           audioEnabled={playAudio}
@@ -370,6 +377,7 @@ export default function LivePlayer({
           pip={pip}
           setFullResolution={setFullResolution}
           onError={onError}
+          streamingPriority={streamingPriority}
         />
       );
     } else {
@@ -384,7 +392,7 @@ export default function LivePlayer({
       player = (
         <JSMpegPlayer
           key={"jsmpeg_" + key}
-          className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
+          className="flex justify-center overflow-hidden rounded-lg md:rounded-lg"
           camera={cameraConfig.name}
           width={cameraConfig.detect.width}
           height={cameraConfig.detect.height}
@@ -412,7 +420,7 @@ export default function LivePlayer({
         "relative m-2 flex w-full cursor-pointer justify-center rounded-lg outline outline-background transition-all duration-500",
         activeTracking &&
           ((showStillWithoutActivity && !liveReady) || liveReady)
-          ? "outline-3 rounded-lg border-severity_alert shadow-severity_alert outline-severity_alert md:rounded-2xl"
+          ? "outline-3 rounded-lg border-severity_alert shadow-severity_alert outline-severity_alert md:rounded-lg"
           : "outline-0",
         className,
       )}
@@ -434,8 +442,8 @@ export default function LivePlayer({
       {cameraEnabled &&
         ((showStillWithoutActivity && !liveReady) || liveReady) && (
           <>
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-lg"></div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-lg"></div>
           </>
         )}
       {player}
@@ -501,8 +509,8 @@ export default function LivePlayer({
         )}
       >
         <AutoUpdatingCameraImage
-          className="pointer-events-none size-full rounded-lg md:rounded-2xl"
-          cameraClasses="relative size-full flex justify-center rounded-lg md:rounded-2xl"
+          className="pointer-events-none size-full rounded-lg md:rounded-lg"
+          cameraClasses="relative size-full flex justify-center rounded-lg md:rounded-lg"
           camera={cameraConfig.name}
           showFps={false}
           reloadInterval={stillReloadInterval}
@@ -529,7 +537,7 @@ export default function LivePlayer({
         </div>
       )}
       {!cameraEnabled && (
-        <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-secondary-foreground bg-background_alt">
+        <div className="relative flex h-full w-full items-center justify-center rounded-lg border border-secondary-foreground bg-background_alt">
           <div className="flex h-32 flex-col items-center justify-center rounded-lg p-4 md:h-48 md:w-48">
             <LuVideoOff className="mb-2 size-8 md:size-10" />
             <p className="max-w-32 text-center text-sm md:max-w-40 md:text-base">

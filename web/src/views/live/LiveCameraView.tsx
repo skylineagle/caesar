@@ -36,12 +36,15 @@ import {
 import { useResizeObserver } from "@/hooks/resize-observer";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
 import { useSessionPersistence } from "@/hooks/use-session-persistence";
+import { usePersistence } from "@/hooks/use-persistence";
+import useCameraLiveMode from "@/hooks/use-camera-live-mode";
 import { cn } from "@/lib/utils";
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import {
   LivePlayerError,
   LiveStreamMetadata,
   VideoResolutionType,
+  StreamingPriority,
 } from "@/types/live";
 import { CameraPtzInfo } from "@/types/ptz";
 import React, {
@@ -122,7 +125,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { useDocDomain } from "@/hooks/use-doc-domain";
 import { useIsAdmin } from "@/hooks/use-is-admin";
-import { usePersistence } from "@/hooks/use-persistence";
 import axios from "axios";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -153,6 +155,10 @@ export default function LiveCameraView({
   const [streamName, setStreamName] = usePersistence<string>(
     `${camera.name}-stream`,
     Object.values(camera.live.streams)[0],
+  );
+  const [streamingPriority] = usePersistence<StreamingPriority>(
+    "streamingPriority",
+    "ultra-low-latency",
   );
 
   const isRestreamed = useMemo(
@@ -292,6 +298,12 @@ export default function LiveCameraView({
     height: 0,
   });
 
+  const { preferredLiveModes } = useCameraLiveMode(
+    [camera],
+    true,
+    streamingPriority,
+  );
+
   const preferredLiveMode = useMemo(() => {
     if (mic) {
       return "webrtc";
@@ -309,16 +321,16 @@ export default function LiveCameraView({
       return "jsmpeg";
     }
 
-    if (!("MediaSource" in window || "ManagedMediaSource" in window)) {
-      return "webrtc";
-    }
-
-    if (!isRestreamed) {
-      return "jsmpeg";
-    }
-
-    return "mse";
-  }, [lowBandwidth, mic, webRTC, isRestreamed]);
+    // Use the streaming priority-aware mode from the hook
+    return preferredLiveModes[camera.name] || "mse";
+  }, [
+    lowBandwidth,
+    mic,
+    webRTC,
+    isRestreamed,
+    preferredLiveModes,
+    camera.name,
+  ]);
 
   useKeyboardListener(["m"], (key, modifiers) => {
     if (!modifiers.down) {
@@ -432,6 +444,11 @@ export default function LiveCameraView({
   const handleError = useCallback(
     (e: LivePlayerError) => {
       if (e) {
+        // Prevent fallback in ultra-low-latency mode
+        if (streamingPriority === "ultra-low-latency") {
+          return;
+        }
+
         if (
           !webRTC &&
           config &&
@@ -444,7 +461,7 @@ export default function LiveCameraView({
         }
       }
     },
-    [webRTC, config],
+    [webRTC, config, streamingPriority],
   );
 
   return (
@@ -679,6 +696,8 @@ export default function LiveCameraView({
                 setFullResolution={setFullResolution}
                 onError={handleError}
                 videoEffects={true}
+                streamingPriority={streamingPriority}
+                streamIndex={0}
               />
             </div>
           </TransformComponent>
@@ -1868,7 +1887,7 @@ function FrigateCameraFeatures({
                     <p className="text-sm">{t("stream.lowBandwidth.tips")}</p>
                   </div>
                   <Button
-                    className={`flex items-center gap-2.5 rounded-lg`}
+                    className="flex items-center gap-2.5 rounded-lg"
                     aria-label={t("stream.lowBandwidth.resetStream")}
                     variant="outline"
                     size="sm"
