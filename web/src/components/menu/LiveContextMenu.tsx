@@ -614,7 +614,7 @@ export default function LiveContextMenu({
       <StreamingModeDialog
         open={showStreamingMode}
         onOpenChange={setShowStreamingMode}
-        currentPriority={streamingPriority}
+        currentPriority={streamingPriority ?? "ultra-low-latency"}
         onSave={setStreamingPriority}
       />
     </div>
