@@ -162,7 +162,9 @@ class RecordingBackfillService:
         directory_path: Optional[str] = None,
         start_time: Optional[float] = None,
         end_time: Optional[float] = None,
-        date_filter: Optional[str] = None,  # Format: "YYYY-MM-DD"
+        date_filter: Optional[
+            str
+        ] = None,  # Format: "YYYY-MM-DD" (auto-derived from timestamps if not provided)
     ) -> List[str]:
         """Scan directory for recording files for a specific camera.
 
@@ -191,6 +193,15 @@ class RecordingBackfillService:
             # Walk through all subdirectories looking for .mp4 files
             print("DEBUG: Starting directory walk...")
             file_count = 0
+
+            # Auto-derive date filter from timestamps if not explicitly provided
+            if date_filter is None and start_time is not None:
+                # Use the date from start_time for more targeted scanning
+                start_dt = datetime.datetime.fromtimestamp(
+                    start_time, tz=datetime.timezone.utc
+                )
+                date_filter = start_dt.strftime("%Y-%m-%d")
+                print(f"DEBUG: Auto-derived date filter from start_time: {date_filter}")
 
             # If date filter is provided, only scan that specific date directory
             if date_filter is not None:
@@ -333,7 +344,9 @@ class RecordingBackfillService:
         directory_path: Optional[str] = None,
         start_time: Optional[float] = None,
         end_time: Optional[float] = None,
-        date_filter: Optional[str] = None,  # Format: "YYYY-MM-DD"
+        date_filter: Optional[
+            str
+        ] = None,  # Format: "YYYY-MM-DD" (auto-derived from timestamps if not provided)
         dry_run: bool = False,
         force: bool = False,
     ) -> dict:

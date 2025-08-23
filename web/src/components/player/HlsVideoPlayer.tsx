@@ -131,8 +131,17 @@ export default function HlsVideoPlayer({
     if (!hlsRef.current) {
       hlsRef.current = new Hls();
       hlsRef.current.attachMedia(videoRef.current);
+
+      hlsRef.current.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          // Handle fatal errors by attempting to recover
+          hlsRef.current?.destroy();
+        }
+      });
     }
 
+    // Clear any existing source before loading new one
+    hlsRef.current.stopLoad();
     hlsRef.current.loadSource(currentSource);
     videoRef.current.playbackRate = currentPlaybackRate;
   }, [videoRef, hlsRef, useHlsCompat, currentSource]);
