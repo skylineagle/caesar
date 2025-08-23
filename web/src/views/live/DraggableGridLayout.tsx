@@ -2,7 +2,6 @@ import { EditGroupDialog } from "@/components/filter/CameraGroupSelector";
 import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
-
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -26,7 +25,6 @@ import {
   LivePlayerMode,
   StatsState,
   VolumeState,
-  StreamingPriority,
 } from "@/types/live";
 import { ASPECT_VERTICAL_LAYOUT, ASPECT_WIDE_LAYOUT } from "@/types/record";
 import { isEqual } from "lodash";
@@ -84,7 +82,6 @@ type DraggableGridLayoutProps = {
     | Record<string, CameraStreamingSettings>
     | undefined;
   config: FrigateConfig | undefined;
-  streamingPriority: StreamingPriority;
 };
 export default function DraggableGridLayout({
   cameras,
@@ -115,7 +112,6 @@ export default function DraggableGridLayout({
   globalAutoLive,
   currentGroupStreamingSettings,
   config,
-  streamingPriority,
 }: DraggableGridLayoutProps) {
   const { t } = useTranslation(["views/live"]);
   const birdseyeConfig = useMemo(() => config?.birdseye, [config]);
@@ -478,14 +474,10 @@ export default function DraggableGridLayout({
                 ? streamNameFromSettings
                 : firstStreamEntry;
               const streamType =
-                currentGroupStreamingSettings?.[camera.name]?.streamType;
-              const autoLive =
-                streamType !== undefined
-                  ? streamType !== "no-streaming"
-                  : undefined;
-              const showStillWithoutActivity =
-                currentGroupStreamingSettings?.[camera.name]?.streamType !==
-                "continuous";
+                currentGroupStreamingSettings?.[camera.name]?.streamType ||
+                "continuous"; // Default to continuous for ultra-low-latency
+              const autoLive = streamType !== "no-streaming";
+              const showStillWithoutActivity = streamType === "smart";
               const useWebGL =
                 currentGroupStreamingSettings?.[camera.name]
                   ?.compatibilityMode || false;
@@ -546,7 +538,7 @@ export default function DraggableGridLayout({
                           useWebGL={useWebGL}
                           cameraRef={cameraRef}
                           className={cn(
-                            "rounded-lg bg-black md:rounded-2xl",
+                            "rounded-lg bg-black",
                             grow,
                             isEditMode &&
                               showCircles &&
@@ -572,7 +564,6 @@ export default function DraggableGridLayout({
                           playAudio={audioStates[camera.name]}
                           volume={volumeStates[camera.name]}
                           videoEffects={true}
-                          streamingPriority={streamingPriority}
                           streamIndex={cameras.findIndex(
                             (c) => c.name === camera.name,
                           )}

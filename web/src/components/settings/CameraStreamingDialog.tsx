@@ -1,12 +1,17 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { IoIosWarning } from "react-icons/io";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -14,26 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
+import { useDocDomain } from "@/hooks/use-doc-domain";
 import {
   FrigateConfig,
   GroupStreamingSettings,
   StreamType,
 } from "@/types/frigateConfig";
-import ActivityIndicator from "../indicators/activity-indicator";
-import useSWR from "swr";
+import { LiveStreamMetadata } from "@/types/live";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import { IoIosWarning } from "react-icons/io";
 import { LuCheck, LuExternalLink, LuInfo, LuX } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import { LiveStreamMetadata } from "@/types/live";
-import { Trans, useTranslation } from "react-i18next";
-import { useDocDomain } from "@/hooks/use-doc-domain";
-import { useCameraFriendlyName } from "@/hooks/use-camera-friendly-name";
+import useSWR from "swr";
+import ActivityIndicator from "../indicators/activity-indicator";
 
 type CameraStreamingDialogProps = {
   camera: string;
@@ -64,7 +64,7 @@ export function CameraStreamingDialog({
   const [streamName, setStreamName] = useState(
     Object.entries(config?.cameras[camera]?.live?.streams || {})[0]?.[1] || "",
   );
-  const [streamType, setStreamType] = useState<StreamType>("smart");
+  const [streamType, setStreamType] = useState<StreamType>("continuous");
   const [compatibilityMode, setCompatibilityMode] = useState(false);
 
   // metadata
@@ -80,6 +80,9 @@ export function CameraStreamingDialog({
     isRestreamed ? `go2rtc/streams/${streamName}` : null,
     {
       revalidateOnFocus: false,
+      onError: () => {
+        // Ignore go2rtc errors for individual streams
+      },
     },
   );
 
@@ -118,11 +121,11 @@ export function CameraStreamingDialog({
         Object.values(availableStreams).includes(streamNameFromSettings);
 
       setStreamName(streamExists ? streamNameFromSettings : firstStreamEntry);
-      setStreamType(cameraSettings.streamType || "smart");
+      setStreamType(cameraSettings.streamType || "continuous");
       setCompatibilityMode(cameraSettings.compatibilityMode || false);
     } else {
       setStreamName(firstStreamEntry);
-      setStreamType("smart");
+      setStreamType("continuous");
       setCompatibilityMode(false);
     }
   }, [groupStreamingSettings, camera, config]);
@@ -173,11 +176,11 @@ export function CameraStreamingDialog({
         Object.values(availableStreams).includes(streamNameFromSettings);
 
       setStreamName(streamExists ? streamNameFromSettings : firstStreamEntry);
-      setStreamType(cameraSettings.streamType || "smart");
+      setStreamType(cameraSettings.streamType || "continuous");
       setCompatibilityMode(cameraSettings.compatibilityMode || false);
     } else {
       setStreamName(firstStreamEntry);
-      setStreamType("smart");
+      setStreamType("continuous");
       setCompatibilityMode(false);
     }
 

@@ -13,7 +13,6 @@ import CameraFeatureToggle from "@/components/dynamic/CameraFeatureToggle";
 import FilterSwitch from "@/components/filter/FilterSwitch";
 import LivePlayer from "@/components/player/LivePlayer";
 import { ScreenshotButton } from "@/components/player/ScreenshotButton";
-
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
@@ -34,17 +33,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
-import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import { useSessionPersistence } from "@/hooks/use-session-persistence";
-import { usePersistence } from "@/hooks/use-persistence";
 import useCameraLiveMode from "@/hooks/use-camera-live-mode";
+import useKeyboardListener from "@/hooks/use-keyboard-listener";
+import { usePersistence } from "@/hooks/use-persistence";
+import { useSessionPersistence } from "@/hooks/use-session-persistence";
 import { cn } from "@/lib/utils";
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import {
   LivePlayerError,
   LiveStreamMetadata,
   VideoResolutionType,
-  StreamingPriority,
 } from "@/types/live";
 import { CameraPtzInfo } from "@/types/ptz";
 import React, {
@@ -75,7 +73,7 @@ import {
   FaMicrophoneSlash,
 } from "react-icons/fa";
 import { GiSpeaker, GiSpeakerOff } from "react-icons/gi";
-import { IoIosWarning, IoMdArrowRoundBack } from "react-icons/io";
+import { IoMdArrowRoundBack } from "react-icons/io";
 import {
   LuCheck,
   LuEar,
@@ -96,7 +94,6 @@ import {
   MdClosedCaption,
   MdClosedCaptionDisabled,
   MdNoPhotography,
-  MdOutlineRestartAlt,
   MdPersonOff,
   MdPersonSearch,
   MdPhotoCamera,
@@ -156,10 +153,6 @@ export default function LiveCameraView({
     `${camera.name}-stream`,
     Object.values(camera.live.streams)[0],
   );
-  const [streamingPriority] = usePersistence<StreamingPriority>(
-    "streamingPriority",
-    "ultra-low-latency",
-  );
 
   const isRestreamed = useMemo(
     () =>
@@ -172,6 +165,9 @@ export default function LiveCameraView({
     isRestreamed ? `go2rtc/streams/${streamName}` : null,
     {
       revalidateOnFocus: false,
+      onError: () => {
+        // Ignore go2rtc errors for individual streams
+      },
     },
   );
 
@@ -279,12 +275,9 @@ export default function LiveCameraView({
   }, [document.pictureInPictureElement]);
 
   // playback state
-
   const [audio, setAudio] = useSessionPersistence("liveAudio", false);
   const [mic, setMic] = useState(false);
-  const [webRTC, setWebRTC] = useState(false);
   const [pip, setPip] = useState(false);
-  const [lowBandwidth, setLowBandwidth] = useState(false);
 
   const [playInBackground, setPlayInBackground] = usePersistence<boolean>(
     `${camera.name}-background-play`,
@@ -298,39 +291,16 @@ export default function LiveCameraView({
     height: 0,
   });
 
-  const { preferredLiveModes } = useCameraLiveMode(
-    [camera],
-    true,
-    streamingPriority,
-  );
+  const { preferredLiveModes } = useCameraLiveMode([camera], true);
 
   const preferredLiveMode = useMemo(() => {
     if (mic) {
       return "webrtc";
     }
 
-    if (webRTC && isRestreamed) {
-      return "webrtc";
-    }
-
-    if (webRTC && !isRestreamed) {
-      return "jsmpeg";
-    }
-
-    if (lowBandwidth) {
-      return "jsmpeg";
-    }
-
-    // Use the streaming priority-aware mode from the hook
-    return preferredLiveModes[camera.name] || "mse";
-  }, [
-    lowBandwidth,
-    mic,
-    webRTC,
-    isRestreamed,
-    preferredLiveModes,
-    camera.name,
-  ]);
+    // Always use ultra-low-latency mode from the hook
+    return preferredLiveModes[camera.name] || "jsmpeg";
+  }, [preferredLiveModes, camera.name, mic]);
 
   useKeyboardListener(["m"], (key, modifiers) => {
     if (!modifiers.down) {
@@ -441,28 +411,12 @@ export default function LiveCameraView({
     return () => screenOrientation.unlock();
   }, [fullscreen, cameraAspectRatio]);
 
-  const handleError = useCallback(
-    (e: LivePlayerError) => {
-      if (e) {
-        // Prevent fallback in ultra-low-latency mode
-        if (streamingPriority === "ultra-low-latency") {
-          return;
-        }
-
-        if (
-          !webRTC &&
-          config &&
-          config.go2rtc?.webrtc?.candidates?.length > 0
-        ) {
-          setWebRTC(true);
-        } else {
-          setWebRTC(false);
-          setLowBandwidth(true);
-        }
-      }
-    },
-    [webRTC, config, streamingPriority],
-  );
+  const handleError = useCallback((e: LivePlayerError) => {
+    if (e) {
+      // Always in ultra-low-latency mode - don't change streaming modes on errors
+      return;
+    }
+  }, []);
 
   return (
     <TransformWrapper minScale={1.0} wheel={{ smoothStep: 0.005 }}>
@@ -639,7 +593,6 @@ export default function LiveCameraView({
                 showStats={showStats}
                 setShowStats={setShowStats}
                 isRestreamed={isRestreamed ?? false}
-                setLowBandwidth={setLowBandwidth}
                 supportsAudioOutput={supportsAudioOutput}
                 supports2WayTalk={supports2WayTalk}
                 cameraEnabled={cameraEnabled}
@@ -696,7 +649,6 @@ export default function LiveCameraView({
                 setFullResolution={setFullResolution}
                 onError={handleError}
                 videoEffects={true}
-                streamingPriority={streamingPriority}
                 streamIndex={0}
               />
             </div>
@@ -1113,7 +1065,6 @@ type FrigateCameraFeaturesProps = {
   showStats: boolean;
   setShowStats: (value: boolean) => void;
   isRestreamed: boolean;
-  setLowBandwidth: React.Dispatch<React.SetStateAction<boolean>>;
   supportsAudioOutput: boolean;
   supports2WayTalk: boolean;
   cameraEnabled: boolean;
@@ -1133,7 +1084,6 @@ function FrigateCameraFeatures({
   showStats,
   setShowStats,
   isRestreamed,
-  setLowBandwidth,
   supportsAudioOutput,
   supports2WayTalk,
   cameraEnabled,
@@ -1552,30 +1502,6 @@ function FrigateCameraFeatures({
                           )}
                         </div>
                       )}
-
-                    {preferredLiveMode == "jsmpeg" && isRestreamed && (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="flex flex-row items-center gap-2">
-                          <IoIosWarning className="mr-1 size-8 text-danger" />
-
-                          <p className="text-sm">
-                            {t("stream.lowBandwidth.tips")}
-                          </p>
-                        </div>
-                        <Button
-                          className={`flex items-center gap-2.5 rounded-lg`}
-                          aria-label={t("stream.lowBandwidth.resetStream")}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setLowBandwidth(false)}
-                        >
-                          <MdOutlineRestartAlt className="size-5 text-primary-variant" />
-                          <div className="text-primary-variant">
-                            {t("stream.lowBandwidth.resetStream")}
-                          </div>
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 )}
               {isRestreamed && (
@@ -1879,27 +1805,6 @@ function FrigateCameraFeatures({
                     )}
                   </div>
                 )}
-              {preferredLiveMode == "jsmpeg" && isRestreamed && (
-                <div className="mt-2 flex flex-col items-center gap-3">
-                  <div className="flex flex-row items-center gap-2">
-                    <IoIosWarning className="mr-1 size-8 text-danger" />
-
-                    <p className="text-sm">{t("stream.lowBandwidth.tips")}</p>
-                  </div>
-                  <Button
-                    className="flex items-center gap-2.5 rounded-lg"
-                    aria-label={t("stream.lowBandwidth.resetStream")}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLowBandwidth(false)}
-                  >
-                    <MdOutlineRestartAlt className="size-5 text-primary-variant" />
-                    <div className="text-primary-variant">
-                      {t("stream.lowBandwidth.resetStream")}
-                    </div>
-                  </Button>
-                </div>
-              )}
             </div>
           )}
           <div className="flex flex-col gap-1 px-2">

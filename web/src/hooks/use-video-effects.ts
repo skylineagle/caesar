@@ -39,50 +39,54 @@ export const useContainerVideoEffects = (
   effects: VideoEffects,
 ) => {
   const applyEffects = useCallback(() => {
-    if (!containerRef.current) return;
+    if (!containerRef?.current) return;
 
-    const filterString = [
-      `brightness(${effects.brightness}%)`,
-      `contrast(${effects.contrast}%)`,
-      `saturate(${effects.saturation}%)`,
-      `hue-rotate(${effects.hue}deg)`,
-      effects.blur > 0 ? `blur(${effects.blur}px)` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    try {
+      const filterString = [
+        `brightness(${effects.brightness}%)`,
+        `contrast(${effects.contrast}%)`,
+        `saturate(${effects.saturation}%)`,
+        `hue-rotate(${effects.hue}deg)`,
+        effects.blur > 0 ? `blur(${effects.blur}px)` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
 
-    const videoElements = containerRef.current.querySelectorAll("video");
-    const playingVideos: HTMLVideoElement[] = [];
+      const videoElements = containerRef.current.querySelectorAll("video");
+      const playingVideos: HTMLVideoElement[] = [];
 
-    videoElements.forEach((video) => {
-      const videoEl = video as HTMLVideoElement;
-      if (
-        videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-        videoEl.videoWidth > 0 &&
-        videoEl.videoHeight > 0 &&
-        !videoEl.ended
-      ) {
-        playingVideos.push(videoEl);
-      }
-    });
+      videoElements.forEach((video) => {
+        const videoEl = video as HTMLVideoElement;
+        // More lenient conditions - apply effects to any video element that exists
+        if (videoEl && !videoEl.ended) {
+          playingVideos.push(videoEl);
+        }
+      });
 
-    const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
-    const activeJsmpegCanvases: HTMLCanvasElement[] = [];
-    jsmpegContainers.forEach((container) => {
-      const canvas = container.querySelector("canvas");
-      if (canvas && canvas.width > 0 && canvas.height > 0) {
-        activeJsmpegCanvases.push(canvas as HTMLCanvasElement);
-      }
-    });
+      const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
+      const activeJsmpegCanvases: HTMLCanvasElement[] = [];
+      jsmpegContainers.forEach((container) => {
+        const canvas = container.querySelector("canvas");
+        if (canvas) {
+          activeJsmpegCanvases.push(canvas as HTMLCanvasElement);
+        }
+      });
 
-    playingVideos.forEach((video) => {
-      video.style.filter = filterString;
-    });
+      playingVideos.forEach((video) => {
+        if (video && video.style) {
+          video.style.filter = filterString;
+        }
+      });
 
-    activeJsmpegCanvases.forEach((canvas) => {
-      canvas.style.filter = filterString;
-      canvas.style.transform = canvas.style.transform || "translateZ(0)";
-    });
+      activeJsmpegCanvases.forEach((canvas) => {
+        if (canvas && canvas.style) {
+          canvas.style.filter = filterString;
+          canvas.style.transform = canvas.style.transform || "translateZ(0)";
+        }
+      });
+    } catch (error) {
+      // Silently handle video effects errors to prevent crashes
+    }
   }, [containerRef, effects]);
 
   const resetEffects = useCallback(() => {
@@ -104,22 +108,32 @@ export const useContainerVideoEffects = (
   }, [containerRef]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef?.current) return;
 
-    applyEffects();
+    try {
+      applyEffects();
 
-    const observer = new MutationObserver(() => {
-      requestAnimationFrame(applyEffects);
-    });
+      // Debounced mutation observer to reduce performance impact
+      let timeoutId: NodeJS.Timeout;
+      const observer = new MutationObserver(() => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          requestAnimationFrame(applyEffects);
+        }, 100);
+      });
 
-    observer.observe(containerRef.current, {
-      childList: true,
-      subtree: true,
-    });
+      observer.observe(containerRef.current, {
+        childList: true,
+        subtree: true,
+      });
 
-    return () => {
-      observer.disconnect();
-    };
+      return () => {
+        observer.disconnect();
+        clearTimeout(timeoutId);
+      };
+    } catch (error) {
+      // Silently handle errors setting up video effects observer
+    }
   }, [applyEffects, containerRef]);
 
   return { applyEffects, resetEffects };
@@ -167,29 +181,30 @@ export const useHasActiveVideoContent = (
   const [hasActiveContent, setHasActiveContent] = useState(false);
 
   const checkForActiveContent = useCallback(() => {
-    if (!containerRef.current) {
+    if (!containerRef?.current) {
       setHasActiveContent(false);
       return;
     }
 
-    const videoElements = containerRef.current.querySelectorAll("video");
-    const hasActiveVideos = Array.from(videoElements).some((video) => {
-      const videoEl = video as HTMLVideoElement;
-      return (
-        videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-        videoEl.videoWidth > 0 &&
-        videoEl.videoHeight > 0 &&
-        !videoEl.ended
-      );
-    });
+    try {
+      const videoElements = containerRef.current.querySelectorAll("video");
+      const hasActiveVideos = Array.from(videoElements).some((video) => {
+        const videoEl = video as HTMLVideoElement;
+        // More lenient - consider any video element that's not ended as active
+        return videoEl && !videoEl.ended;
+      });
 
-    const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
-    const hasActiveJsmpeg = Array.from(jsmpegContainers).some((container) => {
-      const canvas = container.querySelector("canvas");
-      return canvas && canvas.width > 0 && canvas.height > 0;
-    });
+      const jsmpegContainers = containerRef.current.querySelectorAll(".jsmpeg");
+      const hasActiveJsmpeg = Array.from(jsmpegContainers).some((container) => {
+        const canvas = container.querySelector("canvas");
+        return canvas !== null;
+      });
 
-    setHasActiveContent(hasActiveVideos || hasActiveJsmpeg);
+      setHasActiveContent(hasActiveVideos || hasActiveJsmpeg);
+    } catch (error) {
+      // Silently handle errors checking for active video content
+      setHasActiveContent(false);
+    }
   }, [containerRef]);
 
   useEffect(() => {

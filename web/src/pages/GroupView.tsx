@@ -1,8 +1,6 @@
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import { usePersistence } from "@/hooks/use-persistence";
 import { FrigateConfig } from "@/types/frigateConfig";
-import { StreamingPriority } from "@/types/live";
 import LiveBirdseyeView from "@/views/live/LiveBirdseyeView";
 import LiveCameraView from "@/views/live/LiveCameraView";
 import LiveDashboardView from "@/views/live/LiveDashboardView";
@@ -28,10 +26,6 @@ function GroupView() {
 
   const { fullscreen, toggleFullscreen, supportsFullScreen } =
     useFullscreen(mainRef);
-  const [streamingPriority] = usePersistence<StreamingPriority>(
-    "streamingPriority",
-    "ultra-low-latency",
-  );
 
   useKeyboardListener(["f"], (key, modifiers) => {
     if (!modifiers.down) {
@@ -134,7 +128,6 @@ function GroupView() {
           onSelectCamera={handleSelectCamera}
           fullscreen={fullscreen}
           toggleFullscreen={toggleFullscreen}
-          streamingPriority={streamingPriority}
         />
       )}
     </div>

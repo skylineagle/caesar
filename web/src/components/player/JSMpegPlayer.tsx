@@ -2,6 +2,7 @@ import { baseUrl } from "@/api/baseUrl";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import { cn } from "@/lib/utils";
 import { PlayerStatsType } from "@/types/live";
+import ActivityIndicator from "../indicators/activity-indicator";
 // @ts-expect-error we know this doesn't have types
 import JSMpeg from "@cycjimmy/jsmpeg-player";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -36,6 +37,7 @@ export default function JSMpegPlayer({
   const onPlayingRef = useRef(onPlaying);
   const [showCanvas, setShowCanvas] = useState(false);
   const [hasData, setHasData] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const hasDataRef = useRef(hasData);
   const [dimensionsReady, setDimensionsReady] = useState(false);
   const bytesReceivedRef = useRef(0);
@@ -122,6 +124,7 @@ export default function JSMpegPlayer({
     let frameCount = 0;
 
     setHasData(false);
+    setIsLoading(true);
 
     if (videoWrapper && playbackEnabled) {
       // Delayed init to avoid issues with react strict mode
@@ -139,6 +142,7 @@ export default function JSMpegPlayer({
             onVideoDecode: () => {
               if (!hasDataRef.current) {
                 setHasData(true);
+                setIsLoading(false);
                 onPlayingRef.current?.();
               }
               frameCount++;
@@ -218,7 +222,25 @@ export default function JSMpegPlayer({
   }, [hasData]);
 
   return (
-    <div className={cn(className, !containerRef.current && "size-full")}>
+    <div
+      className={cn(
+        className,
+        !containerRef.current && "size-full",
+        "relative",
+      )}
+    >
+      {isLoading && playbackEnabled && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-center shadow-sm dark:border-green-800 dark:bg-green-950">
+            <div className="flex items-center justify-center gap-2">
+              <ActivityIndicator className="h-4 w-4" />
+              <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                Loading...
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div
         className="internal-jsmpeg-container size-full"
         ref={internalContainerRef}
