@@ -1,21 +1,21 @@
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
+import { LivePlayerMode, LiveStreamMetadata } from "@/types/live";
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
-import {
-  LivePlayerMode,
-  LiveStreamMetadata,
-  StreamingPriority,
-} from "@/types/live";
 
 export default function useCameraLiveMode(
   cameras: CameraConfig[],
   windowVisible: boolean,
-  streamingPriority: StreamingPriority = "ultra-low-latency",
 ) {
   const { data: config } = useSWR<FrigateConfig>("config");
   const { data: allStreamMetadata } = useSWR<{
     [key: string]: LiveStreamMetadata;
-  }>(config ? "go2rtc/streams" : null, { revalidateOnFocus: false });
+  }>(config ? "go2rtc/streams" : null, {
+    revalidateOnFocus: false,
+    onError: () => {
+      // Ignore go2rtc errors - they happen when streams aren't configured
+    },
+  });
 
   const [preferredLiveModes, setPreferredLiveModes] = useState<{
     [key: string]: LivePlayerMode;
@@ -51,14 +51,11 @@ export default function useCameraLiveMode(
 
       newIsRestreamedStates[camera.name] = isRestreamed ?? false;
 
+      // Always use ultra-low-latency mode: WebRTC for restreamed cameras, JSMpeg for others
       if (!mseSupported) {
         newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
       } else {
-        if (streamingPriority === "ultra-low-latency" && isRestreamed) {
-          newPreferredLiveModes[camera.name] = "webrtc";
-        } else {
-          newPreferredLiveModes[camera.name] = isRestreamed ? "mse" : "jsmpeg";
-        }
+        newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
       }
 
       // check each stream for audio support
@@ -89,7 +86,7 @@ export default function useCameraLiveMode(
     setPreferredLiveModes(newPreferredLiveModes);
     setIsRestreamedStates(newIsRestreamedStates);
     setSupportsAudioOutputStates(newSupportsAudioOutputStates);
-  }, [cameras, config, windowVisible, allStreamMetadata, streamingPriority]);
+  }, [cameras, config, windowVisible, allStreamMetadata]);
 
   const resetPreferredLiveMode = useCallback(
     (cameraName: string) => {
@@ -101,20 +98,17 @@ export default function useCameraLiveMode(
       setPreferredLiveModes((prevModes) => {
         const newModes = { ...prevModes };
 
+        // Always use ultra-low-latency mode: WebRTC for restreamed cameras, JSMpeg for others
         if (!mseSupported) {
           newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
         } else {
-          if (streamingPriority === "ultra-low-latency" && isRestreamed) {
-            newModes[cameraName] = "webrtc";
-          } else {
-            newModes[cameraName] = isRestreamed ? "mse" : "jsmpeg";
-          }
+          newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
         }
 
         return newModes;
       });
     },
-    [config, streamingPriority],
+    [config],
   );
 
   return {
