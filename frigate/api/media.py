@@ -978,8 +978,6 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
             status_code=404,
         )
 
-    # Check if any clips are backfill recordings
-    has_backfill_clips = any(clip.get("backfill", False) for clip in clips)
     # Ensure clips are properly formatted for nginx-vod-module
     # nginx-vod-module expects absolute paths and will handle them correctly
     processed_clips = []
