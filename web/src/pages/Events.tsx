@@ -9,6 +9,7 @@ import {
   useShowReviewed,
 } from "@/hooks/use-url-state";
 import { FrigateConfig } from "@/types/frigateConfig";
+import { Recording } from "@/types/record";
 import {
   RecordingsSummary,
   ReviewFilter,
@@ -401,8 +402,11 @@ export default function Events() {
     const allCameras = reviewFilter?.cameras ?? [recording.camera];
 
     // Check if the stored timestamps are still valid
-    let startTime =
-      urlCurrentTime ?? recording.currentTime ?? recording.startTime;
+    let calculatedStartTime =
+      urlCurrentTime ??
+      recording.currentTime ??
+      startTime ??
+      recording.startTime;
 
     // If the stored timestamp is too old (more than 30 days), use the start of the day from the date parameter
     if (date) {
@@ -414,19 +418,26 @@ export default function Events() {
         // Use the start of the day from the date parameter
         const startOfDay = new Date(recordingDate);
         startOfDay.setHours(0, 0, 0, 0);
-        startTime = Math.floor(startOfDay.getTime() / 1000);
+        calculatedStartTime = Math.floor(startOfDay.getTime() / 1000);
       }
     }
 
     return {
       camera: recording.camera,
-      start_time: startTime,
+      start_time: calculatedStartTime,
       allCameras: allCameras,
     };
 
     // previews will not update after item is selected
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, date, reviewFilter?.cameras, urlCurrentTime, config]);
+  }, [
+    recording,
+    date,
+    reviewFilter?.cameras,
+    urlCurrentTime,
+    config,
+    startTime,
+  ]);
 
   // keep the review filter's day in sync with URL after/before so UI shows the right day
   useEffect(() => {
@@ -458,6 +469,20 @@ export default function Events() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording?.camera]);
 
+  // Fetch first available recording when no currentTime is specified
+  const { data: firstRecording } = useSWR<Recording[]>(
+    recording && !urlCurrentTime
+      ? [
+          `${recording.camera}/recordings`,
+          {
+            before: selectedTimeRange.before,
+            after: selectedTimeRange.after,
+          },
+        ]
+      : null,
+    { revalidateOnFocus: false },
+  );
+
   useEffect(() => {
     if (recording) {
       // Check if the recording data is too old and clear it if necessary
@@ -471,14 +496,28 @@ export default function Events() {
         return;
       }
 
-      setStartTime(recording.startTime);
+      // If no currentTime URL param, use first available recording point
+      if (!urlCurrentTime && firstRecording && firstRecording.length > 0) {
+        setStartTime(firstRecording[0].start_time);
+      } else {
+        setStartTime(recording.startTime);
+      }
     } else {
       // Clear date filter when no recording is active
       setDate(null);
       setAfter(null);
       setBefore(null);
     }
-  }, [recording, date, setRecording, setDate, setAfter, setBefore]);
+  }, [
+    recording,
+    date,
+    setRecording,
+    setDate,
+    setAfter,
+    setBefore,
+    urlCurrentTime,
+    firstRecording,
+  ]);
 
   // Handle URL state changes when date parameters are manually set
   useEffect(() => {
