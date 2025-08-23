@@ -6,8 +6,6 @@ import { LiveGridIcon, LiveListIcon } from "@/components/icons/LiveIcons";
 import LiveContextMenu from "@/components/menu/LiveContextMenu";
 import BirdseyeLivePlayer from "@/components/player/BirdseyeLivePlayer";
 import LivePlayer from "@/components/player/LivePlayer";
-
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -31,7 +29,6 @@ import {
   LivePlayerError,
   StatsState,
   VolumeState,
-  StreamingPriority,
 } from "@/types/live";
 import { ReviewSegment } from "@/types/review";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -45,6 +42,7 @@ import { useTranslation } from "react-i18next";
 import { FaCompress, FaExpand } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { LuLayoutDashboard } from "react-icons/lu";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import useSWR from "swr";
 import DraggableGridLayout from "./DraggableGridLayout";
 
@@ -55,7 +53,6 @@ type LiveDashboardViewProps = {
   onSelectCamera: (camera: string) => void;
   fullscreen: boolean;
   toggleFullscreen: () => void;
-  streamingPriority?: StreamingPriority;
 };
 export default function LiveDashboardView({
   cameras,
@@ -64,7 +61,6 @@ export default function LiveDashboardView({
   onSelectCamera,
   fullscreen,
   toggleFullscreen,
-  streamingPriority = "ultra-low-latency",
 }: LiveDashboardViewProps) {
   const { t } = useTranslation(["views/live"]);
 
@@ -203,11 +199,10 @@ export default function LiveDashboardView({
 
   const {
     preferredLiveModes,
-    setPreferredLiveModes,
     resetPreferredLiveMode,
     isRestreamedStates,
     supportsAudioOutputStates,
-  } = useCameraLiveMode(cameras, windowVisible, streamingPriority);
+  } = useCameraLiveMode(cameras, windowVisible);
 
   const [globalAutoLive] = usePersistence("autoLiveView", true);
 
@@ -240,23 +235,12 @@ export default function LiveDashboardView({
   const birdseyeConfig = useMemo(() => config?.birdseye, [config]);
 
   const handleError = useCallback(
-    (cameraName: string, error: LivePlayerError) => {
-      if (streamingPriority === "ultra-low-latency") {
-        return;
-      }
-
-      setPreferredLiveModes((prevModes) => {
-        const newModes = { ...prevModes };
-
-        if (error === "mse-decode") {
-          newModes[cameraName] = "webrtc";
-        } else {
-          newModes[cameraName] = "jsmpeg";
-        }
-        return newModes;
-      });
+    (_cameraName: string, _error: LivePlayerError) => {
+      // In ultra-low-latency mode, don't change streaming modes on errors
+      // Let the players handle their own reconnection
+      return;
     },
-    [setPreferredLiveModes, streamingPriority],
+    [],
   );
 
   // audio states
@@ -497,14 +481,10 @@ export default function LiveDashboardView({
                 ? streamNameFromSettings
                 : firstStreamEntry;
               const streamType =
-                currentGroupStreamingSettings?.[camera.name]?.streamType;
-              const autoLive =
-                streamType !== undefined
-                  ? streamType !== "no-streaming"
-                  : undefined;
-              const showStillWithoutActivity =
-                currentGroupStreamingSettings?.[camera.name]?.streamType !==
-                "continuous";
+                currentGroupStreamingSettings?.[camera.name]?.streamType ||
+                "continuous"; // Default to continuous for ultra-low-latency
+              const autoLive = streamType !== "no-streaming";
+              const showStillWithoutActivity = streamType === "smart";
               const useWebGL =
                 currentGroupStreamingSettings?.[camera.name]
                   ?.compatibilityMode || false;
@@ -589,7 +569,6 @@ export default function LiveDashboardView({
                           }
                           playAudio={audioStates[camera.name] ?? false}
                           volume={volumeStates[camera.name]}
-                          streamingPriority={streamingPriority}
                           streamIndex={cameras.findIndex(
                             (c) => c.name === camera.name,
                           )}
@@ -664,7 +643,6 @@ export default function LiveDashboardView({
           globalAutoLive={globalAutoLive}
           currentGroupStreamingSettings={currentGroupStreamingSettings}
           config={config}
-          streamingPriority={streamingPriority}
         />
       )}
     </div>
