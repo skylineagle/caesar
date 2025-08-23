@@ -16,7 +16,6 @@ from urllib.parse import unquote
 import cv2
 import numpy as np
 import pytz
-from dateutil import parser
 from fastapi import APIRouter, Path, Query, Request, Response
 from fastapi.params import Depends
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -53,72 +52,7 @@ from frigate.util.path import get_event_thumbnail_bytes
 logger = logging.getLogger(__name__)
 
 
-def parse_timestamp(timestamp_str: str) -> float:
-    """Parse timestamp string, supporting both Unix timestamp and ISO format.
-
-    Args:
-        timestamp_str: String timestamp (Unix timestamp or ISO format)
-
-    Returns:
-        float: Unix timestamp
-
-    Raises:
-        ValueError: If timestamp format is invalid
-    """
-    if not timestamp_str:
-        return datetime.now().timestamp()
-
-    try:
-        # Try to parse as float (Unix timestamp)
-        return float(timestamp_str)
-    except ValueError:
-        try:
-            # Try to parse as ISO format
-            dt = parser.isoparse(timestamp_str)
-            return dt.timestamp()
-        except ValueError as e:
-            raise ValueError(
-                f"Invalid timestamp format: {timestamp_str}. Use Unix timestamp (e.g., 1693526400) or ISO format (e.g., 2023-09-01T00:00:00Z)"
-            ) from e
-
-
 router = APIRouter(tags=[Tags.media])
-
-
-@router.get("/debug/files/{camera_name}")
-def debug_files(camera_name: str):
-    """Debug endpoint to check file availability for a camera."""
-    import os
-
-    from frigate.models import Recordings
-
-    # Get all recordings for this camera
-    recordings = list(
-        Recordings.select().where(Recordings.camera == camera_name).limit(10)
-    )
-
-    results = []
-    for recording in recordings:
-        file_exists = os.path.exists(recording.path)
-        file_size = os.path.getsize(recording.path) if file_exists else 0
-        is_backfill = (
-            recording.motion == -1 and recording.objects == -1 and recording.dBFS == -1
-        )
-
-        results.append(
-            {
-                "id": recording.id,
-                "path": recording.path,
-                "exists": file_exists,
-                "size": file_size,
-                "backfill": is_backfill,
-                "start_time": recording.start_time,
-                "end_time": recording.end_time,
-                "duration": recording.duration,
-            }
-        )
-
-    return JSONResponse(content={"camera": camera_name, "recordings": results})
 
 
 @router.get("/{camera_name}")
@@ -588,30 +522,10 @@ def recordings_summary(camera_name: str, timezone: str = "utc"):
 @router.get("/{camera_name}/recordings")
 def recordings(
     camera_name: str,
-    after: str = Query(
-        default=None,
-        description="Start time - Unix timestamp (e.g., 1693526400) or ISO format (e.g., 2023-09-01T00:00:00Z)",
-    ),
-    before: str = Query(
-        default=None,
-        description="End time - Unix timestamp (e.g., 1693526400) or ISO format (e.g., 2023-09-01T00:00:00Z)",
-    ),
+    after: float = (datetime.now() - timedelta(hours=1)).timestamp(),
+    before: float = datetime.now().timestamp(),
 ):
     """Return specific camera recordings between the given 'after'/'end' times. If not provided the last hour will be used"""
-
-    # Parse timestamps (support both Unix timestamp and ISO format)
-    try:
-        after_ts = (
-            parse_timestamp(after)
-            if after
-            else (datetime.now() - timedelta(hours=1)).timestamp()
-        )
-        before_ts = parse_timestamp(before) if before else datetime.now().timestamp()
-    except ValueError as e:
-        return JSONResponse(
-            content={"success": False, "message": str(e)}, status_code=400
-        )
-
     recordings = (
         Recordings.select(
             Recordings.id,
@@ -620,35 +534,19 @@ def recordings(
             Recordings.segment_size,
             Recordings.motion,
             Recordings.objects,
-            Recordings.dBFS,
             Recordings.duration,
         )
         .where(
             Recordings.camera == camera_name,
-            Recordings.end_time >= after_ts,
-            Recordings.start_time <= before_ts,
+            Recordings.end_time >= after,
+            Recordings.start_time <= before,
         )
         .order_by(Recordings.start_time)
         .dicts()
         .iterator()
     )
 
-    # Convert to list and add minimal debugging
-    recordings_list = list(recordings)
-
-    # Count backfill recordings for logging
-    backfill_count = sum(
-        1
-        for r in recordings_list
-        if r["motion"] == -1 or r["objects"] == -1 or r["dBFS"] == -1
-    )
-
-    if backfill_count > 0:
-        logger.info(
-            f"🔍 API returning {backfill_count} backfill recordings for {camera_name}"
-        )
-
-    return JSONResponse(content=recordings_list)
+    return JSONResponse(content=list(recordings))
 
 
 @router.get("/recordings/unavailable", response_model=list[dict])
@@ -814,201 +712,41 @@ def recording_clip(
     description="Returns an HLS playlist for the specified timestamp-range on the specified camera. Append /master.m3u8 or /index.m3u8 for HLS playback.",
 )
 def vod_ts(camera_name: str, start_ts: float, end_ts: float):
-    logger.info(
-        f"🚀 VOD ENDPOINT CALLED: camera={camera_name} start={start_ts} end={end_ts}"
+    recordings = (
+        Recordings.select(
+            Recordings.path,
+            Recordings.duration,
+            Recordings.end_time,
+            Recordings.start_time,
+        )
+        .where(
+            Recordings.start_time.between(start_ts, end_ts)
+            | Recordings.end_time.between(start_ts, end_ts)
+            | ((start_ts > Recordings.start_time) & (end_ts < Recordings.end_time))
+        )
+        .where(Recordings.camera == camera_name)
+        .order_by(Recordings.start_time.asc())
+        .iterator()
     )
-    logger.info(
-        f"🔍 VOD REQUEST STARTED: camera={camera_name} start={start_ts} end={end_ts}"
-    )
-
-    # If start and end timestamps are the same, expand the range slightly
-    # This handles cases where the frontend sends identical timestamps
-    if start_ts == end_ts:
-        # Expand by 10 seconds on each side to capture nearby recordings
-        start_ts = start_ts - 10
-        end_ts = end_ts + 10
-        logger.info(f"🔧 Expanded time range to: {start_ts} to {end_ts}")
-    else:
-        logger.info(f"✅ Time range OK: {start_ts} to {end_ts}")
-
-    # Build the query with detailed logging
-    query = Recordings.select(
-        Recordings.path,
-        Recordings.duration,
-        Recordings.end_time,
-        Recordings.start_time,
-        Recordings.motion,
-        Recordings.objects,
-        Recordings.dBFS,
-    ).where(Recordings.camera == camera_name)
-
-    # Add time range conditions
-    time_condition = (
-        Recordings.start_time.between(start_ts, end_ts)
-        | Recordings.end_time.between(start_ts, end_ts)
-        | ((start_ts > Recordings.start_time) & (end_ts < Recordings.end_time))
-    )
-    query = query.where(time_condition)
-
-    logger.info(f"🔍 VOD SQL query: {query}")
-    logger.info(f"🔍 VOD time condition: start_ts={start_ts}, end_ts={end_ts}")
-
-    recordings = query.order_by(Recordings.start_time.asc()).iterator()
 
     clips = []
     durations = []
     max_duration_ms = MAX_SEGMENT_DURATION * 1000
 
-    # Convert to list for debugging
-    recordings_list = list(recordings)
-    logger.info(
-        f"📊 VOD found {len(recordings_list)} recordings - starting detailed processing"
-    )
-
-    if len(recordings_list) == 0:
-        logger.error(f"❌ NO RECORDINGS FOUND IN RANGE: {start_ts} to {end_ts}")
-        logger.error("❌ This means no recordings exist for the time you clicked on!")
-        logger.error(
-            "❌ Try clicking on a time where you can see segments in the timeline"
-        )
-
-    for recording in recordings_list:
-        is_backfill = (
-            recording.motion == -1 or recording.objects == -1 or recording.dBFS == -1
-        )
-        logger.info(
-            f"📹 Recording: {recording.path} (start={recording.start_time}, end={recording.end_time}, backfill={is_backfill})"
-        )
-
-    # Also check if there are ANY recordings for this camera in a wider time range
-    all_recordings = Recordings.select().where(Recordings.camera == camera_name).count()
-    logger.info(f"📊 Total recordings for camera {camera_name}: {all_recordings}")
-
-    # Check recordings in a wider time window around the requested range
-    wide_start = start_ts - 3600  # 1 hour before
-    wide_end = end_ts + 3600  # 1 hour after
-    wide_recordings = list(
-        Recordings.select(
-            Recordings.start_time,
-            Recordings.end_time,
-            Recordings.motion,
-            Recordings.objects,
-            Recordings.dBFS,
-        )
-        .where(Recordings.camera == camera_name)
-        .where(Recordings.start_time.between(wide_start, wide_end))
-        .order_by(Recordings.start_time.asc())
-    )
-    logger.info(
-        f"📊 Recordings in wider range ({wide_start} to {wide_end}): {len(wide_recordings)}"
-    )
-    for rec in wide_recordings:
-        logger.info(
-            f"   📹 Wide range: start={rec.start_time}, end={rec.end_time}, motion={rec.motion}, objects={rec.objects}, dBFS={rec.dBFS}"
-        )
-
     recording: Recordings
-    for recording in recordings_list:
-        # Check if the recording file actually exists on disk
-        import os
-
-        file_exists = os.path.exists(recording.path)
-        file_size = os.path.getsize(recording.path) if file_exists else 0
-
-        # CRITICAL: For backfill recordings, ensure file is accessible and readable
-        file_readable = False
-        if file_exists:
-            try:
-                with open(recording.path, "rb") as f:
-                    f.read(1024)  # Try to read first 1KB
-                file_readable = True
-            except (IOError, OSError) as e:
-                logger.error(f"❌ Cannot read file {recording.path}: {e}")
-
-        # Basic file validation - check if file exists and has reasonable size
-        is_valid_mp4 = (
-            file_exists
-            and file_size > 1000
-            and recording.path.lower().endswith(".mp4")
-            and file_readable
-        )
-        logger.info(
-            f"📁 File validation: {recording.path} exists={file_exists} readable={file_readable} size={file_size} bytes valid_mp4={is_valid_mp4}"
-        )
-
-        # If file is not readable, skip this recording entirely
-        if not is_valid_mp4:
-            logger.warning(f"⚠️ Skipping unreadable recording: {recording.path}")
-            continue
-
-        logger.info(
-            f"📁 File check: {recording.path} exists={file_exists} size={file_size} bytes valid_mp4={is_valid_mp4}"
-        )
-
-        # Check if this is a backfill recording
-        is_backfill_recording = (
-            recording.motion == -1 and recording.objects == -1 and recording.dBFS == -1
-        )
-
+    for recording in recordings:
         clip = {"type": "source", "path": recording.path}
-        if is_backfill_recording:
-            # Mark backfill recordings for special handling
-            clip["backfill"] = True
-            logger.info(f"🏷️ Marked backfill recording: {recording.path}")
-
-        original_duration = recording.duration
         duration = int(recording.duration * 1000)
 
-        logger.info(
-            f"⏱️ Recording duration: {recording.path} original={original_duration}s calculated={duration}ms"
-        )
+        # adjust start offset if start_ts is after recording.start_time
+        if start_ts > recording.start_time:
+            inpoint = int((start_ts - recording.start_time) * 1000)
+            clip["clipFrom"] = inpoint
+            duration -= inpoint
 
-        # For debugging: check if the file path is accessible
-        import os
-
-        file_exists = os.path.exists(recording.path)
-        if not file_exists:
-            logger.error(
-                f"❌ CRITICAL: Recording file does not exist: {recording.path}"
-            )
-            # Try to find the file in different locations
-            alternative_paths = [
-                recording.path.replace("/media/frigate/recordings/", "/media/frigate/"),
-                recording.path.replace("/media/frigate/", "/"),
-                f"/media/frigate{recording.path}"
-                if not recording.path.startswith("/media/frigate")
-                else recording.path,
-            ]
-            for alt_path in alternative_paths:
-                if os.path.exists(alt_path):
-                    logger.info(f"✅ Found file at alternative path: {alt_path}")
-                    clip["path"] = alt_path
-                    break
-        else:
-            logger.info(f"✅ File exists: {recording.path}")
-
-        # For backfill recordings, don't apply time-based clipping as they fill specific gaps
-        if not is_backfill_recording:
-            # adjust start offset if start_ts is after recording.start_time
-            if start_ts > recording.start_time:
-                inpoint = int((start_ts - recording.start_time) * 1000)
-                clip["clipFrom"] = inpoint
-                duration -= inpoint
-                logger.info(
-                    f"✂️ Applied inpoint offset: {inpoint}ms, new duration={duration}ms"
-                )
-
-            # adjust end if recording.end_time is after end_ts
-            if recording.end_time > end_ts:
-                outpoint_offset = int((recording.end_time - end_ts) * 1000)
-                duration -= outpoint_offset
-                logger.info(
-                    f"✂️ Applied outpoint offset: {outpoint_offset}ms, new duration={duration}ms"
-                )
-        else:
-            logger.info(
-                f"🏷️ Backfill recording - skipping time-based clipping for: {recording.path}"
-            )
+        # adjust end if recording.end_time is after end_ts
+        if recording.end_time > end_ts:
+            duration -= int((recording.end_time - end_ts) * 1000)
 
         if duration <= 0:
             # skip if the clip has no valid duration
@@ -1018,64 +756,32 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
             clip["keyFrameDurations"] = [duration]
             clips.append(clip)
             durations.append(duration)
-            logger.info(f"✅ Added clip: {recording.path} (duration={duration}ms)")
         else:
-            logger.warning(
-                f"❌ Recording clip invalid: {recording.path} (duration={duration}ms, max={max_duration_ms}ms)"
-            )
+            logger.warning(f"Recording clip is missing or empty: {recording.path}")
 
     if not clips:
-        error_msg = (
+        logger.error(
             f"No recordings found for {camera_name} during the requested time range"
         )
-        if len(recordings_list) == 0:
-            error_msg += (
-                " (no recordings exist for this time period - try a different time)"
-            )
-        logger.error(error_msg)
         return JSONResponse(
             content={
                 "success": False,
-                "message": "No recordings found for this time period. Try clicking on a different time where you can see segments in the timeline.",
+                "message": "No recordings found.",
             },
             status_code=404,
         )
 
-    # Ensure clips are properly formatted for nginx-vod-module
-    # nginx-vod-module expects absolute paths and will handle them correctly
-    processed_clips = []
-    for clip in clips:
-        processed_clip = {
-            "type": clip.get("type", "source"),
-            "path": clip.get("path", ""),
-        }
-
-        # Add optional fields if they exist
-        if "clipFrom" in clip:
-            processed_clip["clipFrom"] = clip["clipFrom"]
-
-        processed_clips.append(processed_clip)
-
-    logger.info(
-        f"🎬 VOD Response: Found {len(processed_clips)} clips, durations={durations}"
-    )
-    for i, clip in enumerate(processed_clips):
-        logger.info(f"   📹 Clip {i}: {clip}")
-
     hour_ago = datetime.now() - timedelta(hours=1)
-    response_data = {
-        "cache": hour_ago.timestamp() > start_ts,
-        "discontinuity": False,
-        "consistentSequenceMediaInfo": True,
-        "durations": durations,
-        "segment_duration": max(durations) if durations else 0,
-        "sequences": [{"clips": processed_clips}],
-    }
-
-    logger.info(
-        f"📤 Sending VOD response with {len(processed_clips)} clips for nginx-vod-module"
+    return JSONResponse(
+        content={
+            "cache": hour_ago.timestamp() > start_ts,
+            "discontinuity": False,
+            "consistentSequenceMediaInfo": True,
+            "durations": durations,
+            "segment_duration": max(durations),
+            "sequences": [{"clips": clips}],
+        }
     )
-    return JSONResponse(content=response_data)
 
 
 @router.get(
