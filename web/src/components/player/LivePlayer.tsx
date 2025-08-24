@@ -1,10 +1,4 @@
 import { baseUrl } from "@/api/baseUrl";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useCameraActivity } from "@/hooks/use-camera-activity";
 import {
   useContainerVideoEffects,
@@ -23,12 +17,15 @@ import { getIconForLabel } from "@/utils/iconUtil";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
 import { TooltipPortal } from "@radix-ui/react-tooltip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { LuRefreshCw, LuVideoOff } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
+import { TbExclamationCircle } from "react-icons/tb";
 import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
 import ActivityIndicator from "../indicators/activity-indicator";
 import Chip from "../indicators/Chip";
+import { Button } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import JSMpegPlayer from "./JSMpegPlayer";
 import MSEPlayer from "./MsePlayer";
 import { PlayerStats } from "./PlayerStats";
@@ -58,7 +55,6 @@ type LivePlayerProps = {
   onError?: (error: LivePlayerError) => void;
   onResetLiveMode?: () => void;
   videoEffects?: boolean;
-  streamIndex?: number;
 };
 
 export default function LivePlayer({
@@ -84,7 +80,6 @@ export default function LivePlayer({
   onError,
   onResetLiveMode,
   videoEffects,
-  streamIndex = 0,
 }: LivePlayerProps) {
   const { t } = useTranslation(["common", "components/player"]);
 
@@ -94,6 +89,7 @@ export default function LivePlayer({
   const clickSuppressDistancePx = 8;
 
   const [liveReady, setLiveReady] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [stats, setStats] = useState<PlayerStatsType>({
     streamType: "-",
     bandwidth: 0,
@@ -109,27 +105,9 @@ export default function LivePlayer({
     updateEffects: setCurrentVideoEffects,
   } = usePersistedVideoEffects(cameraConfig.name);
 
+  useContainerVideoEffects(internalContainerRef, currentVideoEffects);
+
   const hasActiveVideoContent = useHasActiveVideoContent(internalContainerRef);
-
-  const { applyEffects } = useContainerVideoEffects(
-    internalContainerRef,
-    currentVideoEffects,
-  );
-
-  // Apply effects when they change and we have active content
-  useEffect(() => {
-    if (hasActiveVideoContent && liveReady && applyEffects) {
-      // Debounced effect application to reduce performance impact
-      const timeoutId = setTimeout(() => {
-        try {
-          applyEffects();
-        } catch (error) {
-          // Silently handle video effects errors to prevent crashes
-        }
-      }, 250);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [currentVideoEffects, hasActiveVideoContent, liveReady, applyEffects]);
 
   const {
     enabled: cameraEnabled,
@@ -138,11 +116,6 @@ export default function LivePlayer({
     objects,
     offline,
   } = useCameraActivity(cameraConfig);
-
-  // Generate stable key for player components - only change on essential changes
-  const playerKey = useMemo(() => {
-    return `${cameraConfig.name}_${streamName}_${preferredLiveMode}`;
-  }, [cameraConfig.name, streamName, preferredLiveMode]);
 
   const cameraActive = useMemo(
     () =>
@@ -160,20 +133,17 @@ export default function LivePlayer({
   }, [liveReady, cameraActive]);
 
   useEffect(() => {
-    if (!autoLive) {
+    if (!autoLive || !liveReady) {
       return;
     }
 
-    if (cameraActive && !liveReady) {
-      // Immediately start stream when camera becomes active
-      setLiveReady(true);
-    } else if (!cameraActive && liveReady) {
+    if (!cameraActive) {
       const timer = setTimeout(() => {
         if (liveReadyRef.current && !cameraActiveRef.current) {
           setLiveReady(false);
           onResetLiveMode?.();
         }
-      }, 2000); // Increased delay to avoid unnecessary stream stops
+      }, 500);
 
       return () => {
         clearTimeout(timer);
@@ -182,13 +152,6 @@ export default function LivePlayer({
     // live mode won't change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLive, cameraActive, liveReady]);
-
-  // Force stream restart when camera comes back online after being offline
-  useEffect(() => {
-    if (!offline && cameraEnabled && autoLive && !liveReady) {
-      setLiveReady(true);
-    }
-  }, [offline, cameraEnabled, autoLive, liveReady]);
 
   // camera still state
 
@@ -207,7 +170,7 @@ export default function LivePlayer({
 
     if (activeMotion || activeTracking) {
       if (autoLive) {
-        return 50; // Faster response when motion detected
+        return 200;
       } else {
         return 59000;
       }
@@ -229,15 +192,28 @@ export default function LivePlayer({
     setLiveReady(false);
   }, [preferredLiveMode]);
 
-  const resetPlayer = () => {
+  const [key, setKey] = useState(0);
+
+  // Memoize the player key to prevent unnecessary re-renders
+  const playerKey = useMemo(() => {
+    return `${cameraConfig.name}_${preferredLiveMode}_${key}`;
+  }, [cameraConfig.name, preferredLiveMode, key]);
+
+  const resetPlayer = useCallback(() => {
     setLiveReady(false);
-  };
+    setKey((prevKey) => prevKey + 1);
+  }, []);
+
+  const handleResetStream = useCallback(() => {
+    resetPlayer();
+    onResetLiveMode?.();
+  }, [onResetLiveMode, resetPlayer]);
 
   useEffect(() => {
     if (streamName) {
       resetPlayer();
     }
-  }, [streamName]);
+  }, [resetPlayer, streamName]);
 
   useEffect(() => {
     if (showStillWithoutActivity && !autoLive) {
@@ -259,8 +235,10 @@ export default function LivePlayer({
     if (!prevCameraEnabledRef.current && cameraEnabled) {
       setLiveReady(false);
       setIsReEnabling(true);
+      setKey((prevKey) => prevKey + 1);
     } else if (prevCameraEnabledRef.current && !cameraEnabled) {
       setLiveReady(false);
+      setKey((prevKey) => prevKey + 1);
     }
     prevCameraEnabledRef.current = cameraEnabled;
   }, [cameraEnabled]);
@@ -366,8 +344,8 @@ export default function LivePlayer({
   } else if (preferredLiveMode == "webrtc") {
     player = (
       <WebRtcPlayer
-        key={"webrtc_" + playerKey}
-        className={`size-full rounded-lg md:rounded-lg ${liveReady ? "" : "hidden"}`}
+        key={playerKey}
+        className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
         camera={streamName}
         playbackEnabled={cameraActive || liveReady}
         getStats={showStats}
@@ -379,15 +357,14 @@ export default function LivePlayer({
         onPlaying={playerIsPlaying}
         pip={pip}
         onError={onError}
-        streamIndex={streamIndex}
       />
     );
   } else if (preferredLiveMode == "mse") {
     if ("MediaSource" in window || "ManagedMediaSource" in window) {
       player = (
         <MSEPlayer
-          key={`mse_${playerKey}`}
-          className={`size-full rounded-lg md:rounded-lg ${liveReady ? "" : "hidden"}`}
+          key={playerKey}
+          className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
           camera={streamName}
           playbackEnabled={cameraActive || liveReady}
           audioEnabled={playAudio}
@@ -412,8 +389,8 @@ export default function LivePlayer({
     if (cameraActive || !showStillWithoutActivity || liveReady) {
       player = (
         <JSMpegPlayer
-          key={`jsmpeg_${playerKey}`}
-          className="flex justify-center overflow-hidden rounded-lg md:rounded-lg"
+          key={playerKey}
+          className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
           camera={cameraConfig.name}
           width={cameraConfig.detect.width}
           height={cameraConfig.detect.height}
@@ -430,7 +407,7 @@ export default function LivePlayer({
       player = null;
     }
   } else {
-    player = null;
+    player = <ActivityIndicator />;
   }
 
   return (
@@ -438,10 +415,10 @@ export default function LivePlayer({
       ref={cameraRef ?? internalContainerRef}
       data-camera={cameraConfig.name}
       className={cn(
-        "group relative m-2 flex w-full cursor-pointer justify-center rounded-lg outline outline-background transition-all duration-500",
+        "relative m-2 flex w-full cursor-pointer justify-center rounded-lg outline outline-background transition-all duration-500",
         activeTracking &&
           ((showStillWithoutActivity && !liveReady) || liveReady)
-          ? "outline-3 rounded-lg border-severity_alert shadow-severity_alert outline-severity_alert md:rounded-lg"
+          ? "outline-3 rounded-lg border-severity_alert shadow-severity_alert outline-severity_alert md:rounded-2xl"
           : "outline-0",
         className,
       )}
@@ -452,6 +429,8 @@ export default function LivePlayer({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onClick={handleTileClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onAuxClick={(e) => {
         if (e.button === 1) {
           window
@@ -463,11 +442,15 @@ export default function LivePlayer({
       {cameraEnabled &&
         ((showStillWithoutActivity && !liveReady) || liveReady) && (
           <>
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-lg"></div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-lg"></div>
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
           </>
         )}
       {player}
+      {cameraEnabled &&
+        !offline &&
+        (!showStillWithoutActivity || isReEnabling) &&
+        !liveReady && <ActivityIndicator />}
 
       {((showStillWithoutActivity && !liveReady) || liveReady) &&
         objects.length > 0 && (
@@ -526,8 +509,8 @@ export default function LivePlayer({
         )}
       >
         <AutoUpdatingCameraImage
-          className="pointer-events-none size-full rounded-lg md:rounded-lg"
-          cameraClasses="relative size-full flex justify-center rounded-lg md:rounded-lg"
+          className="pointer-events-none size-full rounded-lg md:rounded-2xl"
+          cameraClasses="relative size-full flex justify-center rounded-lg md:rounded-2xl"
           camera={cameraConfig.name}
           showFps={false}
           reloadInterval={stillReloadInterval}
@@ -535,137 +518,81 @@ export default function LivePlayer({
         />
       </div>
 
-      {offline && !showStillWithoutActivity && cameraEnabled && !liveReady && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center shadow-sm dark:border-red-800 dark:bg-red-950">
-            <div className="text-sm font-medium text-red-800 dark:text-red-200">
-              Camera Offline
-            </div>
-            <div className="text-xs text-red-600 dark:text-red-400">
-              Check camera connection
-            </div>
+      {offline && !showStillWithoutActivity && cameraEnabled && (
+        <div className="absolute inset-0 left-1/2 top-1/2 flex h-96 w-96 -translate-x-1/2 -translate-y-1/2">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-background/50 p-5">
+            <p className="my-5 text-lg">{t("streamOffline.title")}</p>
+            <TbExclamationCircle className="mb-3 size-10" />
+            <p className="max-w-96 text-center">
+              <Trans
+                ns="components/player"
+                values={{
+                  cameraName: capitalizeFirstLetter(cameraConfig.name),
+                }}
+              >
+                streamOffline.desc
+              </Trans>
+            </p>
           </div>
         </div>
       )}
       {!cameraEnabled && (
-        <div className="relative flex h-full w-full items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-900">
-          <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center justify-center gap-2">
-              <LuVideoOff className="h-4 w-4 text-gray-500" />
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Camera Disabled
-              </div>
-            </div>
+        <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-secondary-foreground bg-background_alt">
+          <div className="flex h-32 flex-col items-center justify-center rounded-lg p-4 md:h-48 md:w-48">
+            <LuVideoOff className="mb-2 size-8 md:size-10" />
+            <p className="max-w-32 text-center text-sm md:max-w-40 md:text-base">
+              {t("cameraDisabled")}
+            </p>
           </div>
         </div>
       )}
 
-      <div className="absolute right-2 top-2 z-[100] flex items-center gap-2">
-        {/* Refresh button - only show on hover and when needed */}
-        {onResetLiveMode && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onResetLiveMode();
-                  }}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  onMouseUp={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  className="z-[101] rounded-full bg-black/80 p-1.5 text-white opacity-0 shadow-lg ring-1 ring-white/20 transition-opacity duration-200 group-hover:opacity-100 hover:bg-black"
-                >
-                  <LuRefreshCw className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipPortal>
-                <TooltipContent side="left" className="z-[102]">
-                  <div className="text-xs">Refresh Stream</div>
-                </TooltipContent>
-              </TooltipPortal>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-
+      <div className="absolute right-2 top-2 z-40">
         {autoLive &&
           !offline &&
           activeMotion &&
           ((showStillWithoutActivity && !liveReady) || liveReady) && (
-            <MdCircle className="z-[101] size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
+            <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
           )}
-        {((offline && showStillWithoutActivity) || !cameraEnabled) && (
+        {((offline && showStillWithoutActivity) ||
+          !cameraEnabled ||
+          isHovered) && (
           <Chip
-            className={`z-[101] flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize shadow-lg ring-1 ring-white/20`}
+            className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
           >
             {cameraConfig.name.replaceAll("_", " ")}
           </Chip>
         )}
       </div>
 
+      {/* Reset Stream Button - appears on hover */}
+      {isHovered && cameraEnabled && liveReady && (
+        <div className="absolute right-2 top-12 z-50">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleResetStream();
+            }}
+            aria-label={t("button.resetStream", { ns: "common" })}
+          >
+            <LuRefreshCw className="size-4" />
+          </Button>
+        </div>
+      )}
+
       {showStats && (
         <PlayerStats stats={stats} minimal={cameraRef !== undefined} />
       )}
       {videoEffects && cameraEnabled && liveReady && hasActiveVideoContent && (
-        <div className="absolute bottom-2 right-2 z-[107]">
-          <VideoEffectsControl
-            onEffectsChange={setCurrentVideoEffects}
-            disabled={!liveReady || !hasActiveVideoContent}
-            initialEffects={currentVideoEffects}
-          />
-        </div>
+        <VideoEffectsControl
+          onEffectsChange={setCurrentVideoEffects}
+          disabled={!liveReady}
+          initialEffects={currentVideoEffects}
+        />
       )}
-
-      {/* Smart streaming indicator - subtle icon at top-right edge */}
-      {showStillWithoutActivity && !cameraActive && cameraEnabled && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="absolute right-2 top-2 z-[103]">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-xl ring-2 ring-white/30 backdrop-blur-sm">
-                  <div className="h-3 w-3 animate-pulse rounded-full bg-white" />
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent
-                side="left"
-                className="z-[104] border-amber-200 bg-amber-50 text-amber-900 shadow-lg"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-amber-500" />
-                  <div>
-                    <div className="text-xs font-medium">Smart Streaming</div>
-                    <div className="text-xs opacity-80">
-                      Paused - waiting for motion
-                    </div>
-                  </div>
-                </div>
-              </TooltipContent>
-            </TooltipPortal>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-
-      {/* Camera name tooltip - only show when no objects detected to avoid conflicts */}
-      {((showStillWithoutActivity && !liveReady) || liveReady) &&
-        objects.length === 0 && (
-          <div className="absolute left-2 top-2 z-[105]">
-            <div className="opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              <div className="mx-1 pb-1 text-sm text-white">
-                <div className="z-[106] flex items-center justify-center space-x-1 rounded-md bg-black/80 px-2 py-1 text-xs shadow-lg ring-1 ring-white/20 backdrop-blur-sm">
-                  {cameraConfig.name.replaceAll("_", " ")}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
     </div>
   );
 }

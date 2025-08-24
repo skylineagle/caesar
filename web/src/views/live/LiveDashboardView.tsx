@@ -544,7 +544,7 @@ export default function LiveDashboardView({
                       >
                         <LivePlayer
                           cameraRef={cameraRef}
-                          key={camera.name}
+                          key={`${camera.name}_${preferredLiveModes[camera.name] ?? "mse"}`}
                           className={`${grow} rounded-lg bg-black md:rounded-2xl`}
                           windowVisible={
                             windowVisible &&
@@ -569,9 +569,6 @@ export default function LiveDashboardView({
                           }
                           playAudio={audioStates[camera.name] ?? false}
                           volume={volumeStates[camera.name]}
-                          streamIndex={cameras.findIndex(
-                            (c) => c.name === camera.name,
-                          )}
                           videoEffects={true}
                         />
                       </TransformComponent>

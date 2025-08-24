@@ -269,9 +269,16 @@ export default function LiveCameraView({
       return "webrtc";
     }
 
-    // Always use ultra-low-latency mode from the hook
+    // Always prioritize WebRTC when available
+    const isRestreamed =
+      config &&
+      Object.keys(config.go2rtc.streams || {}).includes(streamName ?? "");
+    if (isRestreamed) {
+      return "webrtc";
+    }
+
     return preferredLiveModes[camera.name] || "jsmpeg";
-  }, [preferredLiveModes, camera.name, mic]);
+  }, [preferredLiveModes, camera.name, mic, config, streamName]);
 
   useKeyboardListener(["m"], (key, modifiers) => {
     if (!modifiers.down) {
@@ -617,7 +624,6 @@ export default function LiveCameraView({
                 setFullResolution={setFullResolution}
                 onError={handleError}
                 videoEffects={true}
-                streamIndex={0}
               />
             </div>
           </TransformComponent>

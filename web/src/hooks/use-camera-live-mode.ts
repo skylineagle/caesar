@@ -51,11 +51,13 @@ export default function useCameraLiveMode(
 
       newIsRestreamedStates[camera.name] = isRestreamed ?? false;
 
-      // Always use ultra-low-latency mode: WebRTC for restreamed cameras, JSMpeg for others
-      if (!mseSupported) {
-        newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
+      // Always prioritize WebRTC when available (restreamed cameras)
+      if (isRestreamed) {
+        newPreferredLiveModes[camera.name] = "webrtc";
+      } else if (!mseSupported) {
+        newPreferredLiveModes[camera.name] = "jsmpeg";
       } else {
-        newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
+        newPreferredLiveModes[camera.name] = "mse";
       }
 
       // check each stream for audio support
@@ -98,11 +100,13 @@ export default function useCameraLiveMode(
       setPreferredLiveModes((prevModes) => {
         const newModes = { ...prevModes };
 
-        // Always use ultra-low-latency mode: WebRTC for restreamed cameras, JSMpeg for others
-        if (!mseSupported) {
-          newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
+        // Always prioritize WebRTC when available (restreamed cameras)
+        if (isRestreamed) {
+          newModes[cameraName] = "webrtc";
+        } else if (!mseSupported) {
+          newModes[cameraName] = "jsmpeg";
         } else {
-          newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
+          newModes[cameraName] = "mse";
         }
 
         return newModes;
