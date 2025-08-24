@@ -58,7 +58,6 @@ type LivePlayerProps = {
   onError?: (error: LivePlayerError) => void;
   onResetLiveMode?: () => void;
   videoEffects?: boolean;
-  streamIndex?: number;
 };
 
 export default function LivePlayer({
@@ -84,7 +83,6 @@ export default function LivePlayer({
   onError,
   onResetLiveMode,
   videoEffects,
-  streamIndex = 0,
 }: LivePlayerProps) {
   const { t } = useTranslation(["common", "components/player"]);
 
@@ -379,7 +377,6 @@ export default function LivePlayer({
         onPlaying={playerIsPlaying}
         pip={pip}
         onError={onError}
-        streamIndex={streamIndex}
       />
     );
   } else if (preferredLiveMode == "mse") {

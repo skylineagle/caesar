@@ -617,7 +617,6 @@ export default function LiveCameraView({
                 setFullResolution={setFullResolution}
                 onError={handleError}
                 videoEffects={true}
-                streamIndex={0}
               />
             </div>
           </TransformComponent>
