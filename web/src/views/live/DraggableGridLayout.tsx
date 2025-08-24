@@ -18,7 +18,6 @@ import {
   FrigateConfig,
 } from "@/types/frigateConfig";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
-import { useSmartScroll } from "@/hooks/use-smart-scroll";
 
 import {
   AudioState,
@@ -114,9 +113,6 @@ export default function DraggableGridLayout({
   currentGroupStreamingSettings,
   config,
 }: DraggableGridLayoutProps) {
-  const transformRefs = useRef<any[]>([]);
-
-  useSmartScroll({ transformRefs, scrollContainer: containerRef.current });
   const { t } = useTranslation(["views/live"]);
   const birdseyeConfig = useMemo(() => config?.birdseye, [config]);
 
@@ -518,16 +514,6 @@ export default function DraggableGridLayout({
                     <TransformWrapper
                       minScale={1.0}
                       wheel={{ smoothStep: 0.005 }}
-                      ref={(ref) => {
-                        if (ref) {
-                          const index = cameras.findIndex(
-                            (cam) => cam.name === camera.name,
-                          );
-                          if (index !== -1) {
-                            transformRefs.current[index] = ref;
-                          }
-                        }
-                      }}
                     >
                       <TransformComponent
                         wrapperStyle={{
