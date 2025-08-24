@@ -123,7 +123,8 @@
     "unselect": "Unselect",
     "export": "Export",
     "deleteNow": "Delete Now",
-    "next": "Next"
+    "next": "Next",
+    "resetStream": "Reset Stream"
   },
   "menu": {
     "system": "System",
