@@ -564,9 +564,6 @@ export default function DraggableGridLayout({
                           playAudio={audioStates[camera.name]}
                           volume={volumeStates[camera.name]}
                           videoEffects={true}
-                          streamIndex={cameras.findIndex(
-                            (c) => c.name === camera.name,
-                          )}
                         />
                       </TransformComponent>
                     </TransformWrapper>

@@ -569,9 +569,6 @@ export default function LiveDashboardView({
                           }
                           playAudio={audioStates[camera.name] ?? false}
                           volume={volumeStates[camera.name]}
-                          streamIndex={cameras.findIndex(
-                            (c) => c.name === camera.name,
-                          )}
                           videoEffects={true}
                         />
                       </TransformComponent>
