@@ -13,7 +13,6 @@ import {
   useState,
 } from "react";
 import { isIOS, isSafari } from "react-device-detect";
-import ActivityIndicator from "../indicators/activity-indicator";
 
 type MSEPlayerProps = {
   camera: string;
@@ -31,19 +30,6 @@ type MSEPlayerProps = {
   videoEffects?: boolean;
 };
 
-const BUFFERING_COOLDOWN_TIMEOUT: number = 5000;
-const ULTRA_LOW_LATENCY_RECONNECT_TIMEOUT: number = 500; // Very fast reconnection for immediate comeback
-const CODECS: string[] = [
-  "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
-  "avc1.64002A", // H.264 high 4.2 (Chromecast 3rd Gen)
-  "avc1.640033", // H.264 high 5.1 (Chromecast with Google TV)
-  "hvc1.1.6.L153.B0", // H.265 main 5.1 (Chromecast Ultra)
-  "mp4a.40.2", // AAC LC
-  "mp4a.40.5", // AAC HE
-  "flac", // FLAC (PCM compatible)
-  "opus", // OPUS Chrome, Firefox
-];
-
 function MSEPlayer({
   camera,
   className,
@@ -58,9 +44,22 @@ function MSEPlayer({
   setFullResolution,
   onError,
 }: MSEPlayerProps) {
+  const RECONNECT_TIMEOUT: number = 10000;
+  const BUFFERING_COOLDOWN_TIMEOUT: number = 5000;
+
+  const CODECS: string[] = [
+    "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
+    "avc1.64002A", // H.264 high 4.2 (Chromecast 3rd Gen)
+    "avc1.640033", // H.264 high 5.1 (Chromecast with Google TV)
+    "hvc1.1.6.L153.B0", // H.265 main 5.1 (Chromecast Ultra)
+    "mp4a.40.2", // AAC LC
+    "mp4a.40.5", // AAC HE
+    "flac", // FLAC (PCM compatible)
+    "opus", // OPUS Chrome, Firefox
+  ];
+
   const visibilityCheck: boolean = !pip;
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const lastJumpTimeRef = useRef(0);
 
   const MAX_BUFFER_ENTRIES = 10; // Size of the rolling window  of buffered times
@@ -186,13 +185,10 @@ function MSEPlayer({
 
   const reconnect = (timeout?: number) => {
     setWsState(WebSocket.CONNECTING);
-    setIsLoading(true);
     wsRef.current = null;
 
-    const baseTimeout = ULTRA_LOW_LATENCY_RECONNECT_TIMEOUT; // Always ultra-low-latency
-
     const delay =
-      timeout ?? Math.max(baseTimeout - (Date.now() - connectTS), 0);
+      timeout ?? Math.max(RECONNECT_TIMEOUT - (Date.now() - connectTS), 0);
 
     reconnectTIDRef.current = window.setTimeout(() => {
       reconnectTIDRef.current = null;
@@ -649,72 +645,55 @@ function MSEPlayer({
   }, [setStats, getStats]);
 
   return (
-    <div className="relative size-full">
-      {isLoading && playbackEnabled && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-          <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-center shadow-sm dark:border-purple-800 dark:bg-purple-950">
-            <div className="flex items-center justify-center gap-2">
-              <ActivityIndicator className="h-4 w-4" />
-              <div className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                Loading...
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      <video
-        ref={videoRef}
-        className={className}
-        playsInline
-        preload="auto"
-        onLoadedData={() => {
-          handleLoadedMetadata?.();
-          setIsLoading(false);
-          onPlaying?.();
-          setIsPlaying(true);
-          lastJumpTimeRef.current = Date.now();
-        }}
-        muted={!audioEnabled}
-        onPause={handlePause}
-        onProgress={onProgress}
-        onError={(e) => {
-          if (
-            // @ts-expect-error code does exist
-            e.target.error.code == MediaError.MEDIA_ERR_NETWORK
-          ) {
-            if (wsRef.current) {
-              onDisconnect();
-            }
-            onError?.("startup");
-          }
-
-          if (
-            // @ts-expect-error code does exist
-            e.target.error.code == MediaError.MEDIA_ERR_DECODE &&
-            (isSafari || isIOS)
-          ) {
-            if (wsRef.current) {
-              onDisconnect();
-            }
-            onError?.("mse-decode");
-          }
-
-          setErrorCount((prevCount) => prevCount + 1);
-
+    <video
+      ref={videoRef}
+      className={className}
+      playsInline
+      preload="auto"
+      onLoadedData={() => {
+        handleLoadedMetadata?.();
+        onPlaying?.();
+        setIsPlaying(true);
+        lastJumpTimeRef.current = Date.now();
+      }}
+      muted={!audioEnabled}
+      onPause={handlePause}
+      onProgress={onProgress}
+      onError={(e) => {
+        if (
+          // @ts-expect-error code does exist
+          e.target.error.code == MediaError.MEDIA_ERR_NETWORK
+        ) {
           if (wsRef.current) {
             onDisconnect();
-            if (errorCount >= 3) {
-              // too many mse errors, try jsmpeg
-              onError?.("startup");
-            } else {
-              // Always ultra-low-latency mode - immediate reconnection
-              const errorReconnectDelay = 100;
-              reconnect(errorReconnectDelay);
-            }
           }
-        }}
-      />
-    </div>
+          onError?.("startup");
+        }
+
+        if (
+          // @ts-expect-error code does exist
+          e.target.error.code == MediaError.MEDIA_ERR_DECODE &&
+          (isSafari || isIOS)
+        ) {
+          if (wsRef.current) {
+            onDisconnect();
+          }
+          onError?.("mse-decode");
+        }
+
+        setErrorCount((prevCount) => prevCount + 1);
+
+        if (wsRef.current) {
+          onDisconnect();
+          if (errorCount >= 3) {
+            // too many mse errors, try jsmpeg
+            onError?.("startup");
+          } else {
+            reconnect(5000);
+          }
+        }
+      }}
+    />
   );
 }
 
