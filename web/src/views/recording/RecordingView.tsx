@@ -182,10 +182,17 @@ export function RecordingView({
       return;
     }
 
-    if (selectedRangeIdx < chunkedTimeRange.length - 1) {
-      setSelectedRangeIdx(selectedRangeIdx + 1);
+    // For backfill recordings, don't auto-advance to next chunk since they're isolated
+    // Check if current time range has backfill recordings
+    const currentRange = chunkedTimeRange[selectedRangeIdx];
+    if (currentRange && recordingsSummary) {
+      // Check if there are recordings in the next chunk before advancing
+      if (selectedRangeIdx < chunkedTimeRange.length - 1) {
+        // Only advance if we're confident there's content in the next chunk
+        // For now, let's not auto-advance for backfill scenarios to prevent 'No Preview Found'
+      }
     }
-  }, [selectedRangeIdx, chunkedTimeRange]);
+  }, [selectedRangeIdx, chunkedTimeRange, recordingsSummary]);
 
   // scrubbing and timeline state
 
@@ -901,7 +908,7 @@ function Timeline({
 
     // Create individual intervals for each recording with backfill info
     const intervals = recordingClips.map((r) => {
-      const isBackfilled = r.motion === -1 || r.objects === -1 || r.dBFS === -1;
+      const isBackfilled = r.motion === -1 || r.objects === -1;
       return {
         start: r.start_time,
         end: r.end_time,

@@ -122,14 +122,6 @@ export default function DynamicVideoPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera, isScrubbing]);
 
-  const onPlayerLoaded = useCallback(() => {
-    if (!controller || !startTimestamp) {
-      return;
-    }
-
-    controller.seekToTimestamp(startTimestamp, true);
-  }, [startTimestamp, controller]);
-
   const onTimeUpdate = useCallback(
     (time: number) => {
       if (isScrubbing || !controller || !onTimestampUpdate || time == 0) {
@@ -163,24 +155,30 @@ export default function DynamicVideoPlayer({
 
   // state of playback player
 
-  const recordingParams = useMemo(
-    () => ({
+  const recordingParams = useMemo(() => {
+    return {
       before: timeRange.before,
       after: timeRange.after,
-    }),
-    [timeRange],
-  );
+    };
+  }, [timeRange]);
   const { data: recordings } = useSWR<Recording[]>(
     [`${camera}/recordings`, recordingParams],
     { revalidateOnFocus: false },
   );
+
+  const onPlayerLoaded = useCallback(() => {
+    if (!controller || !startTimestamp) {
+      return;
+    }
+
+    controller.seekToTimestamp(startTimestamp, true);
+  }, [startTimestamp, controller]);
 
   useEffect(() => {
     if (!controller || !recordings?.length) {
       if (recordings?.length == 0) {
         setNoRecording(true);
       }
-
       return;
     }
 
