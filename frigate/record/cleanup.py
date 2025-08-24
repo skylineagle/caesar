@@ -114,6 +114,7 @@ class RecordingCleanup(threading.Thread):
                 Recordings.path,
                 Recordings.objects,
                 Recordings.motion,
+                Recordings.dBFS,
             )
             .where(
                 Recordings.camera == config.name,
@@ -133,39 +134,55 @@ class RecordingCleanup(threading.Thread):
         for recording in recordings:
             keep = False
             mode = None
-            # Now look for a reason to keep this recording segment
-            for idx in range(review_start, len(reviews)):
-                review: ReviewSegment = reviews[idx]
-                severity = review.severity
-                pre_capture = config.record.get_review_pre_capture(severity)
-                post_capture = config.record.get_review_post_capture(severity)
 
-                # if the review starts in the future, stop checking reviews
-                # and let this recording segment expire
-                if review.start_time - pre_capture > recording.end_time:
-                    keep = False
-                    break
+            # Special handling for backfill recordings (motion=-1, objects=-1, dBFS=-1)
+            # These should be kept regardless of review segments since they're manually added
+            if (
+                recording.motion == -1
+                and recording.objects == -1
+                and recording.dBFS == -1
+            ):
+                keep = True
+                mode = (
+                    config.record.detections.retain.mode
+                )  # Use detection retention mode for backfill
+                logger.debug(
+                    f"Keeping backfill recording: {recording.id} ({recording.path})"
+                )
+            else:
+                # Now look for a reason to keep this recording segment
+                for idx in range(review_start, len(reviews)):
+                    review: ReviewSegment = reviews[idx]
+                    severity = review.severity
+                    pre_capture = config.record.get_review_pre_capture(severity)
+                    post_capture = config.record.get_review_post_capture(severity)
 
-                # if the review is in progress or ends after the recording starts, keep it
-                # and stop looking at reviews
-                if (
-                    review.end_time is None
-                    or review.end_time + post_capture >= recording.start_time
-                ):
-                    keep = True
-                    mode = (
-                        config.record.alerts.retain.mode
-                        if review.severity == "alert"
-                        else config.record.detections.retain.mode
-                    )
-                    break
+                    # if the review starts in the future, stop checking reviews
+                    # and let this recording segment expire
+                    if review.start_time - pre_capture > recording.end_time:
+                        keep = False
+                        break
 
-                # if the review ends before this recording segment starts, skip
-                # this review and check the next review for an overlap.
-                # since the review and recordings are sorted, we can skip review
-                # that end before the previous recording segment started on future segments
-                if review.end_time + post_capture < recording.start_time:
-                    review_start = idx
+                    # if the review is in progress or ends after the recording starts, keep it
+                    # and stop looking at reviews
+                    if (
+                        review.end_time is None
+                        or review.end_time + post_capture >= recording.start_time
+                    ):
+                        keep = True
+                        mode = (
+                            config.record.alerts.retain.mode
+                            if review.severity == "alert"
+                            else config.record.detections.retain.mode
+                        )
+                        break
+
+                    # if the review ends before this recording segment starts, skip
+                    # this review and check the next review for an overlap.
+                    # since the review and recordings are sorted, we can skip review
+                    # that end before the previous recording segment started on future segments
+                    if review.end_time + post_capture < recording.start_time:
+                        review_start = idx
 
             # Delete recordings outside of the retention window or based on the retention mode
             # Note: -1 values indicate backfilled recordings that weren't processed by algorithms

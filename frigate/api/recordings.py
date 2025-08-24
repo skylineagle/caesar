@@ -2,6 +2,7 @@
 
 import logging
 
+from dateutil import parser
 from fastapi import APIRouter, Request
 from fastapi.params import Depends
 from fastapi.responses import JSONResponse
@@ -19,6 +20,46 @@ from frigate.api.defs.tags import Tags
 from frigate.record.backfill import RecordingBackfillService
 
 logger = logging.getLogger(__name__)
+
+
+def parse_timestamp_flexible(value) -> float:
+    """Parse timestamp, supporting both Unix timestamp and ISO format.
+
+    Args:
+        value: Timestamp value (float, int, or string)
+
+    Returns:
+        float: Unix timestamp
+
+    Raises:
+        ValueError: If timestamp format is invalid
+    """
+    if value is None:
+        return None
+
+    # If it's already a number, return as float
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    # If it's a string, try to parse it
+    if isinstance(value, str):
+        try:
+            # Try to parse as float first
+            return float(value)
+        except ValueError:
+            try:
+                # Try to parse as ISO format
+                dt = parser.isoparse(value)
+                return dt.timestamp()
+            except ValueError as e:
+                raise ValueError(
+                    f"Invalid timestamp format: {value}. Use Unix timestamp (e.g., 1693526400) or ISO format (e.g., 2023-09-01T00:00:00Z)"
+                ) from e
+
+    raise ValueError(
+        f"Invalid timestamp type: {type(value)}. Expected number or string."
+    )
+
 
 router = APIRouter(tags=[Tags.recordings])
 
@@ -60,9 +101,9 @@ def backfill_recordings(
         result = backfill_service.backfill_recordings(
             camera_name=camera_name,
             directory_path=body.directory_path,
-            start_time=body.start_time,
-            end_time=body.end_time,
-            date_filter=body.date_filter,
+            start_time=body.start_time,  # Already validated and converted to float
+            end_time=body.end_time,  # Already validated and converted to float
+            date_filter=None,  # Auto-derived from timestamps if needed
             dry_run=body.dry_run,
             force=body.force,
         )
