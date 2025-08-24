@@ -1,7 +1,7 @@
 import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
-import { LivePlayerMode, LiveStreamMetadata } from "@/types/live";
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
+import { LivePlayerMode, LiveStreamMetadata } from "@/types/live";
 
 export default function useCameraLiveMode(
   cameras: CameraConfig[],
@@ -10,12 +10,7 @@ export default function useCameraLiveMode(
   const { data: config } = useSWR<FrigateConfig>("config");
   const { data: allStreamMetadata } = useSWR<{
     [key: string]: LiveStreamMetadata;
-  }>(config ? "go2rtc/streams" : null, {
-    revalidateOnFocus: false,
-    onError: () => {
-      // Ignore go2rtc errors - they happen when streams aren't configured
-    },
-  });
+  }>(config ? "go2rtc/streams" : null, { revalidateOnFocus: false });
 
   const [preferredLiveModes, setPreferredLiveModes] = useState<{
     [key: string]: LivePlayerMode;
@@ -51,11 +46,10 @@ export default function useCameraLiveMode(
 
       newIsRestreamedStates[camera.name] = isRestreamed ?? false;
 
-      // Always use ultra-low-latency mode: WebRTC for restreamed cameras, JSMpeg for others
       if (!mseSupported) {
         newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
       } else {
-        newPreferredLiveModes[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
+        newPreferredLiveModes[camera.name] = isRestreamed ? "mse" : "jsmpeg";
       }
 
       // check each stream for audio support
@@ -98,11 +92,10 @@ export default function useCameraLiveMode(
       setPreferredLiveModes((prevModes) => {
         const newModes = { ...prevModes };
 
-        // Always use ultra-low-latency mode: WebRTC for restreamed cameras, JSMpeg for others
         if (!mseSupported) {
           newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
         } else {
-          newModes[cameraName] = isRestreamed ? "webrtc" : "jsmpeg";
+          newModes[cameraName] = isRestreamed ? "mse" : "jsmpeg";
         }
 
         return newModes;
