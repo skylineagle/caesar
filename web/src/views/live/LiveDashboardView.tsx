@@ -45,6 +45,7 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import useSWR from "swr";
 import DraggableGridLayout from "./DraggableGridLayout";
+import { useSmartScroll } from "@/hooks/use-smart-scroll";
 
 type LiveDashboardViewProps = {
   cameras: CameraConfig[];
@@ -76,6 +77,7 @@ export default function LiveDashboardView({
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const birdseyeContainerRef = useRef<HTMLDivElement>(null);
+  const transformRefs = useRef<any[]>([]);
 
   // recent events
 
@@ -242,6 +244,8 @@ export default function LiveDashboardView({
     },
     [],
   );
+
+  useSmartScroll({ transformRefs, scrollContainer: containerRef.current });
 
   // audio states
 
@@ -528,6 +532,16 @@ export default function LiveDashboardView({
                     <TransformWrapper
                       minScale={1.0}
                       wheel={{ smoothStep: 0.005 }}
+                      ref={(ref) => {
+                        if (ref) {
+                          const index = cameras.findIndex(
+                            (cam) => cam.name === camera.name,
+                          );
+                          if (index !== -1) {
+                            transformRefs.current[index] = ref;
+                          }
+                        }
+                      }}
                     >
                       <TransformComponent
                         wrapperStyle={{
@@ -569,9 +583,6 @@ export default function LiveDashboardView({
                           }
                           playAudio={audioStates[camera.name] ?? false}
                           volume={volumeStates[camera.name]}
-                          streamIndex={cameras.findIndex(
-                            (c) => c.name === camera.name,
-                          )}
                           videoEffects={true}
                         />
                       </TransformComponent>
