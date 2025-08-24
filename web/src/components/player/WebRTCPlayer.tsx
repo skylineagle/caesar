@@ -1,6 +1,5 @@
 import { baseUrl } from "@/api/baseUrl";
 import { LivePlayerError, PlayerStatsType } from "@/types/live";
-import ActivityIndicator from "../indicators/activity-indicator";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type WebRtcPlayerProps = {
@@ -17,7 +16,6 @@ type WebRtcPlayerProps = {
   onPlaying?: () => void;
   onError?: (error: LivePlayerError) => void;
   videoEffects?: boolean;
-  streamIndex?: number;
 };
 
 export default function WebRtcPlayer({
@@ -33,12 +31,11 @@ export default function WebRtcPlayer({
   setStats,
   onPlaying,
   onError,
-  streamIndex: _streamIndex = 0,
 }: WebRtcPlayerProps) {
   // metadata
 
-  const webrtcURL = useMemo(() => {
-    return `${baseUrl}api/go2rtc/webrtc?src=${camera}`;
+  const wsURL = useMemo(() => {
+    return `${baseUrl.replace(/^http/, "ws")}live/webrtc/api/ws?src=${camera}`;
   }, [camera]);
 
   // camera states
@@ -47,23 +44,6 @@ export default function WebRtcPlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [bufferTimeout, setBufferTimeout] = useState<NodeJS.Timeout>();
   const videoLoadTimeoutRef = useRef<NodeJS.Timeout>();
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const isConnecting = useRef<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [connectionState, setConnectionState] = useState<string>("new");
-  const wasHiddenRef = useRef(false);
-
-  // Stable refs for callbacks to prevent reconnections
-  const onErrorRef = useRef(onError);
-  const onPlayingRef = useRef(onPlaying);
-  const microphoneEnabledRef = useRef(microphoneEnabled);
-
-  // Update refs when props change
-  useEffect(() => {
-    onErrorRef.current = onError;
-    onPlayingRef.current = onPlaying;
-    microphoneEnabledRef.current = microphoneEnabled;
-  }, [onError, onPlaying, microphoneEnabled]);
 
   // video effects are managed by the floating VideoEffectsControl
   // and applied at the container level in LivePlayer
@@ -77,8 +57,6 @@ export default function WebRtcPlayer({
       const pc = new RTCPeerConnection({
         bundlePolicy: "max-bundle",
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        // Always optimize for ultra-low latency
-        iceCandidatePoolSize: 10,
       });
 
       const localTracks = [];
@@ -136,129 +114,81 @@ export default function WebRtcPlayer({
     }
   }
 
-  const cleanupConnection = useCallback(() => {
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = undefined;
-    }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = undefined;
-    }
-    isConnecting.current = false;
-  }, []);
-
   const connect = useCallback(
-    async (pc: Promise<RTCPeerConnection | undefined>) => {
-      if (isConnecting.current) {
-        return; // Prevent multiple simultaneous connection attempts
+    async (aPc: Promise<RTCPeerConnection | undefined>) => {
+      if (!aPc) {
+        return;
       }
 
-      isConnecting.current = true;
+      pcRef.current = await aPc;
+      const ws = new WebSocket(wsURL);
 
-      try {
-        const peerConnection = await pc;
-        if (!peerConnection) {
-          isConnecting.current = false;
-          return;
-        }
-
-        pcRef.current = peerConnection;
-
-        // Create offer for WHEP (WebRTC-HTTP Egress Protocol)
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-
-        // Use HTTP POST to go2rtc's WebRTC API instead of WebSocket
-        const response = await fetch(webrtcURL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/sdp",
-          },
-          body: offer.sdp,
+      ws.addEventListener("open", () => {
+        pcRef.current?.addEventListener("icecandidate", (ev) => {
+          if (!ev.candidate) return;
+          const msg = {
+            type: "webrtc/candidate",
+            value: ev.candidate.candidate,
+          };
+          ws.send(JSON.stringify(msg));
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        pcRef.current
+          ?.createOffer()
+          .then((offer) => pcRef.current?.setLocalDescription(offer))
+          .then(() => {
+            const msg = {
+              type: "webrtc/offer",
+              value: pcRef.current?.localDescription?.sdp,
+            };
+            ws.send(JSON.stringify(msg));
+          });
+      });
+
+      ws.addEventListener("message", (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === "webrtc/candidate") {
+          pcRef.current?.addIceCandidate({ candidate: msg.value, sdpMid: "0" });
+        } else if (msg.type === "webrtc/answer") {
+          pcRef.current?.setRemoteDescription({
+            type: "answer",
+            sdp: msg.value,
+          });
         }
-
-        const answerSdp = await response.text();
-        const answer = new RTCSessionDescription({
-          type: "answer",
-          sdp: answerSdp,
-        });
-
-        await peerConnection.setRemoteDescription(answer);
-
-        // ICE connection state monitoring
-        peerConnection.oniceconnectionstatechange = () => {
-          const state = peerConnection.iceConnectionState;
-          setConnectionState(state);
-
-          if (state === "connected" || state === "completed") {
-            isConnecting.current = false;
-            onPlayingRef.current?.(); // Notify that video is playing
-          } else if (state === "failed") {
-            isConnecting.current = false;
-            if (playbackEnabled) {
-              // Immediate reconnection for fastest comeback
-              if (playbackEnabled) {
-                const newPc = PeerConnection(
-                  microphoneEnabledRef.current
-                    ? "video+audio+microphone"
-                    : "video+audio",
-                );
-                connect(newPc);
-              }
-            } else {
-              onErrorRef.current?.("stalled");
-            }
-          }
-        };
-
-        // Connection state monitoring
-        peerConnection.onconnectionstatechange = () => {
-          const state = peerConnection.connectionState;
-
-          if (state === "failed" || state === "closed") {
-            isConnecting.current = false;
-          }
-        };
-      } catch (error) {
-        isConnecting.current = false;
-        onErrorRef.current?.("startup");
-      }
+      });
     },
-    [webrtcURL, playbackEnabled, PeerConnection],
+    [wsURL],
   );
 
-  const startConnection = useCallback(() => {
-    if (isConnecting.current || !playbackEnabled) {
-      return;
-    }
-
-    setIsLoading(true);
-    setConnectionState("connecting");
-    cleanupConnection();
-
-    const pc = PeerConnection(
-      microphoneEnabledRef.current ? "video+audio+microphone" : "video+audio",
-    );
-    connect(pc);
-  }, [playbackEnabled, PeerConnection, connect, cleanupConnection]);
-
-  // Main connection effect - only reconnect when camera or playback state changes
   useEffect(() => {
-    if (!videoRef.current || !playbackEnabled) {
+    if (!videoRef.current) {
       return;
     }
 
-    startConnection();
+    if (!playbackEnabled) {
+      return;
+    }
+
+    const aPc = PeerConnection(
+      microphoneEnabled ? "video+audio+microphone" : "video+audio",
+    );
+    connect(aPc);
 
     return () => {
-      cleanupConnection();
+      if (pcRef.current) {
+        pcRef.current.close();
+        pcRef.current = undefined;
+      }
     };
-  }, [camera, playbackEnabled, startConnection, cleanupConnection]);
+  }, [
+    camera,
+    connect,
+    PeerConnection,
+    pcRef,
+    videoRef,
+    playbackEnabled,
+    microphoneEnabled,
+  ]);
 
   // ios compat
 
@@ -274,54 +204,6 @@ export default function WebRtcPlayer({
     videoRef.current.requestPictureInPicture();
   }, [pip, videoRef]);
 
-  // Immediate reconnection when page becomes visible (always ultra-low-latency mode)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        wasHiddenRef.current = true;
-      } else if (
-        document.visibilityState === "visible" &&
-        wasHiddenRef.current &&
-        playbackEnabled
-      ) {
-        wasHiddenRef.current = false;
-
-        // Only reconnect if we don't have an active connection
-        const currentPc = pcRef.current;
-        const isConnectionActive =
-          currentPc &&
-          (currentPc.iceConnectionState === "connected" ||
-            currentPc.iceConnectionState === "completed");
-
-        // Check if video is actually playing
-        const isVideoPlaying =
-          videoRef.current &&
-          !videoRef.current.paused &&
-          !videoRef.current.ended &&
-          videoRef.current.readyState > 2;
-
-        // Only reconnect if connection is broken AND video isn't playing AND we were actually hidden
-        if (!isConnectionActive && !isVideoPlaying && !isConnecting.current) {
-          // Clear any existing reconnect timeout
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = undefined;
-          }
-
-          // Immediate reconnection for faster comeback
-          if (playbackEnabled && !isConnecting.current) {
-            startConnection();
-          }
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [playbackEnabled, startConnection, cleanupConnection]);
-
   // control volume
 
   useEffect(() => {
@@ -332,29 +214,25 @@ export default function WebRtcPlayer({
     videoRef.current.volume = volume;
   }, [volume, videoRef]);
 
-  // Cleanup timeouts on unmount
   useEffect(() => {
-    const videoTimeout = videoLoadTimeoutRef.current;
-    const reconnectTimeout = reconnectTimeoutRef.current;
+    videoLoadTimeoutRef.current = setTimeout(() => {
+      onError?.("stalled");
+    }, 5000);
 
     return () => {
-      if (videoTimeout) {
-        clearTimeout(videoTimeout);
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
+      if (videoLoadTimeoutRef.current) {
+        clearTimeout(videoLoadTimeoutRef.current);
       }
     };
+    // we know that these deps are correct
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLoadedData = () => {
     if (videoLoadTimeoutRef.current) {
       clearTimeout(videoLoadTimeoutRef.current);
     }
-    setIsLoading(false);
-    setConnectionState("connected");
-    isConnecting.current = false;
-    onPlayingRef.current?.();
+    onPlaying?.();
   };
 
   // stats
@@ -427,73 +305,52 @@ export default function WebRtcPlayer({
   }, [pcRef, pcRef.current, getStats]);
 
   return (
-    <div className="relative size-full">
-      {isLoading && playbackEnabled && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-center shadow-sm dark:border-blue-800 dark:bg-blue-950">
-            <div className="flex items-center justify-center gap-2">
-              <ActivityIndicator className="h-4 w-4" />
-              <div className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                {connectionState === "connecting"
-                  ? "Connecting..."
-                  : "Loading..."}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      <video
-        ref={videoRef}
-        className={className}
-        controls={iOSCompatControls}
-        autoPlay
-        playsInline
-        muted={!audioEnabled}
-        onLoadedData={handleLoadedData}
-        onProgress={
-          onError != undefined
-            ? () => {
-                if (videoRef.current?.paused) {
-                  return;
-                }
-
-                if (bufferTimeout) {
-                  clearTimeout(bufferTimeout);
-                  setBufferTimeout(undefined);
-                }
-
-                setBufferTimeout(
-                  setTimeout(
-                    () => {
-                      if (
-                        document.visibilityState === "visible" &&
-                        pcRef.current != undefined &&
-                        playbackEnabled
-                      ) {
-                        // Always ultra-low-latency mode - don't error on stalls
-                        return;
-                      }
-                    },
-                    5000, // Faster timeout for immediate comeback
-                  ),
-                );
+    <video
+      ref={videoRef}
+      className={className}
+      controls={iOSCompatControls}
+      autoPlay
+      playsInline
+      muted={!audioEnabled}
+      onLoadedData={handleLoadedData}
+      onProgress={
+        onError != undefined
+          ? () => {
+              if (videoRef.current?.paused) {
+                return;
               }
-            : undefined
+
+              if (bufferTimeout) {
+                clearTimeout(bufferTimeout);
+                setBufferTimeout(undefined);
+              }
+
+              setBufferTimeout(
+                setTimeout(() => {
+                  if (
+                    document.visibilityState === "visible" &&
+                    pcRef.current != undefined
+                  ) {
+                    onError("stalled");
+                  }
+                }, 3000),
+              );
+            }
+          : undefined
+      }
+      onClick={
+        iOSCompatFullScreen
+          ? () => setiOSCompatControls(!iOSCompatControls)
+          : undefined
+      }
+      onError={(e) => {
+        if (
+          // @ts-expect-error code does exist
+          e.target.error.code == MediaError.MEDIA_ERR_NETWORK
+        ) {
+          onError?.("startup");
         }
-        onClick={
-          iOSCompatFullScreen
-            ? () => setiOSCompatControls(!iOSCompatControls)
-            : undefined
-        }
-        onError={(e) => {
-          if (
-            // @ts-expect-error code does exist
-            e.target.error.code == MediaError.MEDIA_ERR_NETWORK
-          ) {
-            onError?.("startup");
-          }
-        }}
-      />
-    </div>
+      }}
+    />
   );
 }
