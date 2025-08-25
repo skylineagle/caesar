@@ -4,12 +4,14 @@
   "babbling": "Brbljanje",
   "bicycle": "Bicikla",
   "yell": "Vikati",
-  "car": "Auto",
+  "car": "Automobil",
   "bellow": "Ispod",
   "motorcycle": "Motor",
   "whoop": "Opa",
   "whispering": "Šaptanje",
   "bus": "Autobus",
   "laughter": "Smeh",
-  "train": "Voz"
+  "train": "Voz",
+  "boat": "Brod",
+  "crying": "Plač"
 }

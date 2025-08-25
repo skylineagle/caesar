@@ -141,6 +141,7 @@
       "fr": "Français (French)",
       "ar": "العربية (Arabic)",
       "pt": "Português (Portuguese)",
+      "ptBR": "Português brasileiro (Brazilian Portuguese)",
       "ru": "Русский (Russian)",
       "de": "Deutsch (German)",
       "ja": "日本語 (Japanese)",
@@ -165,6 +166,13 @@
       "yue": "粵語 (Cantonese)",
       "th": "ไทย (Thai)",
       "ca": "Català (Catalan)",
+      "sr": "Српски (Serbian)",
+      "sl": "Slovenščina (Slovenian)",
+      "lt": "Lietuvių (Lithuanian)",
+      "bg": "Български (Bulgarian)",
+      "gl": "Galego (Galician)",
+      "id": "Bahasa Indonesia (Indonesian)",
+      "ur": "اردو (Urdu)",
       "withSystem": {
         "label": "Use the system settings for language"
       }
@@ -255,5 +263,6 @@
     "title": "404",
     "desc": "Page not found"
   },
-  "selectItem": "Select {{item}}"
+  "selectItem": "Select {{item}}",
+  "readTheDocumentation": "Read the documentation"
 }

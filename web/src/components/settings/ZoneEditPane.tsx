@@ -328,6 +328,7 @@ export default function ZoneEditPane({
             `config/set?cameras.${polygon.camera}.zones.${polygon.name}${renameAlertQueries}${renameDetectionQueries}`,
             {
               requires_restart: 0,
+              update_topic: `config/cameras/${polygon.camera}/zones`,
             },
           );
 
@@ -411,7 +412,10 @@ export default function ZoneEditPane({
       axios
         .put(
           `config/set?cameras.${polygon?.camera}.zones.${zoneName}.coordinates=${coordinates}${inertiaQuery}${loiteringTimeQuery}${speedThresholdQuery}${distancesQuery}${objectQueries}${alertQueries}${detectionQueries}`,
-          { requires_restart: 0 },
+          {
+            requires_restart: 0,
+            update_topic: `config/cameras/${polygon.camera}/zones`,
+          },
         )
         .then((res) => {
           if (res.status === 200) {
@@ -681,7 +685,7 @@ export default function ZoneEditPane({
                       rel="noopener noreferrer"
                       className="inline"
                     >
-                      {t("masksAndZones.zones.speedEstimation.docs")}
+                      {t("readTheDocumentation", { ns: "common" })}
                       <LuExternalLink className="ml-2 inline-flex size-3" />
                     </Link>
                   </div>

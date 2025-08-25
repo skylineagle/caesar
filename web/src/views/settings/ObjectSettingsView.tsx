@@ -92,6 +92,12 @@ export default function ObjectSettingsView({
       description: t("debug.regions.desc"),
       info: <Trans ns="views/settings">debug.regions.tips</Trans>,
     },
+    {
+      param: "paths",
+      title: t("debug.paths.title"),
+      description: t("debug.paths.desc"),
+      info: <Trans ns="views/settings">debug.paths.tips</Trans>,
+    },
   ];
 
   const [options, setOptions, optionsLoaded] = usePersistence<Options>(
@@ -267,7 +273,7 @@ export default function ObjectSettingsView({
                                   rel="noopener noreferrer"
                                   className="inline"
                                 >
-                                  {t("debug.objectShapeFilterDrawing.document")}
+                                  {t("readTheDocumentation", { ns: "common" })}
                                   <LuExternalLink className="ml-2 inline-flex size-3" />
                                 </Link>
                               </div>

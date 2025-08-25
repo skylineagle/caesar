@@ -46,6 +46,7 @@ import { isInIframe } from "@/utils/isIFrame";
 import { isPWA } from "@/utils/isPWA";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTranslation } from "react-i18next";
+import TriggerView from "@/views/settings/TriggerView";
 
 const allSettingsViews = [
   "ui",
@@ -53,6 +54,7 @@ const allSettingsViews = [
   "cameras",
   "masksAndZones",
   "motionTuner",
+  "triggers",
   "debug",
   "users",
   "notifications",
@@ -173,7 +175,7 @@ export default function Settings() {
       }
     }
     // don't clear url params if we're creating a new object mask
-    return !searchParams.has("object_mask");
+    return !(searchParams.has("object_mask") || searchParams.has("event_id"));
   });
 
   useSearchEffect("camera", (camera: string) => {
@@ -181,8 +183,8 @@ export default function Settings() {
     if (cameraNames.includes(camera)) {
       setSelectedCamera(camera);
     }
-    // don't clear url params if we're creating a new object mask
-    return !searchParams.has("object_mask");
+    // don't clear url params if we're creating a new object mask or trigger
+    return !(searchParams.has("object_mask") || searchParams.has("event_id"));
   });
 
   useEffect(() => {
@@ -231,7 +233,8 @@ export default function Settings() {
         {(page == "debug" ||
           page == "cameras" ||
           page == "masksAndZones" ||
-          page == "motionTuner") && (
+          page == "motionTuner" ||
+          page == "triggers") && (
           <div className="ml-2 flex flex-shrink-0 items-center gap-2">
             {page == "masksAndZones" && (
               <ZoneMaskFilterButton
@@ -272,6 +275,12 @@ export default function Settings() {
         )}
         {page == "motionTuner" && (
           <MotionTunerView
+            selectedCamera={selectedCamera}
+            setUnsavedChanges={setUnsavedChanges}
+          />
+        )}
+        {page === "triggers" && (
+          <TriggerView
             selectedCamera={selectedCamera}
             setUnsavedChanges={setUnsavedChanges}
           />

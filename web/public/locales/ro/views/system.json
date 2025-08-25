@@ -66,7 +66,7 @@
     },
     "title": "Spațiu stocare",
     "cameraStorage": {
-      "title": "Spațiu tocare camere",
+      "title": "Spațiu stocare camere",
       "camera": "Camera",
       "unusedStorageInformation": "Informații despre stocarea neutilizată",
       "storageUsed": "Spațiu stocare",
@@ -77,7 +77,12 @@
       },
       "bandwidth": "Lățime de bandă"
     },
-    "overview": "Prezentare generală"
+    "overview": "Prezentare generală",
+    "shm": {
+      "title": "Alocare SHM (memorie partajată)",
+      "warning": "Dimensiunea curentă a SHM de {{total}}MB este prea mică. Măriți-o la cel puțin {{min_shm}}MB.",
+      "readTheDocumentation": "Citește documentația"
+    }
   },
   "title": "Sistem",
   "logs": {
@@ -86,12 +91,12 @@
     },
     "copy": {
       "label": "Copiază",
-      "success": "Copiază jurnalul",
+      "success": "Jurnalul a fost copiat",
       "error": "Jurnalul nu s-a putut copia"
     },
     "type": {
       "label": "Tip",
-      "timestamp": "Marca temporală",
+      "timestamp": "Data / ora",
       "tag": "Etichetă",
       "message": "Mesaj"
     },
@@ -110,7 +115,7 @@
       "image_embedding": "Încorporare imagini",
       "text_embedding": "Încorporare text",
       "plate_recognition": "Recunoaștere numere de înmatriculare",
-      "image_embedding_speed": "Viteză încorporarei imaginii",
+      "image_embedding_speed": "Viteză încorporare imagini",
       "face_recognition": "Recunoaștere facială",
       "face_recognition_speed": "Viteză recunoaștere facială",
       "plate_recognition_speed": "Viteză recunoaștere numere de înmatriculare",

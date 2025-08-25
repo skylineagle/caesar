@@ -15,6 +15,7 @@ type MotionSegmentProps = {
   timestampSpread: number;
   firstHalfMotionValue: number;
   secondHalfMotionValue: number;
+  hasRecording?: boolean;
   motionOnly: boolean;
   showMinimap: boolean;
   minimapStartTime?: number;
@@ -33,6 +34,7 @@ export function MotionSegment({
   timestampSpread,
   firstHalfMotionValue,
   secondHalfMotionValue,
+  hasRecording,
   motionOnly,
   showMinimap,
   minimapStartTime,
@@ -188,6 +190,14 @@ export function MotionSegment({
             !recorded &&
               "border-l-2 border-dashed border-secondary-foreground/70 bg-secondary-foreground/20",
             isBackfilled && "recording-backfilled",
+            severity[0] && "bg-gradient-to-r",
+            severity[0] && severityColorsBg[severity[0]],
+            // TODO: will update this for 0.17
+            false &&
+              hasRecording == false &&
+              firstHalfMotionValue == 0 &&
+              secondHalfMotionValue == 0 &&
+              "bg-slashes",
           )}
           data-backfilled={isBackfilled}
           data-recorded={recorded}

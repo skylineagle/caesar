@@ -1,6 +1,6 @@
 {
   "group": {
-    "label": "Grupa Kamera",
+    "label": "Grupa kamera",
     "add": "Dodajte grupu kamera",
     "edit": "Uredite grupu kamera",
     "delete": {
@@ -11,7 +11,11 @@
       }
     },
     "name": {
-      "label": "Ime"
+      "label": "Ime",
+      "placeholder": "Unesite ime…",
+      "errorMessage": {
+        "mustLeastCharacters": "Naziv grupe kamera mora imati bar 2 karaktera."
+      }
     }
   }
 }

@@ -5,13 +5,14 @@ import frigateHttpApiSidebar from "./docs/integrations/api/sidebar";
 const sidebars: SidebarsConfig = {
   docs: {
     Frigate: [
-      "frigate/index",
-      "frigate/hardware",
-      "frigate/installation",
-      "frigate/updating",
-      "frigate/camera_setup",
-      "frigate/video_pipeline",
-      "frigate/glossary",
+      'frigate/index',
+      'frigate/hardware',
+      'frigate/planning_setup',
+      'frigate/installation',
+      'frigate/updating',
+      'frigate/camera_setup',
+      'frigate/video_pipeline',
+      'frigate/glossary',
     ],
     Guides: [
       "guides/getting_started",
@@ -37,10 +38,23 @@ const sidebars: SidebarsConfig = {
       ],
       Enrichments: [
         "configuration/semantic_search",
-        "configuration/genai",
         "configuration/face_recognition",
         "configuration/license_plate_recognition",
         "configuration/bird_classification",
+        {
+          type: "category",
+          label: "Generative AI",
+          link: {
+            type: "generated-index",
+            title: "Generative AI",
+            description: "Generative AI Features",
+          },
+          items: [
+            "configuration/genai/genai_config",
+            "configuration/genai/genai_review",
+            "configuration/genai/genai_objects",
+          ],
+        },
       ],
       Cameras: [
         "configuration/cameras",
