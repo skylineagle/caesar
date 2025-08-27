@@ -199,46 +199,6 @@ class CameraWatchdog(threading.Thread):
         self.requestor = InterProcessRequestor()
         self.was_enabled = self.config.enabled
 
-        # Initialize camera switch detection if enabled per camera
-        self.camera_switch_detector = None
-        if (
-            hasattr(self.config, "camera_switching")
-            and self.config.camera_switching.enabled
-        ):
-            self.camera_switch_detector = CameraSwitchDetector(
-                camera_name, self.config.camera_switching.go2rtc_api_url
-            )
-
-            # Configure thresholds
-            thresholds = self.config.camera_switching.thresholds
-            self.camera_switch_detector.switch_threshold = {
-                "resolution_change": thresholds.resolution_change,
-                "codec_change": thresholds.codec_change,
-                "fps_change_percent": thresholds.fps_change_percent,
-                "error_spike_count": thresholds.error_spike_count,
-            }
-
-            # Set monitoring interval
-            self.camera_switch_detector.monitoring_interval = (
-                self.config.camera_switching.check_interval
-            )
-
-            self.camera_switch_detector.add_switch_callback(self._handle_camera_switch)
-            self.logger.info(f"Camera switch detection enabled for {camera_name}")
-
-            # Start the camera switch detector thread
-            self.camera_switch_thread = threading.Thread(
-                target=self.camera_switch_detector.monitor_stream,
-                daemon=True,
-                name=f"camera_switch_{camera_name}",
-            )
-            self.camera_switch_thread.start()
-
-        # Register camera reset callback with global manager
-        camera_reset_manager.register_camera_reset_callback(
-            camera_name, self._handle_camera_switch
-        )
-
     def _update_enabled_state(self) -> bool:
         """Fetch the latest config and update enabled state."""
         self.config_subscriber.check_for_updates()
@@ -430,10 +390,6 @@ class CameraWatchdog(threading.Thread):
     def stop_all_ffmpeg(self):
         """Stop all ffmpeg processes (detection and others)."""
         logger.debug(f"Stopping all ffmpeg processes for {self.config.name}")
-
-        # Stop camera switch monitoring first
-        self._cleanup_camera_switch_monitoring()
-
         if self.capture_thread is not None and self.capture_thread.is_alive():
             self.capture_thread.join(timeout=5)
             if self.capture_thread.is_alive():
@@ -448,38 +404,6 @@ class CameraWatchdog(threading.Thread):
                 stop_ffmpeg(p["process"], self.logger)
             p["logpipe"].close()
         self.ffmpeg_other_processes.clear()
-
-    def _cleanup_camera_switch_monitoring(self):
-        """Clean up camera switch monitoring resources."""
-        # Unregister from global reset manager
-        try:
-            camera_reset_manager.unregister_camera_reset_callback(self.camera_name)
-        except Exception as e:
-            self.logger.warning(f"Error unregistering camera reset callback: {e}")
-
-        if hasattr(self, "camera_switch_detector") and self.camera_switch_detector:
-            try:
-                # Stop the detector monitoring
-                self.camera_switch_detector.stop_monitoring()
-
-                # Wait for thread to finish (with timeout)
-                if (
-                    hasattr(self, "camera_switch_thread")
-                    and self.camera_switch_thread.is_alive()
-                ):
-                    self.camera_switch_thread.join(timeout=5)
-                    if self.camera_switch_thread.is_alive():
-                        self.logger.warning(
-                            f"Camera switch thread for {self.camera_name} did not stop gracefully"
-                        )
-
-                self.logger.debug(
-                    f"Camera switch monitoring cleaned up for {self.camera_name}"
-                )
-            except Exception as e:
-                self.logger.warning(
-                    f"Error cleaning up camera switch monitoring for {self.camera_name}: {e}"
-                )
 
     def get_latest_segment_datetime(
         self, latest_segment: datetime.datetime
@@ -732,11 +656,6 @@ def process_frames(
             CameraConfigUpdateEnum.objects,
         ],
     )
-    detect_config_subscriber = ConfigSubscriber(f"config/detect/{camera_name}", True)
-    enabled_config_subscriber = ConfigSubscriber(f"config/enabled/{camera_name}", True)
-    motion_config_subscriber = ConfigSubscriber(f"config/motion/{camera_name}", True)
-    object_filters_subscriber = ConfigSubscriber(f"config/objects/{camera_name}", True)
-    zones_subscriber = ConfigSubscriber(f"config/zones/{camera_name}", True)
 
     fps_tracker = EventsPerSecond()
     fps_tracker.start()

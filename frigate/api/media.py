@@ -636,18 +636,6 @@ def recordings(
     # Convert to list and add minimal debugging
     recordings_list = list(recordings)
 
-    # Count backfill recordings for logging
-    backfill_count = sum(
-        1
-        for r in recordings_list
-        if r["motion"] == -1 or r["objects"] == -1 or r["dBFS"] == -1
-    )
-
-    if backfill_count > 0:
-        logger.info(
-            f"🔍 API returning {backfill_count} backfill recordings for {camera_name}"
-        )
-
     return JSONResponse(content=recordings_list)
 
 
@@ -814,22 +802,12 @@ def recording_clip(
     description="Returns an HLS playlist for the specified timestamp-range on the specified camera. Append /master.m3u8 or /index.m3u8 for HLS playback.",
 )
 def vod_ts(camera_name: str, start_ts: float, end_ts: float):
-    logger.info(
-        f"🚀 VOD ENDPOINT CALLED: camera={camera_name} start={start_ts} end={end_ts}"
-    )
-    logger.info(
-        f"🔍 VOD REQUEST STARTED: camera={camera_name} start={start_ts} end={end_ts}"
-    )
-
     # If start and end timestamps are the same, expand the range slightly
     # This handles cases where the frontend sends identical timestamps
     if start_ts == end_ts:
         # Expand by 10 seconds on each side to capture nearby recordings
         start_ts = start_ts - 10
         end_ts = end_ts + 10
-        logger.info(f"🔧 Expanded time range to: {start_ts} to {end_ts}")
-    else:
-        logger.info(f"✅ Time range OK: {start_ts} to {end_ts}")
 
     # Build the query with detailed logging
     query = Recordings.select(
@@ -849,10 +827,6 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
         | ((start_ts > Recordings.start_time) & (end_ts < Recordings.end_time))
     )
     query = query.where(time_condition)
-
-    logger.info(f"🔍 VOD SQL query: {query}")
-    logger.info(f"🔍 VOD time condition: start_ts={start_ts}, end_ts={end_ts}")
-
     recordings = query.order_by(Recordings.start_time.asc()).iterator()
 
     clips = []
@@ -861,16 +835,9 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
 
     # Convert to list for debugging
     recordings_list = list(recordings)
-    logger.info(
-        f"📊 VOD found {len(recordings_list)} recordings - starting detailed processing"
-    )
 
     if len(recordings_list) == 0:
         logger.error(f"❌ NO RECORDINGS FOUND IN RANGE: {start_ts} to {end_ts}")
-        logger.error("❌ This means no recordings exist for the time you clicked on!")
-        logger.error(
-            "❌ Try clicking on a time where you can see segments in the timeline"
-        )
 
     for recording in recordings_list:
         is_backfill = (
@@ -882,7 +849,6 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
 
     # Also check if there are ANY recordings for this camera in a wider time range
     all_recordings = Recordings.select().where(Recordings.camera == camera_name).count()
-    logger.info(f"📊 Total recordings for camera {camera_name}: {all_recordings}")
 
     # Check recordings in a wider time window around the requested range
     wide_start = start_ts - 3600  # 1 hour before
@@ -899,13 +865,6 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
         .where(Recordings.start_time.between(wide_start, wide_end))
         .order_by(Recordings.start_time.asc())
     )
-    logger.info(
-        f"📊 Recordings in wider range ({wide_start} to {wide_end}): {len(wide_recordings)}"
-    )
-    for rec in wide_recordings:
-        logger.info(
-            f"   📹 Wide range: start={rec.start_time}, end={rec.end_time}, motion={rec.motion}, objects={rec.objects}, dBFS={rec.dBFS}"
-        )
 
     recording: Recordings
     for recording in recordings_list:
@@ -932,18 +891,11 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
             and recording.path.lower().endswith(".mp4")
             and file_readable
         )
-        logger.info(
-            f"📁 File validation: {recording.path} exists={file_exists} readable={file_readable} size={file_size} bytes valid_mp4={is_valid_mp4}"
-        )
 
         # If file is not readable, skip this recording entirely
         if not is_valid_mp4:
             logger.warning(f"⚠️ Skipping unreadable recording: {recording.path}")
             continue
-
-        logger.info(
-            f"📁 File check: {recording.path} exists={file_exists} size={file_size} bytes valid_mp4={is_valid_mp4}"
-        )
 
         # Check if this is a backfill recording
         is_backfill_recording = (
@@ -954,14 +906,8 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
         if is_backfill_recording:
             # Mark backfill recordings for special handling
             clip["backfill"] = True
-            logger.info(f"🏷️ Marked backfill recording: {recording.path}")
 
-        original_duration = recording.duration
         duration = int(recording.duration * 1000)
-
-        logger.info(
-            f"⏱️ Recording duration: {recording.path} original={original_duration}s calculated={duration}ms"
-        )
 
         # For debugging: check if the file path is accessible
         import os
@@ -984,8 +930,6 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
                     logger.info(f"✅ Found file at alternative path: {alt_path}")
                     clip["path"] = alt_path
                     break
-        else:
-            logger.info(f"✅ File exists: {recording.path}")
 
         # For backfill recordings, don't apply time-based clipping as they fill specific gaps
         if not is_backfill_recording:
@@ -994,21 +938,11 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
                 inpoint = int((start_ts - recording.start_time) * 1000)
                 clip["clipFrom"] = inpoint
                 duration -= inpoint
-                logger.info(
-                    f"✂️ Applied inpoint offset: {inpoint}ms, new duration={duration}ms"
-                )
 
             # adjust end if recording.end_time is after end_ts
             if recording.end_time > end_ts:
                 outpoint_offset = int((recording.end_time - end_ts) * 1000)
                 duration -= outpoint_offset
-                logger.info(
-                    f"✂️ Applied outpoint offset: {outpoint_offset}ms, new duration={duration}ms"
-                )
-        else:
-            logger.info(
-                f"🏷️ Backfill recording - skipping time-based clipping for: {recording.path}"
-            )
 
         if duration <= 0:
             # skip if the clip has no valid duration
@@ -1018,7 +952,6 @@ def vod_ts(camera_name: str, start_ts: float, end_ts: float):
             clip["keyFrameDurations"] = [duration]
             clips.append(clip)
             durations.append(duration)
-            logger.info(f"✅ Added clip: {recording.path} (duration={duration}ms)")
         else:
             logger.warning(
                 f"❌ Recording clip invalid: {recording.path} (duration={duration}ms, max={max_duration_ms}ms)"

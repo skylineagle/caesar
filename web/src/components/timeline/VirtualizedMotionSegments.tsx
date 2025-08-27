@@ -30,7 +30,6 @@ type VirtualizedMotionSegmentsProps = {
   timelineEnd?: number;
   showNowIndicator?: boolean;
   recordingIntervals?: { start: number; end: number; isBackfilled?: boolean }[];
-  getRecordingAvailability: (timestamp: number) => boolean | undefined;
 };
 
 export interface VirtualizedMotionSegmentsRef {
@@ -62,7 +61,6 @@ export const VirtualizedMotionSegments = forwardRef<
       dense,
       motionOnly,
       getMotionSegmentValue,
-      getRecordingAvailability,
       isTimestampRecorded,
       timelineStartAligned,
       timelineEnd,

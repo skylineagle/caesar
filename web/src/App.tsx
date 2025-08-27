@@ -140,6 +140,8 @@ function DefaultAppView() {
               element={<ProtectedRoute requiredRoles={["viewer", "admin"]} />}
             >
               <Route index element={<Live />} />
+              <Route path="/group/:group" element={<GroupView />} />
+              <Route path="/camera/:camera" element={<LiveCameraPage />} />
               <Route path="/review" element={<Events />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/export" element={<Exports />} />
@@ -157,6 +159,7 @@ function DefaultAppView() {
             <Route path="*" element={<Redirect to="/" />} />
           </Routes>
         </Suspense>
+        <Toaster position="top-center" closeButton />
       </div>
     </div>
   );

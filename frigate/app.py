@@ -83,10 +83,12 @@ logger = logging.getLogger(__name__)
 
 
 class FrigateApp:
-    def __init__(self, config: FrigateConfig, manager: SyncManager) -> None:
+    def __init__(
+        self, config: FrigateConfig, manager: SyncManager, stop_event: MpEvent
+    ) -> None:
         self.metrics_manager = manager
         self.audio_process: Optional[mp.Process] = None
-        self.stop_event: MpEvent = mp.Event()
+        self.stop_event = stop_event
         self.detection_queue: Queue = mp.Queue()
         self.detectors: dict[str, ObjectDetectProcess] = {}
         self.detection_shms: list[mp.shared_memory.SharedMemory] = []
@@ -230,14 +232,14 @@ class FrigateApp:
                 self.processes["go2rtc"] = proc.info["pid"]
 
     def init_recording_manager(self) -> None:
-        recording_process = RecordProcess(self.config)
+        recording_process = RecordProcess(self.config, self.stop_event)
         self.recording_process = recording_process
         recording_process.start()
         self.processes["recording"] = recording_process.pid or 0
         logger.info(f"Recording process started: {recording_process.pid}")
 
     def init_review_segment_manager(self) -> None:
-        review_segment_process = ReviewProcess(self.config)
+        review_segment_process = ReviewProcess(self.config, self.stop_event)
         self.review_segment_process = review_segment_process
         review_segment_process.start()
         self.processes["review_segment"] = review_segment_process.pid or 0
@@ -246,8 +248,7 @@ class FrigateApp:
     def init_embeddings_manager(self) -> None:
         # always start the embeddings process
         embedding_process = EmbeddingProcess(
-            self.config,
-            self.embeddings_metrics,
+            self.config, self.embeddings_metrics, self.stop_event
         )
         self.embedding_process = embedding_process
         embedding_process.start()
@@ -370,7 +371,9 @@ class FrigateApp:
                 name,
                 self.detection_queue,
                 list(self.config.cameras.keys()),
+                self.config,
                 detector_config,
+                self.stop_event,
             )
 
     def start_ptz_autotracker(self) -> None:
@@ -394,7 +397,7 @@ class FrigateApp:
         self.detected_frames_processor.start()
 
     def start_video_output_processor(self) -> None:
-        output_processor = OutputProcess(self.config)
+        output_processor = OutputProcess(self.config, self.stop_event)
         self.output_processor = output_processor
         output_processor.start()
         logger.info(f"Output process started: {output_processor.pid}")
@@ -407,6 +410,7 @@ class FrigateApp:
             self.camera_metrics,
             self.ptz_metrics,
             self.stop_event,
+            self.metrics_manager,
         )
         self.camera_maintainer.start()
 
@@ -419,7 +423,7 @@ class FrigateApp:
 
         if audio_cameras:
             self.audio_process = AudioProcessor(
-                self.config, audio_cameras, self.camera_metrics
+                self.config, audio_cameras, self.camera_metrics, self.stop_event
             )
             self.audio_process.start()
             self.processes["audio_detector"] = self.audio_process.pid or 0
@@ -514,38 +518,13 @@ class FrigateApp:
     def start(self) -> None:
         logger.info(f"Starting Frigate ({VERSION})")
 
-        # Set global camera switching state
-        try:
-            from frigate.camera_switch_monitor import (
-                set_camera_switching_global_enabled,
-            )
-
-            set_camera_switching_global_enabled(self.config.camera_switching.enabled)
-            logger.debug(
-                f"Camera switching globally {'enabled' if self.config.camera_switching.enabled else 'disabled'}"
-            )
-        except Exception as e:
-            logger.debug(f"Could not set camera switching global state: {e}")
-
-        # Register camera switching cleanup handlers
-        try:
-            from frigate.camera_switch_cleanup import register_cleanup_handlers
-
-            register_cleanup_handlers()
-            logger.debug("Camera switching cleanup handlers registered")
-        except Exception as e:
-            logger.warning(f"Could not register camera switching cleanup handlers: {e}")
-
         # Ensure global state.
         self.ensure_dirs()
 
         # Set soft file limits.
         set_file_limit()
 
-        # Start frigate services - OPTIMIZED ORDER for faster startup
-        logger.info("Starting essential services first...")
-
-        # Phase 1: Infrastructure (must be first)
+        # Start frigate services.
         self.init_camera_metrics()
         self.init_queues()
         self.init_database()
@@ -556,38 +535,15 @@ class FrigateApp:
         self.init_embeddings_manager()
         self.bind_database()
         self.check_db_data_migrations()
-
-        # Phase 2: Critical services for live streaming
-        self.init_go2rtc()
-        self.init_onvif()
-        self.init_auth()
-        logger.info("✓ Core services ready - live streaming infrastructure prepared!")
-
-        # Phase 3: Communication and lightweight services
         self.init_inter_process_communicator()
         self.start_detectors()
         self.init_dispatcher()
-        self.init_recording_manager()
-        self.init_review_segment_manager()
-
-        # Phase 4: Camera and processing services
-        self.start_camera_capture_processes()
-        logger.info("✓ Camera capture started!")
-
-        # Phase 5: Detection and AI (most time-consuming)
-        logger.info("Starting AI detection services (this may take a moment)...")
-        self.start_detectors()
-        self.init_embeddings_manager()
         self.init_embeddings_client()
-
-        # Phase 6: Processing services
         self.start_video_output_processor()
         self.start_ptz_autotracker()
         self.start_detected_frames_processor()
         self.start_camera_processor()
         self.start_audio_processor()
-
-        # Phase 7: Maintenance and monitoring (lowest priority)
         self.start_storage_maintainer()
         self.start_stats_emitter()
         self.start_timeline_processor()
@@ -596,23 +552,9 @@ class FrigateApp:
         self.start_record_cleanup()
         self.start_watchdog()
 
-        logger.info("All services started! Starting API server...")
+        self.init_auth()
 
         try:
-            logger.info("Creating FastAPI app...")
-            app = create_fastapi_app(
-                self.config,
-                self.db,
-                self.embeddings,
-                self.detected_frames_processor,
-                self.storage_maintainer,
-                self.onvif_controller,
-                self.stats_emitter,
-                self.event_metadata_updater,
-            )
-            logger.info("FastAPI app created successfully!")
-
-            logger.info("Starting uvicorn server...")
             uvicorn.run(
                 create_fastapi_app(
                     self.config,
@@ -629,12 +571,7 @@ class FrigateApp:
                 port=5001,
                 log_level="error",
             )
-            logger.info("Uvicorn server started successfully!")
-        except Exception as e:
-            logger.error(f"Error starting FastAPI server: {e}", exc_info=True)
-            raise
         finally:
-            logger.info("Entering finally block - stopping services...")
             self.stop()
 
     def stop(self) -> None:
@@ -712,16 +649,5 @@ class FrigateApp:
             shm.close()
             shm.unlink()
 
-        # Cleanup camera switching resources
-        try:
-            from frigate.camera_switch_cleanup import cleanup_camera_switch_files
-
-            logger.info("Cleaning up camera switching resources...")
-            cleanup_camera_switch_files()
-        except Exception as e:
-            logger.warning(f"Error during camera switching cleanup: {e}")
-
-        # exit the mp Manager process
         _stop_logging()
         self.metrics_manager.shutdown()
-        os._exit(os.EX_OK)

@@ -47,7 +47,7 @@ import { IoMdArrowRoundBack } from "react-icons/io";
 import { LuExternalLink, LuPlus } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
+import { Toaster, toast } from "sonner";
 import useSWR from "swr";
 import { z } from "zod";
 
@@ -158,8 +158,6 @@ export default function CameraSettingsView({
     useObjectDescriptionState(selectedCamera);
   const { payload: revDescState, send: sendRevDesc } =
     useReviewDescriptionState(selectedCamera);
-  const { payload: genAIState, send: sendGenAI } =
-    useGenAIState(selectedCamera);
 
   const handleCheckedChange = useCallback(
     (isChecked: boolean) => {
@@ -313,6 +311,7 @@ export default function CameraSettingsView({
   return (
     <>
       <div className="flex size-full flex-col md:flex-row">
+        <Toaster position="top-center" closeButton={true} />
         <div className="scrollbar-container order-last mb-10 mt-2 flex h-full w-full flex-col overflow-y-auto rounded-lg border-[1px] border-secondary-foreground bg-background_alt p-2 md:order-none md:mb-0 md:mr-2 md:mt-0">
           {viewMode === "settings" ? (
             <>
