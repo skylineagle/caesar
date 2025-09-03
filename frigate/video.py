@@ -72,7 +72,7 @@ def stop_ffmpeg(ffmpeg_process, logger):
 
 def start_or_restart_ffmpeg(
     ffmpeg_cmd, logger, logpipe: LogPipe, frame_size=None, ffmpeg_process=None
-):
+) -> sp.Popen[Any]:
     if ffmpeg_process is not None:
         stop_ffmpeg(ffmpeg_process, logger)
 
@@ -97,7 +97,7 @@ def start_or_restart_ffmpeg(
 
 
 def capture_frames(
-    ffmpeg_process,
+    ffmpeg_process: sp.Popen[Any],
     config: CameraConfig,
     shm_frame_count: int,
     frame_index: int,
@@ -108,7 +108,7 @@ def capture_frames(
     skipped_fps: Value,
     current_frame: Value,
     stop_event: MpEvent,
-):
+) -> None:
     frame_size = frame_shape[0] * frame_shape[1]
     frame_rate = EventsPerSecond()
     frame_rate.start()
@@ -199,7 +199,11 @@ class CameraWatchdog(threading.Thread):
         self.sleeptime = self.config.ffmpeg.retry_interval
 
         self.config_subscriber = ConfigSubscriber(f"config/enabled/{camera_name}", True)
+        self.requestor = InterProcessRequestor()
         self.was_enabled = self.config.enabled
+
+        # Cache last known status for each role to implement edge-triggered publishing
+        self.last_statuses = {}
 
         # Initialize camera switch detection if enabled per camera
         self.camera_switch_detector = None
@@ -240,6 +244,12 @@ class CameraWatchdog(threading.Thread):
         camera_reset_manager.register_camera_reset_callback(
             camera_name, self._handle_camera_switch
         )
+
+    def _set_status(self, role: str, status: str):
+        """Set status for a role only if it has changed from the last known status."""
+        if self.last_statuses.get(role) != status:
+            self.requestor.send_data(f"{self.config.name}/status/{role}", status)
+            self.last_statuses[role] = status
 
     def _update_enabled_state(self) -> bool:
         """Fetch the latest config and update enabled state."""
@@ -322,6 +332,9 @@ class CameraWatchdog(threading.Thread):
                 else:
                     self.logger.debug(f"Disabling camera {self.camera_name}")
                     self.stop_all_ffmpeg()
+                    # update camera status
+                    self._set_status("detect", "disabled")
+                    self._set_status("record", "disabled")
                 self.was_enabled = enabled
                 continue
 
@@ -331,6 +344,7 @@ class CameraWatchdog(threading.Thread):
             now = datetime.datetime.now().timestamp()
 
             if not self.capture_thread.is_alive():
+                self._set_status("detect", "offline")
                 self.camera_fps.value = 0
                 self.logger.error(
                     f"Ffmpeg process crashed unexpectedly for {self.camera_name}."
@@ -340,6 +354,7 @@ class CameraWatchdog(threading.Thread):
                 self.fps_overflow_count += 1
 
                 if self.fps_overflow_count == 3:
+                    self._set_status("detect", "offline")
                     self.fps_overflow_count = 0
                     self.camera_fps.value = 0
                     self.logger.info(
@@ -347,6 +362,7 @@ class CameraWatchdog(threading.Thread):
                     )
                     self.reset_capture_thread(drain_output=False)
             elif now - self.capture_thread.current_frame.value > 20:
+                self._set_status("detect", "offline")
                 self.camera_fps.value = 0
                 self.logger.info(
                     f"No frames received from {self.camera_name} in 20 seconds. Exiting ffmpeg..."
@@ -354,6 +370,7 @@ class CameraWatchdog(threading.Thread):
                 self.reset_capture_thread()
             else:
                 # process is running normally
+                self._set_status("detect", "online")
                 self.fps_overflow_count = 0
 
             for p in self.ffmpeg_other_processes:
@@ -379,12 +396,18 @@ class CameraWatchdog(threading.Thread):
                             p["logpipe"],
                             ffmpeg_process=p["process"],
                         )
+                        for role in p["roles"]:
+                            self._set_status(role, "offline")
                         continue
                     else:
+                        self._set_status("record", "online")
                         p["latest_segment_time"] = latest_segment_time
 
                 if poll is None:
                     continue
+
+                for role in p["roles"]:
+                    self._set_status(role, "offline")
 
                 p["logpipe"].dump()
                 p["process"] = start_or_restart_ffmpeg(
