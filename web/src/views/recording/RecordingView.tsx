@@ -172,17 +172,10 @@ export function RecordingView({
       return;
     }
 
-    // For backfill recordings, don't auto-advance to next chunk since they're isolated
-    // Check if current time range has backfill recordings
-    const currentRange = chunkedTimeRange[selectedRangeIdx];
-    if (currentRange && recordingsSummary) {
-      // Check if there are recordings in the next chunk before advancing
-      if (selectedRangeIdx < chunkedTimeRange.length - 1) {
-        // Only advance if we're confident there's content in the next chunk
-        // For now, let's not auto-advance for backfill scenarios to prevent 'No Preview Found'
-      }
+    if (selectedRangeIdx < chunkedTimeRange.length - 1) {
+      setSelectedRangeIdx(selectedRangeIdx + 1);
     }
-  }, [selectedRangeIdx, chunkedTimeRange, recordingsSummary]);
+  }, [selectedRangeIdx, chunkedTimeRange]);
 
   // scrubbing and timeline state
 

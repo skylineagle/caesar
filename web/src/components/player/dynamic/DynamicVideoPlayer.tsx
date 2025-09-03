@@ -6,7 +6,7 @@ import { Recording } from "@/types/record";
 import { Preview } from "@/types/preview";
 import PreviewPlayer, { PreviewController } from "../PreviewPlayer";
 import { DynamicVideoController } from "./DynamicVideoController";
-import HlsVideoPlayer from "../HlsVideoPlayer";
+import HlsVideoPlayer, { HlsSource } from "../HlsVideoPlayer";
 import { TimeRange } from "@/types/timeline";
 import ActivityIndicator from "@/components/indicators/activity-indicator";
 import { VideoResolutionType } from "@/types/live";
@@ -14,6 +14,7 @@ import axios from "axios";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { calculateInpointOffset } from "@/utils/videoUtil";
+import { isFirefox } from "react-device-detect";
 
 /**
  * Dynamically switches between video playback and scrubbing preview player.
@@ -100,9 +101,10 @@ export default function DynamicVideoPlayer({
   const [isLoading, setIsLoading] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout>();
-  const [source, setSource] = useState(
-    `${apiHost}vod/${camera}/start/${timeRange.after}/end/${timeRange.before}/master.m3u8?ts=${timeRange.after}`,
-  );
+  const [source, setSource] = useState<HlsSource>({
+    playlist: `${apiHost}vod/${camera}/start/${timeRange.after}/end/${timeRange.before}/master.m3u8`,
+    startPosition: startTimestamp ? timeRange.after - startTimestamp : 0,
+  });
 
   // start at correct time
 
@@ -119,6 +121,14 @@ export default function DynamicVideoPlayer({
     // we only want trigger when scrubbing state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera, isScrubbing]);
+
+  const onPlayerLoaded = useCallback(() => {
+    if (!controller || !startTimestamp) {
+      return;
+    }
+
+    controller.seekToTimestamp(startTimestamp, true);
+  }, [startTimestamp, controller]);
 
   const onTimeUpdate = useCallback(
     (time: number) => {
@@ -153,30 +163,24 @@ export default function DynamicVideoPlayer({
 
   // state of playback player
 
-  const recordingParams = useMemo(() => {
-    return {
+  const recordingParams = useMemo(
+    () => ({
       before: timeRange.before,
       after: timeRange.after,
-    };
-  }, [timeRange]);
+    }),
+    [timeRange],
+  );
   const { data: recordings } = useSWR<Recording[]>(
     [`${camera}/recordings`, recordingParams],
     { revalidateOnFocus: false },
   );
-
-  const onPlayerLoaded = useCallback(() => {
-    if (!controller || !startTimestamp) {
-      return;
-    }
-
-    controller.seekToTimestamp(startTimestamp, true);
-  }, [startTimestamp, controller]);
 
   useEffect(() => {
     if (!controller || !recordings?.length) {
       if (recordings?.length == 0) {
         setNoRecording(true);
       }
+
       return;
     }
 
@@ -184,9 +188,28 @@ export default function DynamicVideoPlayer({
       playerRef.current.autoplay = !isScrubbing;
     }
 
-    setSource(
-      `${apiHost}vod/${camera}/start/${recordingParams.after}/end/${recordingParams.before}/master.m3u8?ts=${recordingParams.after}`,
-    );
+    let startPosition = undefined;
+
+    if (startTimestamp) {
+      const inpointOffset = calculateInpointOffset(
+        recordingParams.after,
+        (recordings || [])[0],
+      );
+      const idealStartPosition = Math.max(
+        0,
+        startTimestamp - timeRange.after - inpointOffset,
+      );
+
+      if (idealStartPosition >= recordings[0].start_time - timeRange.after) {
+        startPosition = idealStartPosition;
+      }
+    }
+
+    setSource({
+      playlist: `${apiHost}vod/${camera}/start/${recordingParams.after}/end/${recordingParams.before}/master.m3u8`,
+      startPosition,
+    });
+
     setLoadingTimeout(setTimeout(() => setIsLoading(true), 1000));
 
     controller.newPlayback({
@@ -203,6 +226,33 @@ export default function DynamicVideoPlayer({
     [recordingParams, recordings],
   );
 
+  const onValidateClipEnd = useCallback(
+    (currentTime: number) => {
+      if (!onClipEnded || !controller || !recordings) {
+        return;
+      }
+
+      if (!isFirefox) {
+        onClipEnded();
+      }
+
+      // Firefox has a bug where clipEnded can be called prematurely due to buffering
+      // we need to validate if the current play-point is truly at the end of available recordings
+
+      const lastRecordingTime = recordings.at(-1)?.start_time;
+
+      if (
+        !lastRecordingTime ||
+        controller.getProgress(currentTime) < lastRecordingTime
+      ) {
+        return;
+      }
+
+      onClipEnded();
+    },
+    [onClipEnded, controller, recordings],
+  );
+
   return (
     <>
       <HlsVideoPlayer
@@ -216,7 +266,7 @@ export default function DynamicVideoPlayer({
         inpointOffset={inpointOffset}
         onTimeUpdate={onTimeUpdate}
         onPlayerLoaded={onPlayerLoaded}
-        onClipEnded={onClipEnded}
+        onClipEnded={onValidateClipEnd}
         onPlaying={() => {
           if (isScrubbing) {
             playerRef.current?.pause();
