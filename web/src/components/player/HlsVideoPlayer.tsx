@@ -149,7 +149,7 @@ export default function HlsVideoPlayer({
       if (hlsRef.current) {
         hlsRef.current.destroy();
       }
-    }
+    };
   }, [videoRef, hlsRef, useHlsCompat, currentSource]);
 
   // state handling
@@ -401,37 +401,40 @@ export default function HlsVideoPlayer({
                   return;
                 }
 
-              if (volume) {
-                videoRef.current.volume = volume;
-              }
-            }
-          }}
-          onEnded={() => {
-            if (onClipEnded) {
-              onClipEnded(getVideoTime() ?? 0);
-            }
-          }}
-          onError={(e) => {
-            if (
-              !hlsRef.current &&
-              // @ts-expect-error code does exist
-              unsupportedErrorCodes.includes(e.target.error.code) &&
-              videoRef.current
-            ) {
-              setLoadedMetadata(false);
-              setUseHlsCompat(true);
-            } else {
-              toast.error(
-                // @ts-expect-error code does exist
-                `Failed to play recordings (error ${e.target.error.code}): ${e.target.error.message}`,
-                {
-                  position: "top-center",
-                },
-              );
-            }
-          }}
-        />
-      </TransformComponent>
+                if (volume) {
+                  if (videoRef.current) {
+                    videoRef.current.volume = volume;
+                  }
+                }
+              }}
+              onEnded={() => {
+                if (onClipEnded) {
+                  onClipEnded(getVideoTime() ?? 0);
+                }
+              }}
+              onError={(e) => {
+                if (
+                  !hlsRef.current &&
+                  // @ts-expect-error code does exist
+                  unsupportedErrorCodes.includes(e.target.error.code) &&
+                  videoRef.current
+                ) {
+                  setLoadedMetadata(false);
+                  setUseHlsCompat(true);
+                } else {
+                  toast.error(
+                    // @ts-expect-error code does exist
+                    `Failed to play recordings (error ${e.target.error.code}): ${e.target.error.message}`,
+                    {
+                      position: "top-center",
+                    },
+                  );
+                }
+              }}
+            />
+          </TransformComponent>
+        </div>
+      </div>
     </TransformWrapper>
   );
 }
